@@ -12,6 +12,8 @@ OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 ANSWER_MODELS = ["openai/gpt-4.1-nano", "openai/gpt-4.1-mini", "openai/gpt-6.1-sol"]
 JUDGE_MODEL = "google/gemini-3.5-flash-lite"
 RERANK_MODEL = "openai/gpt-4.1-nano"
+GENERATOR_MODEL = "anthropic/claude-sonnet-5.5"
+AUDIT_MODEL = "openai/gpt-6.1-sol"
 
 EMBED_MODEL = "nomic-ai/nomic-embed-text-v1.5"
 EMBED_DIM = 768

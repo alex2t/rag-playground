@@ -59,10 +59,13 @@ def chat(model: str, messages: list[dict]) -> ChatResult:
     return to_result(completion, info)
 
 
-def chat_structured[T: BaseModel](model: str, messages: list[dict], schema: type[T]) -> tuple[T, ChatResult]:
+def chat_structured[T: BaseModel](
+    model: str, messages: list[dict], schema: type[T], max_tokens: int | None = None
+) -> tuple[T, ChatResult]:
     """Send one chat request that must return JSON matching `schema`."""
     info = model_info(model)
+    limit = {"max_tokens": max_tokens} if max_tokens else {}
     completion = client().chat.completions.parse(
-        model=model, messages=messages, response_format=schema, **sampling_params(info)
+        model=model, messages=messages, response_format=schema, **sampling_params(info), **limit
     )
     return completion.choices[0].message.parsed, to_result(completion, info)

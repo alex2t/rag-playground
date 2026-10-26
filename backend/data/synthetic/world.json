@@ -1,0 +1,2077 @@
+{
+  "company": {
+    "name": "Brightharbor Cloud Partners",
+    "founded_year": 2011,
+    "founders": [
+      "Harlan Doyle",
+      "Ingrid Castellanos"
+    ],
+    "headquarters_city": "Austin",
+    "mission": "Help mid-market and enterprise teams get dependable, measurable value from Salesforce through focused, fixed-scope delivery.",
+    "offices": [
+      {
+        "city": "Austin",
+        "country": "United States",
+        "opened_year": 2011,
+        "headcount": 7
+      },
+      {
+        "city": "Dublin",
+        "country": "Ireland",
+        "opened_year": 2015,
+        "headcount": 7
+      },
+      {
+        "city": "Melbourne",
+        "country": "Australia",
+        "opened_year": 2018,
+        "headcount": 6
+      }
+    ],
+    "milestones": [
+      {
+        "year": 2011,
+        "event": "Austin headquarters office opened."
+      },
+      {
+        "year": 2015,
+        "event": "Dublin office opened to serve clients in European time zones."
+      },
+      {
+        "year": 2017,
+        "event": "Salesforce partner tier raised to Ridge."
+      },
+      {
+        "year": 2018,
+        "event": "Melbourne office opened to serve clients in Asia-Pacific time zones."
+      },
+      {
+        "year": 2021,
+        "event": "Salesforce partner tier raised to Crest."
+      },
+      {
+        "year": 2022,
+        "event": "Remote work policy revised to raise the default allowance from 2 to 3 remote days per week."
+      },
+      {
+        "year": 2023,
+        "event": "Data Cloud Foundation service launched."
+      },
+      {
+        "year": 2024,
+        "event": "Agentforce Pilot Program service launched."
+      }
+    ],
+    "policies": [
+      {
+        "title": "Expenses",
+        "rules": [
+          "Meals during client travel are reimbursed up to USD 75 per day, receipts required.",
+          "Flights under 6 hours are booked in economy; flights of 6 hours or longer may be booked in premium economy.",
+          "Hotel nights are reimbursed up to USD 220 per night; a higher rate needs approval from the Chief Delivery Officer before booking.",
+          "Any single expense above USD 500 needs written pre-approval from the employee's manager. Meals are governed by the daily meal cap alone and never need pre-approval under this rule, so the two rules do not combine.",
+          "Expense reports must be submitted within 30 days of the expense date; later claims are paid only if the Head of Finance and Operations approves them."
+        ]
+      },
+      {
+        "title": "Remote Work",
+        "rules": [
+          "Employees may work remotely up to 3 days per week by default.",
+          "Days spent on site at a client do not count toward the 3-day remote limit.",
+          "Core hours are 10:00 to 15:00 in the employee's office time zone, on remote days and office days alike.",
+          "Working from another country is allowed for up to 20 working days per calendar year, with manager approval requested at least 14 days ahead.",
+          "Days worked from abroad are still remote days, so the 3-day weekly limit and the 20-day annual limit both apply together.",
+          "A one-time home-office stipend of USD 600 is paid after the employee completes 90 days of service."
+        ]
+      },
+      {
+        "title": "Certification Bonus",
+        "rules": [
+          "Passing a foundation-level exam (any Administrator, Associate or Specialist exam, including Tableau Desktop Specialist, or Platform App Builder) earns a bonus of USD 500.",
+          "Passing an advanced exam (any Consultant, Developer, Architect or Tableau Certified Data Analyst exam, including MuleSoft Developer and Architect exams) earns a bonus of USD 1,500.",
+          "Bonuses are paid in the next payroll run after the passing score is verified; if two exams are passed in the same payroll month, both bonuses are paid.",
+          "Exam fees are reimbursed through the annual learning budget in addition to the bonus, so the two combine.",
+          "Retaking an exam for a certification the employee already holds earns no bonus.",
+          "An employee who leaves within 12 months of receiving a bonus repays 50% of it, and certification bonuses are capped at USD 4,000 per calendar year per employee."
+        ]
+      },
+      {
+        "title": "On-Call",
+        "rules": [
+          "On-call covers go-live hypercare and production incidents for clients on an active support agreement.",
+          "The weekly rotation runs from Monday 09:00 to the following Monday 09:00, and no employee is on call two weeks in a row.",
+          "The on-call allowance is USD 350 per week.",
+          "The on-call engineer must acknowledge a page within 15 minutes.",
+          "Incident work that lasts longer than 30 minutes earns USD 60 per incident in addition to the weekly allowance, so the two combine.",
+          "An overnight callout between 22:00 and 06:00 earns either the USD 60 incident payment or half a day off in lieu, chosen by the employee, never both."
+        ]
+      }
+    ]
+  },
+  "employees": [
+    {
+      "id": "emp-01",
+      "name": "Harlan Doyle",
+      "title": "Chief Executive Officer",
+      "office_city": "Austin",
+      "start_date": "2011-03-07",
+      "manager_id": null,
+      "certifications": [
+        "Salesforce Certified Administrator"
+      ],
+      "skills": [
+        "Executive sponsorship",
+        "Partner management",
+        "Sales Cloud strategy"
+      ],
+      "notable_facts": [
+        "Worked as a sales operations manager at Tallgrass Logistics before founding the firm.",
+        "Holds a private pilot licence for single-engine aircraft.",
+        "Speaks each autumn at the Austin Salesforce user group."
+      ]
+    },
+    {
+      "id": "emp-02",
+      "name": "Ingrid Castellanos",
+      "title": "Chief Delivery Officer",
+      "office_city": "Austin",
+      "start_date": "2011-03-07",
+      "manager_id": "emp-01",
+      "certifications": [
+        "Salesforce Certified Administrator",
+        "Salesforce Certified Sales Cloud Consultant",
+        "Salesforce Certified Service Cloud Consultant"
+      ],
+      "skills": [
+        "Delivery methodology",
+        "Sales Cloud",
+        "Service Cloud",
+        "Risk management"
+      ],
+      "notable_facts": [
+        "Previously a delivery manager at Pinecrest Systems.",
+        "Approves hotel and travel exceptions under the expense policy.",
+        "Fluent in English and Spanish."
+      ]
+    },
+    {
+      "id": "emp-03",
+      "name": "Tobias Wren",
+      "title": "Principal Sales Cloud Architect",
+      "office_city": "Austin",
+      "start_date": "2011-09-19",
+      "manager_id": "emp-02",
+      "certifications": [
+        "Salesforce Certified Application Architect",
+        "Salesforce Certified Sales Cloud Consultant",
+        "Salesforce Certified Platform Developer II"
+      ],
+      "skills": [
+        "Sales Cloud",
+        "Forecasting design",
+        "Apex development",
+        "Data modeling"
+      ],
+      "notable_facts": [
+        "Joined after working as a Salesforce developer at Brightmoor Software.",
+        "Plays bass in an Austin jazz trio.",
+        "Authored the pipeline-stage design workbook used in Sales Cloud engagements."
+      ]
+    },
+    {
+      "id": "emp-04",
+      "name": "Maribel Quintero",
+      "title": "Senior Service Cloud Consultant",
+      "office_city": "Austin",
+      "start_date": "2013-05-13",
+      "manager_id": "emp-02",
+      "certifications": [
+        "Salesforce Certified Service Cloud Consultant",
+        "Salesforce Certified Administrator"
+      ],
+      "skills": [
+        "Service Cloud",
+        "Omni-Channel routing",
+        "Knowledge management"
+      ],
+      "notable_facts": [
+        "Trained customer-support teams at Redwater Utilities before joining the firm.",
+        "Mentors in a women-in-technology program in Austin.",
+        "Bilingual in English and Spanish."
+      ]
+    },
+    {
+      "id": "emp-05",
+      "name": "Desmond Achterberg",
+      "title": "Revenue Cloud Consultant",
+      "office_city": "Austin",
+      "start_date": "2019-02-04",
+      "manager_id": "emp-03",
+      "certifications": [
+        "Salesforce Certified Revenue Cloud Consultant",
+        "Salesforce Certified Administrator"
+      ],
+      "skills": [
+        "Revenue Cloud",
+        "Product and pricing rules",
+        "Quote approvals"
+      ],
+      "notable_facts": [
+        "Spent six years in finance systems at Halvorsen Industrial before moving into consulting.",
+        "Finished the 2022 Austin marathon in 3 hours 42 minutes 10 seconds.",
+        "Leads the Revenue Cloud Quote-to-Cash service."
+      ]
+    },
+    {
+      "id": "emp-06",
+      "name": "Sana Whitlock",
+      "title": "Shield Security Architect",
+      "office_city": "Austin",
+      "start_date": "2020-08-17",
+      "manager_id": "emp-02",
+      "certifications": [
+        "Salesforce Certified Sharing and Visibility Architect",
+        "Salesforce Certified Identity and Access Management Architect",
+        "Salesforce Certified Administrator"
+      ],
+      "skills": [
+        "Shield",
+        "Event monitoring",
+        "Field audit trail",
+        "Permission design"
+      ],
+      "notable_facts": [
+        "Previously a security analyst at Cobalt Harbor Bank.",
+        "Presented on Shield event monitoring at a regional user conference in 2022.",
+        "Enjoys indoor rock climbing."
+      ]
+    },
+    {
+      "id": "emp-07",
+      "name": "Beatrix Nakamura-Hale",
+      "title": "Head of Finance and Operations",
+      "office_city": "Austin",
+      "start_date": "2012-01-16",
+      "manager_id": "emp-01",
+      "certifications": [],
+      "skills": [
+        "Payroll",
+        "Financial reporting",
+        "Expense compliance"
+      ],
+      "notable_facts": [
+        "Qualified as a chartered accountant before joining the firm.",
+        "Decides on late expense claims under the expense policy.",
+        "Speaks conversational Japanese."
+      ]
+    },
+    {
+      "id": "emp-08",
+      "name": "Cormac Brennigan",
+      "title": "Director of EMEA Delivery",
+      "office_city": "Dublin",
+      "start_date": "2015-06-01",
+      "manager_id": "emp-02",
+      "certifications": [
+        "Salesforce Certified Administrator",
+        "Salesforce Certified Sales Cloud Consultant"
+      ],
+      "skills": [
+        "Delivery management",
+        "Client engagement",
+        "Team leadership"
+      ],
+      "notable_facts": [
+        "Moved from the Dublin systems integrator Liffey Digital to set up the Dublin office.",
+        "Coaches a youth hurling team.",
+        "Works from the Dublin office four days a week."
+      ]
+    },
+    {
+      "id": "emp-09",
+      "name": "Aoife Gallagher-Voss",
+      "title": "Data Cloud Architect",
+      "office_city": "Dublin",
+      "start_date": "2016-02-22",
+      "manager_id": "emp-08",
+      "certifications": [
+        "Salesforce Certified Data Cloud Consultant",
+        "Salesforce Certified Data Architect",
+        "Salesforce Certified Administrator",
+        "Salesforce Certified Platform Developer I"
+      ],
+      "skills": [
+        "Data Cloud",
+        "Identity resolution",
+        "Data modeling",
+        "Segmentation"
+      ],
+      "notable_facts": [
+        "Holds a master's degree in data engineering from a Dublin university.",
+        "Wrote the internal identity resolution playbook for Data Cloud projects.",
+        "Speaks Irish and English."
+      ]
+    },
+    {
+      "id": "emp-10",
+      "name": "Niall Prendergast",
+      "title": "MuleSoft Integration Lead",
+      "office_city": "Dublin",
+      "start_date": "2016-10-03",
+      "manager_id": "emp-08",
+      "certifications": [
+        "MuleSoft Certified Integration Architect - Level 1",
+        "MuleSoft Certified Developer - Level 1"
+      ],
+      "skills": [
+        "MuleSoft",
+        "API-led connectivity",
+        "DataWeave",
+        "Error handling design"
+      ],
+      "notable_facts": [
+        "Previously built API gateways for the telecom operator Corrib Mobile.",
+        "Brews craft beer as a hobby.",
+        "Maintains the API-led connectivity template used in MuleSoft Integration Sprints."
+      ]
+    },
+    {
+      "id": "emp-11",
+      "name": "Rosalind Ekstrom",
+      "title": "Marketing Cloud Consultant",
+      "office_city": "Dublin",
+      "start_date": "2017-04-10",
+      "manager_id": "emp-08",
+      "certifications": [
+        "Salesforce Certified Marketing Cloud Email Specialist",
+        "Salesforce Certified Marketing Cloud Administrator"
+      ],
+      "skills": [
+        "Marketing Cloud",
+        "Journey Builder",
+        "Email deliverability",
+        "Audience segmentation"
+      ],
+      "notable_facts": [
+        "Previously an email marketing manager at Nordlys Retail.",
+        "Fluent in Swedish, English and German.",
+        "Leads the Marketing Cloud Journey Design service."
+      ]
+    },
+    {
+      "id": "emp-12",
+      "name": "Fintan Oduya",
+      "title": "Experience Cloud Developer",
+      "office_city": "Dublin",
+      "start_date": "2018-09-24",
+      "manager_id": "emp-08",
+      "certifications": [
+        "Salesforce Certified Experience Cloud Consultant",
+        "Salesforce Certified Platform Developer I",
+        "Salesforce Certified JavaScript Developer I"
+      ],
+      "skills": [
+        "Experience Cloud",
+        "Lightning Web Components",
+        "Portal theming",
+        "Sharing sets"
+      ],
+      "notable_facts": [
+        "Built a reusable Lightning Web Components library for portal themes.",
+        "Cycles competitively on weekends.",
+        "Leads the Experience Cloud Portal Build service."
+      ]
+    },
+    {
+      "id": "emp-13",
+      "name": "Maeve Lindgren",
+      "title": "Service Cloud Consultant",
+      "office_city": "Dublin",
+      "start_date": "2021-01-18",
+      "manager_id": "emp-08",
+      "certifications": [
+        "Salesforce Certified Service Cloud Consultant"
+      ],
+      "skills": [
+        "Service Cloud",
+        "Case management",
+        "Entitlements and milestones"
+      ],
+      "notable_facts": [
+        "Previously a contact-centre team lead at Harbourline Telecom.",
+        "Joined the firm during a period of fully remote onboarding.",
+        "Volunteers at a community coding club."
+      ]
+    },
+    {
+      "id": "emp-14",
+      "name": "Declan Mbeki",
+      "title": "Sales Cloud Consultant",
+      "office_city": "Dublin",
+      "start_date": "2022-05-09",
+      "manager_id": "emp-08",
+      "certifications": [
+        "Salesforce Certified Administrator"
+      ],
+      "skills": [
+        "Sales Cloud",
+        "Lead routing",
+        "Reports and dashboards"
+      ],
+      "notable_facts": [
+        "Worked as a field sales representative at Arkwright Tools before moving into CRM consulting.",
+        "Plays rugby for a Dublin club.",
+        "Gives the Sales Cloud onboarding walkthrough for new clients' sales teams."
+      ]
+    },
+    {
+      "id": "emp-15",
+      "name": "Keira Lombardi",
+      "title": "Director of APAC Delivery",
+      "office_city": "Melbourne",
+      "start_date": "2018-07-02",
+      "manager_id": "emp-02",
+      "certifications": [
+        "Salesforce Certified Administrator",
+        "Salesforce Certified Sales Cloud Consultant",
+        "Salesforce Certified Experience Cloud Consultant"
+      ],
+      "skills": [
+        "Delivery management",
+        "Client engagement",
+        "Sales Cloud",
+        "Team leadership"
+      ],
+      "notable_facts": [
+        "Set up the Melbourne office after working as a program director at Southgate Digital.",
+        "Sails on Port Phillip Bay at weekends.",
+        "Approves on-call rotations for the Melbourne team."
+      ]
+    },
+    {
+      "id": "emp-16",
+      "name": "Jasper Tran-Mackenzie",
+      "title": "Tableau Analytics Lead",
+      "office_city": "Melbourne",
+      "start_date": "2019-03-11",
+      "manager_id": "emp-15",
+      "certifications": [
+        "Tableau Certified Data Analyst",
+        "Tableau Desktop Specialist"
+      ],
+      "skills": [
+        "Tableau",
+        "Dashboard design",
+        "Data visualization",
+        "Calculated fields"
+      ],
+      "notable_facts": [
+        "Built clinical reporting dashboards for a Victorian health network before joining.",
+        "Hosts a monthly Tableau user group meetup in Melbourne.",
+        "Leads the Tableau Analytics Accelerator service."
+      ]
+    },
+    {
+      "id": "emp-17",
+      "name": "Odalys Fairweather",
+      "title": "Agentforce Solution Architect",
+      "office_city": "Melbourne",
+      "start_date": "2023-10-02",
+      "manager_id": "emp-15",
+      "certifications": [
+        "Salesforce Certified Agentforce Specialist",
+        "Salesforce Certified AI Associate",
+        "Salesforce Certified Platform Developer I"
+      ],
+      "skills": [
+        "Agentforce",
+        "Prompt design",
+        "Guardrail testing",
+        "Service Cloud"
+      ],
+      "notable_facts": [
+        "Joined from the conversational-AI startup Quillbird Labs.",
+        "Designed the guardrail testing approach used in Agentforce pilots.",
+        "Leads the Agentforce Pilot Program service."
+      ]
+    },
+    {
+      "id": "emp-18",
+      "name": "Wiremu Hartigan",
+      "title": "Experience Cloud Consultant",
+      "office_city": "Melbourne",
+      "start_date": "2020-11-23",
+      "manager_id": "emp-15",
+      "certifications": [
+        "Salesforce Certified Experience Cloud Consultant"
+      ],
+      "skills": [
+        "Experience Cloud",
+        "Partner portals",
+        "Content and navigation design"
+      ],
+      "notable_facts": [
+        "Previously a front-end developer at Kiwi Harbour Media.",
+        "Speaks te reo Maori and English.",
+        "Runs accessibility reviews on portal builds."
+      ]
+    },
+    {
+      "id": "emp-19",
+      "name": "Imogen Padgett",
+      "title": "Sales Cloud Consultant",
+      "office_city": "Melbourne",
+      "start_date": "2021-08-30",
+      "manager_id": "emp-15",
+      "certifications": [
+        "Salesforce Certified Sales Cloud Consultant",
+        "Salesforce Certified Administrator"
+      ],
+      "skills": [
+        "Sales Cloud",
+        "Opportunity management",
+        "Territory planning"
+      ],
+      "notable_facts": [
+        "Previously an inside sales manager at Tasman Freight.",
+        "Coaches a netball team.",
+        "Joined the Melbourne office in August 2021."
+      ]
+    },
+    {
+      "id": "emp-20",
+      "name": "Callum Reidy",
+      "title": "Project Manager",
+      "office_city": "Melbourne",
+      "start_date": "2022-02-14",
+      "manager_id": "emp-15",
+      "certifications": [],
+      "skills": [
+        "Project planning",
+        "Risk management",
+        "Stakeholder reporting"
+      ],
+      "notable_facts": [
+        "Previously a project coordinator at Eastgate Builders.",
+        "Cycles to the Melbourne office each day.",
+        "Prepares weekly status reports for clients in Asia-Pacific."
+      ]
+    }
+  ],
+  "services": [
+    {
+      "id": "svc-01",
+      "name": "Sales Cloud Implementation",
+      "summary": "End-to-end configuration of Sales Cloud for a sales team, from lead capture through forecasting.",
+      "salesforce_products": [
+        "Sales Cloud"
+      ],
+      "pricing_model": "Fixed fee",
+      "price_usd": 64800,
+      "typical_duration_weeks": 12,
+      "launch_year": 2012,
+      "lead_employee_id": "emp-03",
+      "deliverables": [
+        "Configured lead-to-opportunity process",
+        "Forecasting and pipeline dashboards",
+        "Data migration from legacy CRM",
+        "Admin training sessions"
+      ]
+    },
+    {
+      "id": "svc-02",
+      "name": "Service Cloud Launchpad",
+      "summary": "Rapid rollout of Service Cloud case management and Omni-Channel routing for support teams.",
+      "salesforce_products": [
+        "Service Cloud"
+      ],
+      "pricing_model": "Fixed fee",
+      "price_usd": 58400,
+      "typical_duration_weeks": 10,
+      "launch_year": 2014,
+      "lead_employee_id": "emp-04",
+      "deliverables": [
+        "Case management configuration",
+        "Omni-Channel routing rules",
+        "Knowledge base structure",
+        "Agent console setup",
+        "Go-live support plan"
+      ]
+    },
+    {
+      "id": "svc-03",
+      "name": "Data Cloud Foundation",
+      "summary": "Establishes Data Cloud with source connections, identity resolution and activation-ready segments.",
+      "salesforce_products": [
+        "Data Cloud"
+      ],
+      "pricing_model": "Fixed fee",
+      "price_usd": 86250,
+      "typical_duration_weeks": 14,
+      "launch_year": 2023,
+      "lead_employee_id": "emp-09",
+      "deliverables": [
+        "Data source connection map",
+        "Identity resolution rule set",
+        "Unified profile data model",
+        "Initial activation segments"
+      ]
+    },
+    {
+      "id": "svc-04",
+      "name": "Agentforce Pilot Program",
+      "summary": "Time-boxed pilot of an Agentforce service agent grounded in a client's knowledge and case data.",
+      "salesforce_products": [
+        "Agentforce",
+        "Service Cloud"
+      ],
+      "pricing_model": "Fixed fee",
+      "price_usd": 49900,
+      "typical_duration_weeks": 8,
+      "launch_year": 2024,
+      "lead_employee_id": "emp-17",
+      "deliverables": [
+        "Agent topic and action design",
+        "Guardrail and escalation test plan",
+        "Pilot agent deployed to a sandbox and a limited production group",
+        "Pilot results readout"
+      ]
+    },
+    {
+      "id": "svc-05",
+      "name": "MuleSoft Integration Sprint",
+      "summary": "Focused sprint that builds and documents a set of API-led integrations between Salesforce and back-office systems.",
+      "salesforce_products": [
+        "MuleSoft"
+      ],
+      "pricing_model": "Fixed fee per sprint",
+      "price_usd": 42600,
+      "typical_duration_weeks": 6,
+      "launch_year": 2017,
+      "lead_employee_id": "emp-10",
+      "deliverables": [
+        "Integration architecture diagram",
+        "Deployed Mule applications",
+        "Error-handling and retry design",
+        "Runbook for operations teams"
+      ]
+    },
+    {
+      "id": "svc-06",
+      "name": "Tableau Analytics Accelerator",
+      "summary": "Delivers a governed set of Tableau dashboards on top of Salesforce and finance data.",
+      "salesforce_products": [
+        "Tableau"
+      ],
+      "pricing_model": "Fixed fee",
+      "price_usd": 38500,
+      "typical_duration_weeks": 6,
+      "launch_year": 2020,
+      "lead_employee_id": "emp-16",
+      "deliverables": [
+        "Published executive dashboards",
+        "Certified data source",
+        "Dashboard style guide",
+        "Two training workshops"
+      ]
+    },
+    {
+      "id": "svc-07",
+      "name": "Experience Cloud Portal Build",
+      "summary": "Design and build of a customer or partner portal on Experience Cloud with branded themes and sharing rules.",
+      "salesforce_products": [
+        "Experience Cloud"
+      ],
+      "pricing_model": "Fixed fee",
+      "price_usd": 72300,
+      "typical_duration_weeks": 13,
+      "launch_year": 2019,
+      "lead_employee_id": "emp-12",
+      "deliverables": [
+        "Branded portal theme",
+        "Sharing and visibility model",
+        "Self-service case and knowledge pages",
+        "Accessibility review report",
+        "User acceptance test plan"
+      ]
+    },
+    {
+      "id": "svc-08",
+      "name": "Marketing Cloud Journey Design",
+      "summary": "Designs and builds lifecycle email and SMS journeys in Marketing Cloud with audience segmentation.",
+      "salesforce_products": [
+        "Marketing Cloud"
+      ],
+      "pricing_model": "Fixed fee",
+      "price_usd": 38900,
+      "typical_duration_weeks": 7,
+      "launch_year": 2018,
+      "lead_employee_id": "emp-11",
+      "deliverables": [
+        "Journey Builder canvases",
+        "Audience segmentation model",
+        "Email template library",
+        "Deliverability checklist"
+      ]
+    },
+    {
+      "id": "svc-09",
+      "name": "Revenue Cloud Quote-to-Cash",
+      "summary": "Implements Revenue Cloud product catalogs, pricing rules, quote approvals and billing handoff.",
+      "salesforce_products": [
+        "Revenue Cloud"
+      ],
+      "pricing_model": "Fixed fee",
+      "price_usd": 94700,
+      "typical_duration_weeks": 16,
+      "launch_year": 2020,
+      "lead_employee_id": "emp-05",
+      "deliverables": [
+        "Product catalog and pricing rules",
+        "Quote approval workflows",
+        "Contract and renewal setup",
+        "Billing system handoff specification",
+        "Finance team training"
+      ]
+    },
+    {
+      "id": "svc-10",
+      "name": "Shield Security Assurance Retainer",
+      "summary": "Ongoing Shield-based monitoring and permission governance for regulated Salesforce orgs.",
+      "salesforce_products": [
+        "Shield"
+      ],
+      "pricing_model": "Monthly retainer, up to 30 support tickets per month",
+      "price_usd": 6850,
+      "typical_duration_weeks": 24,
+      "launch_year": 2021,
+      "lead_employee_id": "emp-06",
+      "deliverables": [
+        "Monthly event monitoring report",
+        "Quarterly permission review",
+        "Incident triage within 4 business hours",
+        "Annual encryption key rotation plan"
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "id": "cli-01",
+      "name": "Marlowe Ridge Logistics",
+      "industry": "Logistics",
+      "country": "United States",
+      "client_since_year": 2014,
+      "annual_contract_value_usd": 126400,
+      "account_lead_id": "emp-03",
+      "projects": [
+        {
+          "name": "Marlowe Ridge Sales Cloud rollout",
+          "service_id": "svc-01",
+          "start_date": "2014-03-03",
+          "end_date": "2014-06-02",
+          "team_employee_ids": [
+            "emp-03",
+            "emp-02"
+          ],
+          "outcome": "Freight sales team moved from spreadsheets to a configured lead-to-opportunity process with live pipeline dashboards.",
+          "metric": "Lead response time cut from 26 hours to 9 hours (65.4% reduction)."
+        },
+        {
+          "name": "Marlowe Ridge executive dashboards",
+          "service_id": "svc-06",
+          "start_date": "2021-02-01",
+          "end_date": "2021-03-18",
+          "team_employee_ids": [
+            "emp-16",
+            "emp-03"
+          ],
+          "outcome": "Dispatch and billing leaders received governed Tableau dashboards on shipment margin and lane performance.",
+          "metric": "Dashboard refresh time cut from 18 minutes to 4 minutes (77.8% reduction)."
+        }
+      ],
+      "notable_facts": [
+        "Headquartered in Fort Worth, Texas.",
+        "Operates 9 cross-dock terminals across Texas and Oklahoma.",
+        "Runs a fleet of refrigerated trailers for grocery distributors."
+      ]
+    },
+    {
+      "id": "cli-02",
+      "name": "Fernhollow Pharmacy Group",
+      "industry": "Healthcare",
+      "country": "Ireland",
+      "client_since_year": 2016,
+      "annual_contract_value_usd": 187350,
+      "account_lead_id": "emp-08",
+      "projects": [
+        {
+          "name": "Fernhollow pharmacy support desk launch",
+          "service_id": "svc-02",
+          "start_date": "2016-09-12",
+          "end_date": "2016-11-28",
+          "team_employee_ids": [
+            "emp-08",
+            "emp-04"
+          ],
+          "outcome": "Central customer-care team began handling prescription and delivery cases in Service Cloud with Omni-Channel routing.",
+          "metric": "Average case handling time reduced from 31 minutes to 22 minutes (29.0% reduction)."
+        },
+        {
+          "name": "Fernhollow patient refill portal",
+          "service_id": "svc-07",
+          "start_date": "2020-01-13",
+          "end_date": "2020-04-27",
+          "team_employee_ids": [
+            "emp-12",
+            "emp-08"
+          ],
+          "outcome": "Customers gained a branded portal for repeat-prescription requests and self-service help articles.",
+          "metric": "2,940 refill requests submitted through the portal in the month after go-live."
+        },
+        {
+          "name": "Fernhollow loyalty profile unification",
+          "service_id": "svc-03",
+          "start_date": "2024-02-05",
+          "end_date": "2024-05-27",
+          "team_employee_ids": [
+            "emp-09",
+            "emp-08",
+            "emp-10"
+          ],
+          "outcome": "Loyalty-card, e-commerce and in-store profiles were connected and resolved into unified customer profiles with starter segments.",
+          "metric": "Duplicate loyalty-card profile rate fell from 18.4% to 3.1%."
+        }
+      ],
+      "notable_facts": [
+        "Operates 62 community pharmacies across Ireland.",
+        "Headquartered in Cork.",
+        "Offers a home-delivery service for prescription medicines."
+      ]
+    },
+    {
+      "id": "cli-03",
+      "name": "Kestrel Basin Energy",
+      "industry": "Energy and Utilities",
+      "country": "Australia",
+      "client_since_year": 2019,
+      "annual_contract_value_usd": 94200,
+      "account_lead_id": "emp-15",
+      "projects": [
+        {
+          "name": "Kestrel Basin customer care launchpad",
+          "service_id": "svc-02",
+          "start_date": "2019-05-06",
+          "end_date": "2019-07-08",
+          "team_employee_ids": [
+            "emp-15",
+            "emp-04"
+          ],
+          "outcome": "Retail energy customer-care agents moved to a single Service Cloud console with outage-enquiry routing.",
+          "metric": "First-contact resolution rate for outage enquiries rose from 58% to 74%."
+        },
+        {
+          "name": "Kestrel Basin network fault reporting",
+          "service_id": "svc-06",
+          "start_date": "2022-08-15",
+          "end_date": "2022-09-22",
+          "team_employee_ids": [
+            "emp-16",
+            "emp-20",
+            "emp-15"
+          ],
+          "outcome": "Operations managers received a certified data source and dashboards on network faults and restoration times.",
+          "metric": "Monthly network-fault report preparation time reduced from 14 hours to 2 hours (85.7% reduction)."
+        }
+      ],
+      "notable_facts": [
+        "Generates electricity from wind and gas assets in Victoria.",
+        "Serves residential and small-business energy customers.",
+        "Headquartered in Ballarat."
+      ]
+    },
+    {
+      "id": "cli-04",
+      "name": "Brannock & Voll Insurance",
+      "industry": "Financial Services",
+      "country": "United States",
+      "client_since_year": 2020,
+      "annual_contract_value_usd": 143900,
+      "account_lead_id": "emp-02",
+      "projects": [
+        {
+          "name": "Brannock & Voll broker sales implementation",
+          "service_id": "svc-01",
+          "start_date": "2020-09-14",
+          "end_date": "2020-12-21",
+          "team_employee_ids": [
+            "emp-03",
+            "emp-02"
+          ],
+          "outcome": "Commercial insurance brokers now manage leads, quotes and renewals in a configured Sales Cloud with forecasting dashboards.",
+          "metric": "Quote-to-bind cycle shortened from 19 days to 12 days (36.8% reduction)."
+        },
+        {
+          "name": "Brannock & Voll Shield assurance retainer",
+          "service_id": "svc-10",
+          "start_date": "2022-03-01",
+          "end_date": "2022-09-13",
+          "team_employee_ids": [
+            "emp-06",
+            "emp-02"
+          ],
+          "outcome": "Event monitoring and quarterly permission reviews were put in place for the claims and underwriting org.",
+          "metric": "Support tickets averaged 17 per month, within the 30-ticket monthly allowance."
+        }
+      ],
+      "notable_facts": [
+        "Specialises in commercial property and casualty insurance.",
+        "Headquartered in Chicago, Illinois.",
+        "Sells exclusively through independent brokers."
+      ]
+    },
+    {
+      "id": "cli-05",
+      "name": "Calder Vale Building Society",
+      "industry": "Financial Services",
+      "country": "United Kingdom",
+      "client_since_year": 2018,
+      "annual_contract_value_usd": 168700,
+      "account_lead_id": "emp-08",
+      "projects": [
+        {
+          "name": "Calder Vale core banking integration sprint",
+          "service_id": "svc-05",
+          "start_date": "2018-03-05",
+          "end_date": "2018-04-09",
+          "team_employee_ids": [
+            "emp-10",
+            "emp-08",
+            "emp-09"
+          ],
+          "outcome": "Account and mortgage data from the core banking platform was exposed through documented API-led integrations to Salesforce.",
+          "metric": "Core-banking to Salesforce sync latency cut from 45 minutes to 3 minutes (93.3% reduction)."
+        },
+        {
+          "name": "Calder Vale Shield assurance retainer",
+          "service_id": "svc-10",
+          "start_date": "2023-02-06",
+          "end_date": "2023-07-21",
+          "team_employee_ids": [
+            "emp-06",
+            "emp-08"
+          ],
+          "outcome": "Field audit trail and monthly event monitoring reports were established for member-facing Salesforce orgs.",
+          "metric": "Support tickets averaged 24 per month, within the 30-ticket monthly allowance."
+        },
+        {
+          "name": "Calder Vale member data foundation",
+          "service_id": "svc-03",
+          "start_date": "2023-09-11",
+          "end_date": "2023-12-11",
+          "team_employee_ids": [
+            "emp-09",
+            "emp-10",
+            "emp-08"
+          ],
+          "outcome": "Member data from savings, mortgage and online banking systems was connected with identity resolution rules and activation-ready segments.",
+          "metric": "Unified profiles built for 412,500 members from 5 source systems."
+        }
+      ],
+      "notable_facts": [
+        "Mutually owned by its savings and mortgage members.",
+        "Headquartered in Leeds, West Yorkshire.",
+        "Operates 38 branches across northern England."
+      ]
+    },
+    {
+      "id": "cli-06",
+      "name": "Wattlebank Health Network",
+      "industry": "Healthcare",
+      "country": "Australia",
+      "client_since_year": 2020,
+      "annual_contract_value_usd": 112600,
+      "account_lead_id": "emp-15",
+      "projects": [
+        {
+          "name": "Wattlebank outpatient wait-time dashboards",
+          "service_id": "svc-06",
+          "start_date": "2020-06-08",
+          "end_date": "2020-07-27",
+          "team_employee_ids": [
+            "emp-16",
+            "emp-15"
+          ],
+          "outcome": "Clinic managers gained governed Tableau dashboards on outpatient waiting times and appointment attendance.",
+          "metric": "Outpatient wait-time report preparation reduced from 36 hours to 5 hours (86.1% reduction)."
+        },
+        {
+          "name": "Wattlebank GP referral portal",
+          "service_id": "svc-07",
+          "start_date": "2021-10-04",
+          "end_date": "2022-01-10",
+          "team_employee_ids": [
+            "emp-18",
+            "emp-12",
+            "emp-15"
+          ],
+          "outcome": "Referring GPs submit and track specialist referrals through a branded Experience Cloud portal.",
+          "metric": "Paper referral forms fell from 2,600 to 410 per month (84.2% reduction)."
+        },
+        {
+          "name": "Wattlebank appointment enquiry agent pilot",
+          "service_id": "svc-04",
+          "start_date": "2025-02-17",
+          "end_date": "2025-04-21",
+          "team_employee_ids": [
+            "emp-17",
+            "emp-19"
+          ],
+          "outcome": "An Agentforce service agent grounded in appointment knowledge articles was piloted with a limited production group.",
+          "metric": "Pilot agent resolved 541 of 1,420 appointment-enquiry conversations without human handoff (38.1%)."
+        }
+      ],
+      "notable_facts": [
+        "Runs 14 outpatient clinics in regional Victoria.",
+        "Headquartered in Bendigo.",
+        "Operates a day-surgery centre alongside its clinics."
+      ]
+    },
+    {
+      "id": "cli-07",
+      "name": "Ostrander Home Goods",
+      "industry": "Retail",
+      "country": "United States",
+      "client_since_year": 2019,
+      "annual_contract_value_usd": 98450,
+      "account_lead_id": "emp-05",
+      "projects": [
+        {
+          "name": "Ostrander lifecycle email journeys",
+          "service_id": "svc-08",
+          "start_date": "2019-09-09",
+          "end_date": "2019-11-04",
+          "team_employee_ids": [
+            "emp-11",
+            "emp-02"
+          ],
+          "outcome": "Welcome, abandoned-cart and post-purchase journeys were built in Marketing Cloud with a reusable email template library.",
+          "metric": "Welcome-series open rate rose from 21.5% to 34.8%."
+        },
+        {
+          "name": "Ostrander trade quote-to-cash",
+          "service_id": "svc-09",
+          "start_date": "2022-01-10",
+          "end_date": "2022-05-16",
+          "team_employee_ids": [
+            "emp-05",
+            "emp-03"
+          ],
+          "outcome": "Trade and contract-furnishing quotes now follow a Revenue Cloud product catalog with approval workflows and a billing handoff specification.",
+          "metric": "Quote approval turnaround cut from 52 hours to 19 hours (63.5% reduction)."
+        }
+      ],
+      "notable_facts": [
+        "Sells furniture and homewares through 48 stores and an online shop.",
+        "Headquartered in Columbus, Ohio.",
+        "Runs a trade programme for interior designers."
+      ]
+    },
+    {
+      "id": "cli-08",
+      "name": "Bellwether Outfitters",
+      "industry": "Retail",
+      "country": "Canada",
+      "client_since_year": 2017,
+      "annual_contract_value_usd": 134800,
+      "account_lead_id": "emp-04",
+      "projects": [
+        {
+          "name": "Bellwether customer care launchpad",
+          "service_id": "svc-02",
+          "start_date": "2017-02-20",
+          "end_date": "2017-05-15",
+          "team_employee_ids": [
+            "emp-04",
+            "emp-08"
+          ],
+          "outcome": "Online order and returns enquiries moved into Service Cloud with Omni-Channel routing and a structured knowledge base.",
+          "metric": "Case backlog fell from 1,940 open cases to 380 (80.4% reduction)."
+        },
+        {
+          "name": "Bellwether loyalty email journeys",
+          "service_id": "svc-08",
+          "start_date": "2021-03-01",
+          "end_date": "2021-04-12",
+          "team_employee_ids": [
+            "emp-11",
+            "emp-04"
+          ],
+          "outcome": "Loyalty-tier journeys and a segmented email program were launched in Marketing Cloud.",
+          "metric": "Loyalty-member email click rate rose from 1.9% to 3.4%."
+        },
+        {
+          "name": "Bellwether order-status agent pilot",
+          "service_id": "svc-04",
+          "start_date": "2024-09-09",
+          "end_date": "2024-11-18",
+          "team_employee_ids": [
+            "emp-17",
+            "emp-04",
+            "emp-13"
+          ],
+          "outcome": "An Agentforce service agent was piloted for order-status and delivery questions with guardrail testing and escalation rules.",
+          "metric": "Pilot agent handled 612 of 2,150 order-status chats without human handoff (28.5%)."
+        }
+      ],
+      "notable_facts": [
+        "Sells outdoor clothing and camping equipment.",
+        "Headquartered in Calgary, Alberta.",
+        "Operates 27 stores across western Canada."
+      ]
+    },
+    {
+      "id": "cli-09",
+      "name": "Kereru Valley College",
+      "industry": "Education",
+      "country": "New Zealand",
+      "client_since_year": 2021,
+      "annual_contract_value_usd": 76300,
+      "account_lead_id": "emp-18",
+      "projects": [
+        {
+          "name": "Kereru Valley student portal",
+          "service_id": "svc-07",
+          "start_date": "2021-03-15",
+          "end_date": "2021-07-12",
+          "team_employee_ids": [
+            "emp-18",
+            "emp-12",
+            "emp-15"
+          ],
+          "outcome": "Students and whanau gained a branded portal for enrolment questions, course information and support cases.",
+          "metric": "4,712 of 5,300 enrolled students activated portal accounts in the term after go-live (88.9%)."
+        },
+        {
+          "name": "Kereru Valley applicant journeys",
+          "service_id": "svc-08",
+          "start_date": "2023-02-13",
+          "end_date": "2023-04-06",
+          "team_employee_ids": [
+            "emp-11",
+            "emp-18"
+          ],
+          "outcome": "Email and SMS journeys guide applicants through enrolment steps and deadlines.",
+          "metric": "Application-completion rate rose from 61.0% to 72.5% of started applications."
+        }
+      ],
+      "notable_facts": [
+        "Vocational college based in Hamilton, New Zealand.",
+        "Offers courses in horticulture, trades and hospitality.",
+        "Teaches in both English and te reo Maori."
+      ]
+    },
+    {
+      "id": "cli-10",
+      "name": "Dunmore Technical University",
+      "industry": "Education",
+      "country": "Ireland",
+      "client_since_year": 2019,
+      "annual_contract_value_usd": 88900,
+      "account_lead_id": "emp-12",
+      "projects": [
+        {
+          "name": "Dunmore prospective student portal",
+          "service_id": "svc-07",
+          "start_date": "2019-06-03",
+          "end_date": "2019-08-26",
+          "team_employee_ids": [
+            "emp-12",
+            "emp-08"
+          ],
+          "outcome": "Prospective students use a themed Experience Cloud portal for programme enquiries and open-day bookings.",
+          "metric": "Prospective-student enquiry form completion time down from 11 minutes to 6 minutes (45.5% reduction)."
+        },
+        {
+          "name": "Dunmore alumni and development Sales Cloud",
+          "service_id": "svc-01",
+          "start_date": "2021-09-20",
+          "end_date": "2022-01-03",
+          "team_employee_ids": [
+            "emp-03",
+            "emp-08"
+          ],
+          "outcome": "The development office manages alumni donor pipelines and follow-up tasks in Sales Cloud with forecasting dashboards.",
+          "metric": "Alumni donor follow-up task completion rose from 47% to 82%."
+        }
+      ],
+      "notable_facts": [
+        "Public technical university based in Limerick.",
+        "Runs engineering and applied-science faculties.",
+        "Maintains an international alumni network."
+      ]
+    },
+    {
+      "id": "cli-11",
+      "name": "Eisenfeld Precision Components",
+      "industry": "Manufacturing",
+      "country": "Germany",
+      "client_since_year": 2019,
+      "annual_contract_value_usd": 201500,
+      "account_lead_id": "emp-10",
+      "projects": [
+        {
+          "name": "Eisenfeld ERP order integration sprint",
+          "service_id": "svc-05",
+          "start_date": "2019-04-08",
+          "end_date": "2019-05-27",
+          "team_employee_ids": [
+            "emp-10",
+            "emp-09",
+            "emp-08"
+          ],
+          "outcome": "Customer orders now flow between the ERP and Salesforce through deployed Mule applications with retry handling.",
+          "metric": "Order sync failures fell from 6.2% to 0.4% of messages."
+        },
+        {
+          "name": "Eisenfeld warehouse stock API sprint",
+          "service_id": "svc-05",
+          "start_date": "2020-02-03",
+          "end_date": "2020-03-12",
+          "team_employee_ids": [
+            "emp-10",
+            "emp-09"
+          ],
+          "outcome": "Sales staff can see live warehouse stock levels in Salesforce through a documented stock-level API.",
+          "metric": "Stock-level lookup response time cut from 2,100 ms to 340 ms (83.8% reduction)."
+        },
+        {
+          "name": "Eisenfeld machinery quote-to-cash",
+          "service_id": "svc-09",
+          "start_date": "2022-06-13",
+          "end_date": "2022-10-24",
+          "team_employee_ids": [
+            "emp-05",
+            "emp-10"
+          ],
+          "outcome": "Configurable machinery orders follow a Revenue Cloud catalog, pricing rule set and approval workflow.",
+          "metric": "Configure-price-quote cycle for custom machinery orders cut from 9 days to 4 days (55.6% reduction)."
+        }
+      ],
+      "notable_facts": [
+        "Family-founded maker of CNC spindle components.",
+        "Headquartered in Stuttgart.",
+        "Supplies machine-tool manufacturers across Europe."
+      ]
+    },
+    {
+      "id": "cli-12",
+      "name": "Tarrawonga Steel Fabrication",
+      "industry": "Manufacturing",
+      "country": "Australia",
+      "client_since_year": 2022,
+      "annual_contract_value_usd": 69700,
+      "account_lead_id": "emp-19",
+      "projects": [
+        {
+          "name": "Tarrawonga Sales Cloud implementation",
+          "service_id": "svc-01",
+          "start_date": "2022-03-07",
+          "end_date": "2022-05-23",
+          "team_employee_ids": [
+            "emp-19",
+            "emp-15",
+            "emp-20"
+          ],
+          "outcome": "Estimators and sales staff track fabrication quotes in Sales Cloud with territory-based pipeline dashboards.",
+          "metric": "Opportunities with a next step logged rose from 41% to 88%."
+        },
+        {
+          "name": "Tarrawonga sales reporting dashboards",
+          "service_id": "svc-06",
+          "start_date": "2023-05-22",
+          "end_date": "2023-07-17",
+          "team_employee_ids": [
+            "emp-16",
+            "emp-19",
+            "emp-20"
+          ],
+          "outcome": "Leadership receives published Tableau dashboards on quote conversion and job margin.",
+          "metric": "Monthly sales-reporting turnaround reduced from 5 working days to 1 working day (80.0% reduction)."
+        }
+      ],
+      "notable_facts": [
+        "Fabricates structural steel for commercial construction.",
+        "Workshop located in Wollongong, New South Wales.",
+        "Employs certified welders and rigging crews."
+      ]
+    },
+    {
+      "id": "cli-13",
+      "name": "Shannonside Broadband",
+      "industry": "Telecommunications",
+      "country": "Ireland",
+      "client_since_year": 2021,
+      "annual_contract_value_usd": 119250,
+      "account_lead_id": "emp-13",
+      "projects": [
+        {
+          "name": "Shannonside support desk launchpad",
+          "service_id": "svc-02",
+          "start_date": "2021-06-14",
+          "end_date": "2021-09-13",
+          "team_employee_ids": [
+            "emp-13",
+            "emp-04",
+            "emp-08"
+          ],
+          "outcome": "Broadband fault and billing cases are routed through Service Cloud with an agent console and a go-live support plan.",
+          "metric": "Average handle time reduced from 12 minutes to 7 minutes (41.7% reduction)."
+        },
+        {
+          "name": "Shannonside fault-enquiry agent pilot",
+          "service_id": "svc-04",
+          "start_date": "2025-01-13",
+          "end_date": "2025-03-03",
+          "team_employee_ids": [
+            "emp-17",
+            "emp-13",
+            "emp-04"
+          ],
+          "outcome": "An Agentforce service agent was piloted on broadband fault enquiries with guardrail tests and human escalation paths.",
+          "metric": "Pilot agent resolved 1,046 of 3,380 broadband-fault conversations without human handoff (30.9%)."
+        }
+      ],
+      "notable_facts": [
+        "Provides fixed wireless and fibre broadband in rural Ireland.",
+        "Headquartered in Ennis, County Clare.",
+        "Maintains a field engineering team for home installations."
+      ]
+    },
+    {
+      "id": "cli-14",
+      "name": "Prairie Commons Foundation",
+      "industry": "Nonprofit",
+      "country": "United States",
+      "client_since_year": 2016,
+      "annual_contract_value_usd": 52800,
+      "account_lead_id": "emp-01",
+      "projects": [
+        {
+          "name": "Prairie Commons fundraising Sales Cloud",
+          "service_id": "svc-01",
+          "start_date": "2016-04-11",
+          "end_date": "2016-08-01",
+          "team_employee_ids": [
+            "emp-03",
+            "emp-04"
+          ],
+          "outcome": "Gift officers manage prospects, pledges and renewal forecasts in a configured Sales Cloud with legacy donor data migrated.",
+          "metric": "Gift-officer data entry time reduced from 7 hours to 3 hours per week (57.1% reduction)."
+        },
+        {
+          "name": "Prairie Commons volunteer portal",
+          "service_id": "svc-07",
+          "start_date": "2020-03-02",
+          "end_date": "2020-05-11",
+          "team_employee_ids": [
+            "emp-12",
+            "emp-03"
+          ],
+          "outcome": "Volunteers register for shifts and view programme information through a branded Experience Cloud portal.",
+          "metric": "3,140 volunteer registrations within 60 days of launch."
+        }
+      ],
+      "notable_facts": [
+        "Community foundation funding rural education and food programmes.",
+        "Headquartered in Omaha, Nebraska.",
+        "Relies on an annual autumn giving campaign."
+      ]
+    },
+    {
+      "id": "cli-15",
+      "name": "Tanglin Bay Logistics",
+      "industry": "Logistics",
+      "country": "Singapore",
+      "client_since_year": 2022,
+      "annual_contract_value_usd": 104600,
+      "account_lead_id": "emp-20",
+      "projects": [
+        {
+          "name": "Tanglin Bay shipment status integration sprint",
+          "service_id": "svc-05",
+          "start_date": "2022-10-17",
+          "end_date": "2022-12-01",
+          "team_employee_ids": [
+            "emp-10",
+            "emp-20"
+          ],
+          "outcome": "Shipment-status events from the transport management system are relayed to Salesforce through documented Mule applications.",
+          "metric": "Shipment-status update delay reduced from 22 minutes to 4 minutes (81.8% reduction)."
+        },
+        {
+          "name": "Tanglin Bay on-time delivery dashboards",
+          "service_id": "svc-06",
+          "start_date": "2023-08-14",
+          "end_date": "2023-09-19",
+          "team_employee_ids": [
+            "emp-16",
+            "emp-20"
+          ],
+          "outcome": "Hub managers receive a weekly on-time delivery dashboard built on a certified data source.",
+          "metric": "Weekly on-time delivery report preparation reduced from 6 hours to 40 minutes (88.9% reduction)."
+        },
+        {
+          "name": "Tanglin Bay tracking enquiry agent pilot",
+          "service_id": "svc-04",
+          "start_date": "2025-03-10",
+          "end_date": "2025-05-09",
+          "team_employee_ids": [
+            "emp-17",
+            "emp-19",
+            "emp-20"
+          ],
+          "outcome": "An Agentforce service agent was piloted to answer shipment-tracking questions from customers.",
+          "metric": "Pilot agent answered 1,230 of 1,905 shipment-tracking enquiries without human handoff (64.6%)."
+        }
+      ],
+      "notable_facts": [
+        "Freight forwarder serving South-East Asian trade lanes.",
+        "Headquartered in Singapore.",
+        "Operates 11 hub locations across the region."
+      ]
+    },
+    {
+      "id": "cli-16",
+      "name": "Lakeshore Provident Credit Union",
+      "industry": "Financial Services",
+      "country": "Canada",
+      "client_since_year": 2021,
+      "annual_contract_value_usd": 157300,
+      "account_lead_id": "emp-06",
+      "projects": [
+        {
+          "name": "Lakeshore Shield assurance retainer",
+          "service_id": "svc-10",
+          "start_date": "2021-11-01",
+          "end_date": "2022-04-04",
+          "team_employee_ids": [
+            "emp-06",
+            "emp-02"
+          ],
+          "outcome": "Monthly event monitoring reports and a quarterly permission review were introduced for the member services org.",
+          "metric": "Quarterly permission review removed 187 excess admin-level permission assignments."
+        },
+        {
+          "name": "Lakeshore member service launchpad",
+          "service_id": "svc-02",
+          "start_date": "2022-09-12",
+          "end_date": "2022-12-12",
+          "team_employee_ids": [
+            "emp-04",
+            "emp-13",
+            "emp-06"
+          ],
+          "outcome": "Member enquiries are handled in Service Cloud with Omni-Channel routing and a structured knowledge base.",
+          "metric": "Case reassignment rate fell from 22.0% to 9.5%."
+        },
+        {
+          "name": "Lakeshore member data foundation",
+          "service_id": "svc-03",
+          "start_date": "2024-06-03",
+          "end_date": "2024-09-17",
+          "team_employee_ids": [
+            "emp-09",
+            "emp-06",
+            "emp-10"
+          ],
+          "outcome": "Member data from banking, lending and mobile app systems was resolved into unified profiles with activation-ready segments.",
+          "metric": "Identity resolution merged 268,400 source profiles into 231,950 unified member profiles (13.6% fewer profiles)."
+        }
+      ],
+      "notable_facts": [
+        "Member-owned credit union headquartered in Hamilton, Ontario.",
+        "Serves members across 19 branches.",
+        "Offers agricultural and small-business lending."
+      ]
+    },
+    {
+      "id": "cli-17",
+      "name": "Ashgrove Water Services",
+      "industry": "Energy and Utilities",
+      "country": "United Kingdom",
+      "client_since_year": 2023,
+      "annual_contract_value_usd": 138200,
+      "account_lead_id": "emp-09",
+      "projects": [
+        {
+          "name": "Ashgrove customer data foundation",
+          "service_id": "svc-03",
+          "start_date": "2023-11-06",
+          "end_date": "2024-03-11",
+          "team_employee_ids": [
+            "emp-09",
+            "emp-08",
+            "emp-10"
+          ],
+          "outcome": "Customer account data from billing, metering and contact-centre systems was connected, resolved into unified profiles and segmented.",
+          "metric": "Identity resolution matched 94.6% of 310,000 customer accounts across 4 source systems."
+        },
+        {
+          "name": "Ashgrove billing enquiry agent pilot",
+          "service_id": "svc-04",
+          "start_date": "2024-10-07",
+          "end_date": "2024-12-21",
+          "team_employee_ids": [
+            "emp-17",
+            "emp-09",
+            "emp-13"
+          ],
+          "outcome": "An Agentforce service agent grounded in billing knowledge articles was piloted with a limited production group.",
+          "metric": "Pilot agent resolved 724 of 1,880 billing-enquiry conversations without human handoff (38.5%)."
+        }
+      ],
+      "notable_facts": [
+        "Regional water and sewerage utility headquartered in Bristol.",
+        "Supplies households and businesses across south-west England.",
+        "Operates an online customer account service."
+      ]
+    },
+    {
+      "id": "cli-18",
+      "name": "Orchard Hollow Foods",
+      "industry": "Food and Beverage",
+      "country": "United States",
+      "client_since_year": 2018,
+      "annual_contract_value_usd": 91400,
+      "account_lead_id": "emp-11",
+      "projects": [
+        {
+          "name": "Orchard Hollow promotional email journeys",
+          "service_id": "svc-08",
+          "start_date": "2018-11-12",
+          "end_date": "2019-01-14",
+          "team_employee_ids": [
+            "emp-11",
+            "emp-08"
+          ],
+          "outcome": "Seasonal promotion and subscriber-preference journeys were built in Marketing Cloud with a deliverability checklist.",
+          "metric": "Promotional email unsubscribe rate fell from 0.9% to 0.4%."
+        },
+        {
+          "name": "Orchard Hollow distributor Sales Cloud",
+          "service_id": "svc-01",
+          "start_date": "2020-01-20",
+          "end_date": "2020-03-30",
+          "team_employee_ids": [
+            "emp-03",
+            "emp-05"
+          ],
+          "outcome": "Sales representatives manage distributor accounts and orders in Sales Cloud with forecasting dashboards.",
+          "metric": "Sales forecast accuracy improved from 63% to 81%."
+        },
+        {
+          "name": "Orchard Hollow SMS reorder journeys",
+          "service_id": "svc-08",
+          "start_date": "2023-05-08",
+          "end_date": "2023-06-23",
+          "team_employee_ids": [
+            "emp-11",
+            "emp-14"
+          ],
+          "outcome": "SMS reorder-reminder journeys were added for direct-to-consumer subscribers.",
+          "metric": "SMS reorder-reminder campaign achieved 12.4% redemption."
+        }
+      ],
+      "notable_facts": [
+        "Produces cold-pressed apple juice and cider vinegar.",
+        "Headquartered in Traverse City, Michigan.",
+        "Sells through grocery distributors and a subscription box."
+      ]
+    }
+  ],
+  "runbooks": [
+    {
+      "id": "rb-01",
+      "title": "Full Sandbox Refresh and Post-Refresh Setup",
+      "salesforce_area": "Sandbox Management",
+      "owner_id": "emp-20",
+      "last_reviewed": "2024-10-15",
+      "hands_on_minutes": 145,
+      "monitoring_hours": 0,
+      "prerequisites": [
+        "Sandbox Admin access to the production org",
+        "Latest SandboxPrep Apex class merged to the main branch",
+        "Client approval for the refresh window"
+      ],
+      "steps": [
+        "Confirm the Full sandbox is eligible for refresh; a Full sandbox can be refreshed once every 29 days.",
+        "Export the sandbox custom settings, named credential list and email deliverability setting to the shared environment sheet.",
+        "Announce a 4-hour freeze window in the delivery channel and pause open deployments to the sandbox.",
+        "In Setup > Sandboxes choose Refresh, keep the existing name, select the Production edition template and attach the agreed sandbox template.",
+        "Wait for the completion email from Salesforce; refresh duration varies with data volume.",
+        "Run the SandboxPrep post-copy Apex class to mask contact emails, deactivate scheduled jobs and reset integration endpoints.",
+        "Set Email Deliverability to System email only and re-enter named credential secrets from the password vault.",
+        "Smoke-test login, one standard report and one integration callout, then lift the freeze."
+      ],
+      "rollback_steps": [
+        "If SandboxPrep fails partway, fix the cause and re-run it; the class is safe to run repeatedly.",
+        "If masking is incomplete, set Email Deliverability to No access immediately and notify the client data owner.",
+        "If the refresh cannot be completed, deploy the last known metadata from the git main branch to a Developer Pro sandbox as a stand-in."
+      ],
+      "known_issues": [
+        "A refresh requested inside the 29-day interval is blocked: the Refresh action is greyed out and the sandbox list shows the next available refresh date.",
+        "SandboxPrep fails with 'System.LimitException: Too many DML rows: 10001' when masking more than 10,000 contacts in one transaction; run it as Batch Apex with a scope of 200."
+      ]
+    },
+    {
+      "id": "rb-02",
+      "title": "Change Set Deployment to Production",
+      "salesforce_area": "Metadata Deployment",
+      "owner_id": "emp-03",
+      "last_reviewed": "2024-11-06",
+      "hands_on_minutes": 95,
+      "monitoring_hours": 4,
+      "prerequisites": [
+        "Deployment connection authorized between the source sandbox and production",
+        "Release ticket with approved component list",
+        "Apex tests passing in the source sandbox"
+      ],
+      "steps": [
+        "Create an outbound change set in the source sandbox named with the release ID and date.",
+        "Add components and use View/Add Dependencies to include required custom fields, page layouts and Apex classes.",
+        "Upload the change set to production and wait for it to appear under Inbound Change Sets, which can take up to 30 minutes.",
+        "Run Validate on the inbound change set with the RunLocalTests test level.",
+        "Confirm code coverage is 75% or higher for the deployed classes and triggers.",
+        "Obtain written sign-off from the Chief Delivery Officer in the release ticket.",
+        "Run Deploy in the agreed release window.",
+        "Activate new flows and apply page layout assignments by hand, because change sets do not activate or assign them.",
+        "Watch Apex exception emails and Setup > Apex Jobs for 4 hours after deployment."
+      ],
+      "rollback_steps": [
+        "Build a rollback change set from the pre-deployment metadata retrieved before release.",
+        "Deactivate any flows activated during the release.",
+        "Redeploy the previous versions of Apex classes and layouts from the tagged git commit.",
+        "Post an incident note in the release ticket with the time of rollback."
+      ],
+      "known_issues": [
+        "Validation fails with 'Average test coverage across all Apex Classes and Triggers is 68%, 75% test coverage is required' when a new class has no tests.",
+        "A change set cannot contain more than 10,000 files; larger sets fail at upload and must be split into two change sets."
+      ]
+    },
+    {
+      "id": "rb-03",
+      "title": "Salesforce CLI Metadata Deployment",
+      "salesforce_area": "Metadata Deployment",
+      "owner_id": "emp-12",
+      "last_reviewed": "2025-01-21",
+      "hands_on_minutes": 120,
+      "monitoring_hours": 6,
+      "prerequisites": [
+        "Salesforce CLI (sf) installed at the version pinned in the repository",
+        "Release user with Modify Metadata and Author Apex permissions",
+        "Release branch merged and tagged"
+      ],
+      "steps": [
+        "Authenticate with 'sf org login web --alias prod' using the release user.",
+        "Pull the release branch and confirm 'git status' shows a clean working tree.",
+        "Run 'sf project deploy start --dry-run --test-level RunLocalTests --target-org prod' to validate.",
+        "Note the validation job ID in the release ticket.",
+        "Review destructiveChanges.xml and confirm each listed component is approved for deletion.",
+        "Get approval from the delivery lead before deploying.",
+        "Run 'sf project deploy quick --job-id <id>' inside the 10-day window after validation.",
+        "Run 'sf project deploy report' and confirm the status is Succeeded.",
+        "Assign new permission sets with 'sf org assign permset' for the pilot users.",
+        "Run the smoke test Apex classes with 'sf apex run test' and check the pass result.",
+        "Monitor deployment-related errors in Event Log Files and Apex exception emails for 6 hours."
+      ],
+      "rollback_steps": [
+        "Check out the previous release tag in git.",
+        "Run a validation deploy of the previous tag, then quick-deploy it.",
+        "Restore deleted components from the pre-release retrieve stored on the backup branch.",
+        "Reassign permission sets to the previous configuration."
+      ],
+      "known_issues": [
+        "'Error: No authorization information found for prod' appears when the stored login has expired; re-run the web login.",
+        "Quick deploy is rejected after 10 days with 'The validation is no longer valid'; run a fresh validation.",
+        "Large deployments can end with 'UNKNOWN_EXCEPTION: An unexpected error occurred. Please include this ErrorId'; retry once and then open a Salesforce Support case with the ErrorId."
+      ]
+    },
+    {
+      "id": "rb-04",
+      "title": "Legacy CRM Data Migration with Bulk API 2.0",
+      "salesforce_area": "Data Migration",
+      "owner_id": "emp-19",
+      "last_reviewed": "2024-09-12",
+      "hands_on_minutes": 330,
+      "monitoring_hours": 0,
+      "prerequisites": [
+        "Field mapping sheet signed off by the client data owner",
+        "External ID field Legacy_Id__c on each migrated object",
+        "Data Loader installed with Bulk API 2.0 enabled"
+      ],
+      "steps": [
+        "Confirm the mapping sheet version matches the extract files received from the client.",
+        "Assign the Bypass_Automation custom permission to the migration user so validation rules, duplicate rules and flows skip its changes.",
+        "Export a full backup of the target objects as CSV files before loading anything.",
+        "Load Accounts by upsert on Legacy_Id__c, splitting files so each stays under 100 MB.",
+        "Load Contacts by upsert, resolving the parent Account through the Legacy_Id__c external ID.",
+        "Load Opportunities and their line items in that order.",
+        "Load Tasks and Events, then notes and attachments.",
+        "Review the success and error CSV files and re-run the failed rows after correcting them.",
+        "Reconcile row counts per object against the source extract and confirm zero unexplained mismatches.",
+        "Remove the Bypass_Automation permission from the migration user and confirm automation fires on a test edit."
+      ],
+      "rollback_steps": [
+        "Hard delete the loaded rows through Bulk API 2.0 using the ids in the success CSV files.",
+        "Restore any updated rows by upserting from the backup export.",
+        "Remove the bypass permission and confirm validation rules are active."
+      ],
+      "known_issues": [
+        "Bulk API 2.0 rejects uploads larger than 150 MB with a request-size error; split the CSV.",
+        "'STRING_TOO_LONG: Account Name: data value too large' occurs when a legacy name exceeds 255 characters; truncate it in the mapping step.",
+        "'UNABLE_TO_LOCK_ROW' occurs when child rows for the same parent load in parallel; reload the failed rows in serial mode."
+      ]
+    },
+    {
+      "id": "rb-05",
+      "title": "Agentforce Service Agent Rollout",
+      "salesforce_area": "Agentforce",
+      "owner_id": "emp-17",
+      "last_reviewed": "2025-02-18",
+      "hands_on_minutes": 210,
+      "monitoring_hours": 72,
+      "prerequisites": [
+        "Agentforce and Einstein generative AI enabled in the target org",
+        "Knowledge articles indexed in a Data Library",
+        "Guardrail and escalation test plan approved by the client",
+        "Omni-Channel queue created for human escalation"
+      ],
+      "steps": [
+        "Confirm in Setup that Einstein generative AI and Agentforce are enabled in the target org.",
+        "Verify the agent user has the Agentforce Service Agent permission set and read access to Knowledge.",
+        "Deploy agent topics, actions and prompt templates from the sandbox using 'sf project deploy start'.",
+        "Run the guardrail test plan and confirm every adversarial prompt returns the approved safe fallback response.",
+        "Run batch tests in the Agentforce Testing Center and confirm topic classification accuracy meets the agreed threshold of 90%.",
+        "Configure the escalation action to route to the Omni-Channel queue with the conversation transcript attached.",
+        "Activate the agent version for the limited production group named in the pilot plan.",
+        "Verify Einstein Trust Layer data masking is applied to a test conversation containing sample card digits.",
+        "Send 10 scripted test conversations from a production test user and review the answers.",
+        "Monitor conversation logs and the escalation rate daily for 72 hours after activation.",
+        "Hold a pilot checkpoint with the client at the 72-hour mark and agree any topic changes.",
+        "Widen the limited group in stages only after the checkpoint is signed off."
+      ],
+      "rollback_steps": [
+        "Deactivate the agent version in Agent Builder.",
+        "Switch the channel routing back to the human Omni-Channel queue.",
+        "Redeploy the previous agent metadata from the tagged commit.",
+        "Notify the client sponsor and support lead of the deactivation."
+      ],
+      "known_issues": [
+        "'Cannot modify an active agent version' appears when editing a live agent; deactivate it or create a new version.",
+        "Test runs report 'Failed to retrieve grounding data' until the Data Library has finished indexing newly added knowledge articles.",
+        "Activation is blocked when the agent user lacks the Agentforce Service Agent permission set."
+      ]
+    },
+    {
+      "id": "rb-06",
+      "title": "Permission Set and Permission Set Group Changes",
+      "salesforce_area": "Security and Access",
+      "owner_id": "emp-06",
+      "last_reviewed": "2024-10-29",
+      "hands_on_minutes": 75,
+      "monitoring_hours": 24,
+      "prerequisites": [
+        "Approved permission matrix",
+        "List of affected users and their licences",
+        "Sandbox with a recent copy of the production profiles"
+      ],
+      "steps": [
+        "Export the current assignments for the affected users with a SOQL query on PermissionSetAssignment.",
+        "Compare the proposed design to the permission matrix and confirm no new Modify All Data or View All Data grant is added.",
+        "Create or edit the permission sets in the sandbox and add them to the permission set group.",
+        "Wait for the group status to change from Updating to Updated before testing.",
+        "Deploy the permission set metadata to production and assign the group to the pilot users.",
+        "Use Login As with 3 representative users to confirm access to objects, fields and tabs.",
+        "Review Setup Audit Trail and support tickets for access-denied reports for 24 hours."
+      ],
+      "rollback_steps": [
+        "Unassign the new group from the pilot users.",
+        "Reassign the previous permission sets from the exported assignment list.",
+        "Redeploy the previous permission set metadata from the tagged commit."
+      ],
+      "known_issues": [
+        "A permission set group can show the status Outdated after a change; select Recalculate and wait for Updated.",
+        "Assignment fails with 'INSUFFICIENT_ACCESS_OR_READONLY' when the user's licence does not match the licence of a permission set in the group.",
+        "Deleting a permission set that belongs to a group fails with 'FIELD_INTEGRITY_EXCEPTION'; remove it from the group first."
+      ]
+    },
+    {
+      "id": "rb-07",
+      "title": "Emergency Production Release Rollback",
+      "salesforce_area": "Release Management",
+      "owner_id": "emp-02",
+      "last_reviewed": "2024-12-03",
+      "hands_on_minutes": 85,
+      "monitoring_hours": 4,
+      "prerequisites": [
+        "Pre-release git tag for the version being restored",
+        "Backup retrieve of production metadata taken before the release",
+        "Rollback decision authority named in the release plan"
+      ],
+      "steps": [
+        "Obtain the rollback decision from the Chief Delivery Officer and the client sponsor and note the decision time.",
+        "Freeze all other deployments to production.",
+        "Identify the pre-release git tag and check out that tag.",
+        "Retrieve the current production metadata to a backup branch for later analysis.",
+        "Run a validation deploy of the tagged metadata, then quick-deploy it.",
+        "Deactivate any flows or scheduled jobs added by the failed release.",
+        "Restore any data changed by the release from the backup CSV exports.",
+        "Notify stakeholders that production is restored and describe the user-facing effect.",
+        "Monitor error emails and Apex jobs for 4 hours and schedule a review within 3 business days."
+      ],
+      "rollback_steps": [
+        "If the validation deploy fails, remove components in the order named in the error output using a destructive changes manifest.",
+        "If a flow cannot be deactivated, open it in Flow Builder and activate the previous version.",
+        "If the rollback cannot complete, open a Severity 1 case with Salesforce Support and keep the freeze in place."
+      ],
+      "known_issues": [
+        "Redeploying the previous tag can fail with 'This component is referenced by other components' when new fields are still used by reports; delete the reports first.",
+        "Deleted custom fields stay in the recycle bin for 15 days; after that period their data cannot be restored."
+      ]
+    },
+    {
+      "id": "rb-08",
+      "title": "MuleSoft Application Deployment to CloudHub",
+      "salesforce_area": "MuleSoft",
+      "owner_id": "emp-10",
+      "last_reviewed": "2024-08-14",
+      "hands_on_minutes": 160,
+      "monitoring_hours": 48,
+      "prerequisites": [
+        "Anypoint Platform access with Deploy permission for the target environment",
+        "Properties file with secure placeholders for each environment",
+        "Passing MUnit test suite"
+      ],
+      "steps": [
+        "Run the MUnit suite locally and confirm every test passes.",
+        "Build the Mule application package with Maven and check the artifact version number.",
+        "Confirm the target environment has enough vCores for the worker size in the deployment plan.",
+        "Upload the artifact to Anypoint Exchange for the release.",
+        "Set secure properties in Runtime Manager for the target environment.",
+        "Deploy the application to CloudHub with the agreed worker size and region.",
+        "Wait for the application status to show Started and open the logs to check for startup errors.",
+        "Run the Salesforce connectivity test flow and confirm a successful callout.",
+        "Enable alerts for failed message rate and worker CPU in Anypoint Monitoring.",
+        "Watch the dashboard for 48 hours and review error counts at 24 hours and at 48 hours."
+      ],
+      "rollback_steps": [
+        "Redeploy the previous artifact version from Exchange.",
+        "Restore the previous secure property values.",
+        "Disable the new Salesforce callout flow with a feature flag property.",
+        "Inform the operations team using the runbook shipped with the integration."
+      ],
+      "known_issues": [
+        "Deployment fails with 'Not enough vCores available' when the environment allocation is used up; stop an unused application or request more vCores.",
+        "'Could not resolve property placeholder sf.password' appears when a secure property is missing for the environment.",
+        "The application stays in Starting if the HTTP listener port is set to something other than 8081 in the CloudHub configuration."
+      ]
+    },
+    {
+      "id": "rb-09",
+      "title": "Experience Cloud Site Publish",
+      "salesforce_area": "Experience Cloud",
+      "owner_id": "emp-18",
+      "last_reviewed": "2024-07-23",
+      "hands_on_minutes": 70,
+      "monitoring_hours": 8,
+      "prerequisites": [
+        "Site changes approved in the sandbox",
+        "Accessibility review report signed off",
+        "Guest user profile access list approved"
+      ],
+      "steps": [
+        "Deploy the Experience Bundle and related metadata to production with the CLI.",
+        "Open Experience Builder in production and confirm the theme and navigation menus match the sandbox.",
+        "Confirm guest user profile access to the required Apex classes and objects.",
+        "Click Publish and wait for the confirmation email.",
+        "Test the site on desktop and mobile with a guest user and with a portal member.",
+        "Watch support requests and login history for 8 hours after publishing."
+      ],
+      "rollback_steps": [
+        "Open Experience Builder and use the Publish history to restore the previous published version.",
+        "Revoke any new guest profile access added for this release."
+      ],
+      "known_issues": [
+        "Publishing fails with 'Your site could not be published' when a page references a missing component; fix the page and retry.",
+        "Guests see 'Insufficient Privileges' for a new Apex class until it is added to the guest user profile.",
+        "Changes can take up to 24 hours to appear for users because of CDN caching, unless the cache is cleared in Settings."
+      ]
+    },
+    {
+      "id": "rb-10",
+      "title": "Marketing Cloud Journey Activation",
+      "salesforce_area": "Marketing Cloud",
+      "owner_id": "emp-11",
+      "last_reviewed": "2024-06-04",
+      "hands_on_minutes": 110,
+      "monitoring_hours": 24,
+      "prerequisites": [
+        "Sender authentication package with SPF and DKIM configured",
+        "Approved email templates and audience definitions",
+        "Sendable data extension created in the target business unit"
+      ],
+      "steps": [
+        "Confirm the sendable data extension has SubscriberKey mapped to the contact key.",
+        "Review the journey canvas against the approved journey map.",
+        "Send test emails to the seed list and check rendering in three email clients.",
+        "Run the deliverability checklist, including a spam filter score check.",
+        "Validate the journey with the Validate button and clear all errors.",
+        "Activate the journey during the agreed send window.",
+        "Review entry counts and send logs after the initial run.",
+        "Monitor bounce rate, unsubscribes and journey errors for 24 hours."
+      ],
+      "rollback_steps": [
+        "Pause the journey and stop new entries.",
+        "Re-run the audience filter to remove contacts who entered incorrectly.",
+        "Revert any changed automation or send classification."
+      ],
+      "known_issues": [
+        "Journey validation fails with 'Entry source data extension must contain a SubscriberKey field' when the key is not mapped.",
+        "A send is held with 'Send Classification not found' if the send classification was not copied to the target business unit."
+      ]
+    },
+    {
+      "id": "rb-11",
+      "title": "Revenue Cloud Pricing and Quote Approval Release",
+      "salesforce_area": "Revenue Cloud",
+      "owner_id": "emp-05",
+      "last_reviewed": "2025-03-11",
+      "hands_on_minutes": 260,
+      "monitoring_hours": 12,
+      "prerequisites": [
+        "Product catalog export approved by finance",
+        "Pricing rule test cases with expected prices",
+        "Approval matrix signed off by the Head of Finance and Operations of the client"
+      ],
+      "steps": [
+        "Freeze price book and product changes in production for the release window.",
+        "Back up the current price books, price rules and approval processes.",
+        "Deploy the pricing rule and approval metadata to production.",
+        "Load the product catalog and price book entries with Bulk API 2.0.",
+        "Activate the pricing rules in the agreed order.",
+        "Run the pricing test cases and compare calculated prices to the expected values.",
+        "Check that discounts above the threshold route to the correct approver.",
+        "Confirm contract and renewal templates generate correctly from a test quote.",
+        "Send a test billing handoff file and confirm the finance system accepts it.",
+        "Walk the finance team through the changes in a short training session.",
+        "Lift the freeze and announce the release to sales users.",
+        "Monitor quote calculation errors and approval queue delays for 12 hours."
+      ],
+      "rollback_steps": [
+        "Deactivate the new pricing rules.",
+        "Restore the previous price book entries from the backup export.",
+        "Redeploy the previous approval process metadata.",
+        "Notify the finance team that quoting returned to the previous configuration."
+      ],
+      "known_issues": [
+        "Quote calculation can fail with 'Apex CPU time limit exceeded' when more than 300 line items are priced in one calculation; reduce rule complexity or split the quote.",
+        "'DUPLICATE_VALUE: duplicate value found: PricebookEntry' appears if a product is loaded twice into the same price book."
+      ]
+    },
+    {
+      "id": "rb-12",
+      "title": "Data Cloud Data Stream and Identity Resolution Release",
+      "salesforce_area": "Data Cloud",
+      "owner_id": "emp-09",
+      "last_reviewed": "2024-12-17",
+      "hands_on_minutes": 190,
+      "monitoring_hours": 36,
+      "prerequisites": [
+        "Source connections authorized in the target Data Cloud org",
+        "Approved data model mappings",
+        "Identity resolution match rules agreed with the client"
+      ],
+      "steps": [
+        "Create the data streams for each approved source and confirm connectivity.",
+        "Map the source fields to the unified data model and save the mappings.",
+        "Run an initial ingestion and compare row counts to the source.",
+        "Create the identity resolution ruleset with the approved match rules and reconciliation settings.",
+        "Run the ruleset and wait for the job to complete, which can take several hours for large data volumes.",
+        "Review unified profile counts and sample 25 matched profiles by hand.",
+        "Publish the initial segments and verify the segment population.",
+        "Activate the segments to the agreed target only after the review is signed off.",
+        "Monitor ingestion refresh status and segment population for 36 hours."
+      ],
+      "rollback_steps": [
+        "Pause the activation targets.",
+        "Delete the new ruleset or disable its match rules.",
+        "Pause the data streams added for this release."
+      ],
+      "known_issues": [
+        "Ingestion can fail with 'Data type mismatch for field' when a source field type differs from the mapped data model field type.",
+        "A ruleset cannot be edited while a run is in progress; wait for it to finish or cancel the run.",
+        "Segments publish with zero members when the ruleset has not completed."
+      ]
+    },
+    {
+      "id": "rb-13",
+      "title": "Tableau Dashboard and Data Source Publishing",
+      "salesforce_area": "Tableau",
+      "owner_id": "emp-16",
+      "last_reviewed": "2024-09-30",
+      "hands_on_minutes": 55,
+      "monitoring_hours": 0,
+      "prerequisites": [
+        "Publisher role on the target Tableau project",
+        "Data source credentials stored as embedded credentials"
+      ],
+      "steps": [
+        "Publish the certified data source to the production project with an extract refresh schedule.",
+        "Check that the data source certification label and description are visible.",
+        "Publish each executive dashboard using the certified data source.",
+        "Test the dashboards with row-level security filters for two sample users.",
+        "Send the access link to the executive group."
+      ],
+      "rollback_steps": [
+        "Revert the dashboards to the previous version in Revision History.",
+        "Remove the new data source from the project and reconnect dashboards to the previous one."
+      ],
+      "known_issues": [
+        "A scheduled extract refresh fails when it reaches the 2-hour job time limit; trim columns or add incremental refresh.",
+        "Publishing is blocked with 'Cannot publish: the embedded credentials are invalid' when the Salesforce connection token has expired."
+      ]
+    },
+    {
+      "id": "rb-14",
+      "title": "Service Cloud Omni-Channel Routing and Entitlement Release",
+      "salesforce_area": "Service Cloud",
+      "owner_id": "emp-13",
+      "last_reviewed": "2025-01-09",
+      "hands_on_minutes": 100,
+      "monitoring_hours": 16,
+      "prerequisites": [
+        "Routing configurations approved by the support lead",
+        "Entitlement process definitions reviewed",
+        "Agent skills and queue membership list"
+      ],
+      "steps": [
+        "Deploy the queue, routing configuration and service channel metadata to production.",
+        "Add agents to the queues and set their presence status values.",
+        "Activate the entitlement process and milestones for the support case types.",
+        "Create 5 test cases and confirm they route to the correct queue.",
+        "Check that milestones start and fire on the correct timers.",
+        "Brief the support team on the new routing before the release window ends.",
+        "Monitor queue backlog and milestone violations for 16 hours."
+      ],
+      "rollback_steps": [
+        "Switch the routing configuration back to the previous version.",
+        "Deactivate the new entitlement process.",
+        "Move waiting cases manually to the previous queue."
+      ],
+      "known_issues": [
+        "Cases do not route when the agent is not set to an available presence status.",
+        "'Entitlement process cannot be activated: a milestone has no time trigger' occurs if the process is incomplete."
+      ]
+    }
+  ]
+}
