@@ -11,6 +11,8 @@ WORLD_PATH = DATA_DIR / "world.json"
 AUDIT_PATH = DATA_DIR / "world_audit.json"
 DOCS_AUDIT_PATH = DATA_DIR / "docs_audit.json"
 CLAIM_ALLOWLIST_PATH = DATA_DIR / "claim_allowlist.json"
+CANDIDATES_PATH = DATA_DIR / "candidates.jsonl"
+VERIFICATION_PATH = DATA_DIR / "verification.jsonl"
 TESTS_PATH = DATA_DIR / "tests.jsonl"
 
 

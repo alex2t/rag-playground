@@ -23,6 +23,30 @@ def slug(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", ascii_text.lower()).strip("-")
 
 
+def directory_path(city: str) -> str:
+    return f"employees/{slug(city)}-staff-directory.md"
+
+
+def service_path(name: str) -> str:
+    return f"services/{slug(name)}.md"
+
+
+def client_path(name: str) -> str:
+    return f"clients/{slug(name)}.md"
+
+
+def runbook_path(title: str) -> str:
+    return f"deployment-runbooks/{slug(title)}.md"
+
+
+def entity_paths(world: World) -> dict[str, str]:
+    """Map every employee, service, client and runbook id to the document that holds its facts."""
+    paths = {e.id: directory_path(e.office_city) for e in world.employees}
+    paths |= {s.id: service_path(s.name) for s in world.services}
+    paths |= {c.id: client_path(c.name) for c in world.clients}
+    return paths | {r.id: runbook_path(r.title) for r in world.runbooks}
+
+
 def company_specs(world: World) -> list[DocSpec]:
     c = world.company
     overview = {
@@ -51,7 +75,7 @@ def directory_specs(world: World) -> list[DocSpec]:
     """One staff directory per office; short profiles are grouped as real firms do."""
     people = {e.id: e for e in world.employees}
     return [
-        DocSpec(f"employees/{slug(o.city)}-staff-directory.md", "office staff directory",
+        DocSpec(directory_path(o.city), "office staff directory",
                 f"{o.city} office staff directory",
                 {"office": o.city,
                  "profiles": [profile(e, people) for e in world.employees if e.office_city == o.city]})
@@ -65,7 +89,7 @@ def service_specs(world: World) -> list[DocSpec]:
     for s in world.services:
         facts = s.model_dump(exclude={"id", "lead_employee_id"})
         facts["lead"] = names[s.lead_employee_id]
-        specs.append(DocSpec(f"services/{slug(s.name)}.md", "service description", s.name, facts))
+        specs.append(DocSpec(service_path(s.name), "service description", s.name, facts))
     return specs
 
 
@@ -81,7 +105,7 @@ def client_specs(world: World) -> list[DocSpec]:
              "service": services[p.service_id], "team": [people[m] for m in p.team_employee_ids]}
             for p in c.projects
         ]
-        specs.append(DocSpec(f"clients/{slug(c.name)}.md", "client account summary", c.name, facts))
+        specs.append(DocSpec(client_path(c.name), "client account summary", c.name, facts))
     return specs
 
 
@@ -91,7 +115,7 @@ def runbook_specs(world: World) -> list[DocSpec]:
     for r in world.runbooks:
         facts = r.model_dump(exclude={"id", "owner_id"})
         facts["owner"] = people[r.owner_id]
-        specs.append(DocSpec(f"deployment-runbooks/{slug(r.title)}.md", "deployment runbook", r.title, facts))
+        specs.append(DocSpec(runbook_path(r.title), "deployment runbook", r.title, facts))
     return specs
 
 

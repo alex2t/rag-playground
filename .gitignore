@@ -3,6 +3,7 @@ CLAUDE.md
 decision.md
 fix.md
 plan.md
+implementation-issues.md
 
 # Secrets
 .env
