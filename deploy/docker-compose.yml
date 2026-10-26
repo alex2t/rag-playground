@@ -1,0 +1,30 @@
+# One environment: app + qdrant. Run as project rag-playground-staging or rag-playground-prod (D13).
+# Qdrant has no published port, so it is reachable only from the app on the compose network.
+
+services:
+  app:
+    image: ${APP_IMAGE:-rag-playground:dev}
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+      args:
+        APP_VERSION: ${APP_VERSION:-dev}
+    env_file:
+      - path: ../.env
+        required: false
+    environment:
+      QDRANT_URL: http://qdrant:6333
+    ports:
+      - "127.0.0.1:${APP_PORT:-8000}:8000"
+    depends_on:
+      - qdrant
+    restart: unless-stopped
+
+  qdrant:
+    image: qdrant/qdrant:v1.20.0
+    volumes:
+      - qdrant-data:/qdrant/storage
+    restart: unless-stopped
+
+volumes:
+  qdrant-data:
