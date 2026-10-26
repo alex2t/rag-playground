@@ -7,7 +7,8 @@ from pydantic import BaseModel
 
 # Words that make a free-text fact a claim about other entities (rank, uniqueness, totals) (T31).
 CLAIM_WORDS = re.compile(
-    r"\b(first|second|third|only|most|least|largest|biggest|smallest|highest|lowest|fewest|total|record)\b",
+    r"\b(first|second|third|only|most|least|largest|biggest|smallest|highest|lowest|fewest|total"
+    r"|record[- ](high|low|breaking|year|number))\b",
     re.IGNORECASE,
 )
 # Standard KPI names that contain a claim word but make no claim.
@@ -51,6 +52,7 @@ class Employee(BaseModel):
     manager_id: str | None
     certifications: list[str]
     skills: list[str]
+    bio: str
     notable_facts: list[str]
 
 
@@ -65,6 +67,9 @@ class Service(BaseModel):
     launch_year: int
     lead_employee_id: str
     deliverables: list[str]
+    scope_includes: list[str]
+    scope_excludes: list[str]
+    client_prerequisites: list[str]
 
 
 class Project(BaseModel):
@@ -73,8 +78,15 @@ class Project(BaseModel):
     start_date: str
     end_date: str
     team_employee_ids: list[str]
+    summary: str
+    objectives: list[str]
     outcome: str
-    metric: str
+    metrics: list[str]
+
+
+class Stakeholder(BaseModel):
+    name: str
+    role: str
 
 
 class Client(BaseModel):
@@ -85,8 +97,19 @@ class Client(BaseModel):
     client_since_year: int
     annual_contract_value_usd: int
     account_lead_id: str
+    stakeholders: list[Stakeholder]
     projects: list[Project]
     notable_facts: list[str]
+
+
+class RunbookStep(BaseModel):
+    action: str
+    verification: str
+
+
+class KnownIssue(BaseModel):
+    symptom: str
+    resolution: str
 
 
 class Runbook(BaseModel):
@@ -97,10 +120,11 @@ class Runbook(BaseModel):
     last_reviewed: str
     hands_on_minutes: int
     monitoring_hours: int
+    purpose: str
     prerequisites: list[str]
-    steps: list[str]
+    steps: list[RunbookStep]
     rollback_steps: list[str]
-    known_issues: list[str]
+    known_issues: list[KnownIssue]
 
 
 class CorePart(BaseModel):
@@ -131,8 +155,11 @@ def duplicates(values: list[str]) -> list[str]:
     return sorted(v for v, n in Counter(values).items() if n > 1)
 
 
-def world_problems(world: World) -> list[str]:
-    """Return every broken reference or duplicate id; an empty list means the world is consistent."""
+def world_problems(world: World, allowed_claims: frozenset[str] = frozenset()) -> list[str]:
+    """Return every broken reference, duplicate, timeline error, claim word or artifact; empty means consistent.
+
+    `allowed_claims` holds exact texts a human reviewed and accepted despite a claim word.
+    """
     employee_ids = {e.id for e in world.employees}
     service_ids = {s.id for s in world.services}
     cities = {o.city for o in world.company.offices}
@@ -142,7 +169,8 @@ def world_problems(world: World) -> list[str]:
         ("service", [s.id for s in world.services]),
         ("client", [c.id for c in world.clients]),
         ("runbook", [r.id for r in world.runbooks]),
-        ("name", [e.name for e in world.employees] + [c.name for c in world.clients]),
+        ("name", [e.name for e in world.employees] + [c.name for c in world.clients]
+                  + [s.name for c in world.clients for s in c.stakeholders]),
     ]:
         problems += [f"duplicate {kind}: {d}" for d in duplicates(ids)]
     for e in world.employees:
@@ -163,7 +191,7 @@ def world_problems(world: World) -> list[str]:
     for r in world.runbooks:
         if r.owner_id not in employee_ids:
             problems.append(f"{r.id}: unknown owner {r.owner_id}")
-    return problems + date_problems(world) + claim_word_problems(world) + artifact_problems(world)
+    return problems + date_problems(world) + claim_word_problems(world, allowed_claims) + artifact_problems(world)
 
 
 def all_texts(value, where: str = "world") -> list[tuple[str, str]]:
@@ -186,19 +214,22 @@ def artifact_problems(world: World) -> list[str]:
 def claim_texts(world: World) -> list[tuple[str, str]]:
     """Free-text fields where cross-entity claims can appear, as (location, text)."""
     texts = [(f"company milestone {m.year}", m.event) for m in world.company.milestones]
-    texts += [(e.id, f) for e in world.employees for f in e.notable_facts]
+    texts += [(e.id, t) for e in world.employees for t in [e.bio, *e.notable_facts]]
+    texts += [(s.id, t) for s in world.services for t in [s.summary, *s.scope_includes, *s.scope_excludes]]
     texts += [(c.id, f) for c in world.clients for f in c.notable_facts]
     for c in world.clients:
-        texts += [(f"{c.id}/{p.name}", t) for p in c.projects for t in (p.outcome, p.metric)]
+        texts += [(f"{c.id}/{p.name}", t) for p in c.projects
+                  for t in [p.summary, *p.objectives, p.outcome, *p.metrics]]
+    texts += [(r.id, r.purpose) for r in world.runbooks]
     return texts
 
 
-def claim_word_problems(world: World) -> list[str]:
+def claim_word_problems(world: World, allowed: frozenset[str] = frozenset()) -> list[str]:
     """Flag ordinals, superlatives and totals in claim fields; they must be computed, not written by the LLM."""
     return [
         f"{where}: claim word '{match.group(0)}' in: {text}"
         for where, text in claim_texts(world)
-        if (match := CLAIM_WORDS.search(KPI_NAMES.sub("", text)))
+        if text not in allowed and (match := CLAIM_WORDS.search(KPI_NAMES.sub("", text)))
     ]
 
 

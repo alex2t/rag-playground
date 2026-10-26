@@ -2,13 +2,13 @@
 
 from rag_playground.datasets.generate_world import derive_facts
 from rag_playground.datasets.world import (
-    Client, Company, Employee, Office, Project, Runbook, Service, World, world_problems,
+    Client, Company, Employee, Office, Project, Runbook, RunbookStep, Service, Stakeholder, World, world_problems,
 )
 
 
 def employee(id: str, name: str, manager_id: str | None = None, city: str = "Lyon") -> Employee:
     return Employee(id=id, name=name, title="Consultant", office_city=city, start_date="2020-01-06",
-                    manager_id=manager_id, certifications=[], skills=[], notable_facts=[])
+                    manager_id=manager_id, certifications=[], skills=[], bio="b", notable_facts=[])
 
 
 def make_world(**overrides) -> World:
@@ -19,15 +19,17 @@ def make_world(**overrides) -> World:
         employees=[employee("emp-01", "Ana Ruiz"), employee("emp-02", "Bo Chen", manager_id="emp-01")],
         services=[Service(id="svc-01", name="Audit", summary="s", salesforce_products=["Sales Cloud"],
                           pricing_model="fixed", price_usd=20000, typical_duration_weeks=4, launch_year=2015,
-                          lead_employee_id="emp-01", deliverables=[])],
+                          lead_employee_id="emp-01", deliverables=[], scope_includes=[], scope_excludes=[],
+                          client_prerequisites=[])],
         clients=[Client(id="cli-01", name="Nordwind", industry="Retail", country="Germany", client_since_year=2021,
                         annual_contract_value_usd=150000, account_lead_id="emp-02", notable_facts=[],
+                        stakeholders=[Stakeholder(name="Kai Berg", role="CIO")],
                         projects=[Project(name="P1", service_id="svc-01", start_date="2021-03-01",
-                                          end_date="2021-05-01", team_employee_ids=["emp-01", "emp-02"],
-                                          outcome="o", metric="m")])],
+                                          end_date="2021-05-01", team_employee_ids=["emp-01", "emp-02"], summary="s",
+                                          objectives=[], outcome="o", metrics=["m"])])],
         runbooks=[Runbook(id="rb-01", title="t", salesforce_area="Data Cloud", owner_id="emp-02",
-                          last_reviewed="2026-01-10", hands_on_minutes=30, monitoring_hours=2, prerequisites=[], steps=["s"],
-                          rollback_steps=[], known_issues=[])],
+                          last_reviewed="2026-01-10", hands_on_minutes=30, monitoring_hours=2, purpose="p", prerequisites=[],
+                          steps=[RunbookStep(action="a", verification="v")], rollback_steps=[], known_issues=[])],
     )
     return World(**{**parts, **overrides})
 
@@ -80,7 +82,7 @@ def test_claim_words_in_claim_fields_are_reported():
     world = make_world()
     world.employees[0].notable_facts = ["Delivered the firm's first Data Cloud project.", "Speaks Portuguese."]
     world.clients[0].notable_facts = ["Most projects of any client."]
-    world.clients[0].projects[0].metric = "Handled 3,912 tickets in total"
+    world.clients[0].projects[0].metrics = ["Handled 3,912 tickets in total"]
     assert world_problems(world) == [
         "emp-01: claim word 'first' in: Delivered the firm's first Data Cloud project.",
         "cli-01: claim word 'Most' in: Most projects of any client.",
@@ -91,13 +93,13 @@ def test_claim_words_in_claim_fields_are_reported():
 def test_claim_words_match_whole_words_only_and_skip_steps_and_policies():
     world = make_world()
     world.employees[0].notable_facts = ["Holds a firstclass honours degree.", "Mostly works on Sales Cloud."]
-    world.runbooks[0].steps = ["First, back up the org."]
+    world.runbooks[0].steps = [RunbookStep(action="First, back up the org.", verification="Backup listed.")]
     assert world_problems(world) == []
 
 
 def test_kpi_names_are_allowed_but_other_claim_words_in_the_same_text_are_not():
     world = make_world()
-    world.clients[0].projects[0].metric = "First-contact resolution up from 61% to 74%; first response time 4 hours"
+    world.clients[0].projects[0].metrics = ["First-contact resolution up from 61% to 74%; first response time 4 hours"]
     world.clients[0].projects[0].outcome = "First call resolution rose to the highest level"
     assert world_problems(world) == [
         "cli-01/P1: claim word 'highest' in: First call resolution rose to the highest level",
@@ -140,11 +142,12 @@ def test_derive_facts_sets_headcount_and_sorts_projects():
 
 def test_ellipses_are_reported_in_any_text_field():
     world = make_world()
-    world.runbooks[0].steps = ["Confirm accuracy of 90%... meeting the threshold of 90%."]
+    world.runbooks[0].steps = [RunbookStep(action="Confirm accuracy of 90%... meeting the threshold of 90%.",
+                                            verification="v")]
     world.company.mission = "Help clients… succeed"
     assert world_problems(world) == [
         "world.company.mission: ellipsis in: Help clients… succeed",
-        "world.runbooks[0].steps[0]: ellipsis in: Confirm accuracy of 90%... meeting the threshold of 90%.",
+        "world.runbooks[0].steps[0].action: ellipsis in: Confirm accuracy of 90%... meeting the threshold of 90%.",
     ]
 
 
@@ -152,3 +155,41 @@ def test_client_since_year_must_equal_earliest_project_year():
     world = make_world()
     world.clients[0].client_since_year = 2019
     assert world_problems(world) == ["cli-01: client since 2019 but earliest project starts 2021-03-01"]
+
+
+def test_stakeholder_names_must_not_repeat_employee_or_client_names():
+    world = make_world()
+    world.clients[0].stakeholders.append(Stakeholder(name="Ana Ruiz", role="COO"))
+    assert world_problems(world) == ["duplicate name: Ana Ruiz"]
+
+
+def test_claim_words_are_checked_in_the_new_free_text_fields():
+    world = make_world()
+    world.employees[0].bio = "The firm's most senior architect."
+    world.services[0].scope_includes = ["Our only fixed-fee audit."]
+    world.clients[0].projects[0].summary = "The largest rollout to date."
+    world.runbooks[0].purpose = "Used for every first deployment."
+    assert world_problems(world) == [
+        "emp-01: claim word 'most' in: The firm's most senior architect.",
+        "svc-01: claim word 'only' in: Our only fixed-fee audit.",
+        "cli-01/P1: claim word 'largest' in: The largest rollout to date.",
+        "rb-01: claim word 'first' in: Used for every first deployment.",
+    ]
+
+
+def test_record_is_a_claim_word_only_in_superlative_phrases():
+    world = make_world()
+    world.services[0].scope_includes = ["Sales process variants by record type", "Secure record sharing"]
+    world.clients[0].projects[0].metrics = ["Bookings reached a record high of 1,204"]
+    assert world_problems(world) == [
+        "cli-01/P1: claim word 'record high' in: Bookings reached a record high of 1,204",
+    ]
+
+
+def test_reviewed_texts_are_allowed_exactly_and_nowhere_else():
+    world = make_world()
+    world.employees[0].notable_facts = ["Cycles to the office most days.", "Cycles to the office most weeks."]
+    allowed = frozenset({"Cycles to the office most days."})
+    assert world_problems(world, allowed) == [
+        "emp-01: claim word 'most' in: Cycles to the office most weeks.",
+    ]

@@ -1,0 +1,5 @@
+{
+  "Cycles to the Austin office most days.": "Describes the employee's own commute; makes no comparison with other entities.",
+  "Apply a sharing model so each distributor sees only its own accounts' data": "Describes the project's own sharing rule (each distributor sees its own data); not a ranking.",
+  "Moves a validated Data Cloud configuration into production and activates the first live segments to a destination. It confirms that ingestion, identity resolution and activation work end to end on real client data.": "Describes this runbook's own step (activating the initial live segments); not a ranking."
+}

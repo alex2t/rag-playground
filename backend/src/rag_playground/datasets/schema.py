@@ -9,6 +9,8 @@ DATA_DIR = Path(__file__).resolve().parents[3] / "data" / "synthetic"
 KB_DIR = DATA_DIR / "kb"
 WORLD_PATH = DATA_DIR / "world.json"
 AUDIT_PATH = DATA_DIR / "world_audit.json"
+DOCS_AUDIT_PATH = DATA_DIR / "docs_audit.json"
+CLAIM_ALLOWLIST_PATH = DATA_DIR / "claim_allowlist.json"
 TESTS_PATH = DATA_DIR / "tests.jsonl"
 
 
