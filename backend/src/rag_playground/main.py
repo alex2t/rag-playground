@@ -2,18 +2,17 @@
 
 from fastapi import FastAPI, Response
 from fastapi.staticfiles import StaticFiles
-from qdrant_client import QdrantClient
 
 from rag_playground.settings import settings
+from rag_playground.stacks import qdrant_store
 
 app = FastAPI(title="RAG Playground", version=settings.app_version)
-qdrant = QdrantClient(url=settings.qdrant_url, timeout=2)
 
 
 def qdrant_status() -> str:
     """Return "ok" if Qdrant answers, otherwise the error text."""
     try:
-        qdrant.get_collections()
+        qdrant_store.client().get_collections()
     except Exception as exc:
         return f"error: {type(exc).__name__}"
     return "ok"

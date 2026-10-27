@@ -17,6 +17,7 @@ AUDIT_MODEL = "openai/gpt-6.1-sol"
 
 EMBED_MODEL = "nomic-ai/nomic-embed-text-v1.5"
 EMBED_DIM = 768
+BM25_MODEL = "Qdrant/bm25"
 
 
 class Settings(BaseSettings):
