@@ -210,7 +210,7 @@ Latency per question (median and 95th percentile) and cost per question in USD.
 ## 6. Fairness and known asymmetries
 
 - **OpenAI's search defaults are not plain vector search.** Checked live: by default OpenAI fuses a semantic list with a keyword list, then applies an undocumented ranking step (`auto`). The ranker can be switched off (`none`), and the weights of the two lists can be set. Qdrant returns plain similarity scores. Every comparison of the two stacks states the OpenAI ranking settings, and results with the `auto` ranker say that Stack A's advantage may come from it.
-- **Open question:** in a first 12-question check, OpenAI's "semantic only" mode (ranker off, keyword weight 0) found the right document for 7 of 12 questions, against 12 of 12 for Stack B's semantic search. Why is not yet known, so no conclusion is drawn from that mode until it is explained.
+- **OpenAI's "semantic only" mode is not plain vector similarity.** In a 12-question check, that mode (ranker off, keyword weight 0) found the right document for 7 of 12 questions. The same chunks embedded directly with OpenAI's `text-embedding-3-small` or `-large` and ranked by plain cosine similarity found all 12, as did Stack B's semantic search. What the mode computes is not documented, so its results are not presented as a measure of OpenAI's embeddings.
 - Relevance is judged per document, not per passage: a chunk from the right document might be the wrong part of it. Faithfulness and accuracy catch this downstream.
 
 ## 7. Limitations

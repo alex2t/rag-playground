@@ -29,7 +29,7 @@ def bm25() -> SparseTextEmbedding:
 
 
 def point_id(chunk_id: str) -> str:
-    """A stable Qdrant id derived from the chunk id, so re-indexing overwrites instead of duplicating."""
+    """A stable Qdrant id derived from the chunk id."""
     return str(uuid.uuid5(uuid.NAMESPACE_URL, chunk_id))
 
 
@@ -38,13 +38,16 @@ def sparse(embedding) -> models.SparseVector:
 
 
 def create_collection(q: QdrantClient, name: str) -> None:
-    """Dense cosine vectors plus BM25 sparse vectors; Qdrant applies IDF at query time."""
+    """Dense cosine vectors plus BM25 sparse vectors; Qdrant applies IDF at query time.
+    An existing collection is replaced, so re-indexing never leaves stale points."""
+    if q.collection_exists(name):
+        q.delete_collection(name)
     q.create_collection(name, vectors_config={DENSE: models.VectorParams(size=EMBED_DIM, distance=models.Distance.COSINE)},
                         sparse_vectors_config={SPARSE: models.SparseVectorParams(modifier=models.Modifier.IDF)})
 
 
 def index_chunks(q: QdrantClient, name: str, chunks: list[Chunk]) -> int:
-    """Create the collection, store every chunk with both vectors, and return the stored count."""
+    """(Re)create the collection, store every chunk with both vectors, and return the stored count."""
     create_collection(q, name)
     texts = [c.text for c in chunks]
     dense = nomic.embed_documents(texts)

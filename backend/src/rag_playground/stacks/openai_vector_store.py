@@ -1,28 +1,33 @@
 """Thin client for the OpenAI Vector Store used by Stack A."""
 
+import uuid
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from functools import cache
+from typing import Literal
 
 from openai import OpenAI
+from openai.types import VectorStoreSearchResponse
 
 from rag_playground.chunking.chunk_sets import Chunk
 from rag_playground.settings import settings
+from rag_playground.stacks.hits import Hit
 
 # T01: our splitter makes the chunks; one file per chunk, so OpenAI must not split again.
 NO_RESPLIT = {"type": "static", "static": {"max_chunk_size_tokens": 4096, "chunk_overlap_tokens": 0}}
 BATCH_SIZE = 500
-UPLOAD_WORKERS = 8
+WORKERS = 8
 
 
 @dataclass(frozen=True)
-class Hit:
-    """One search result; `attributes` holds the chunk ids set at upload."""
+class Ranking:
+    """OpenAI search ranking, always chosen by the user (T12, T40). With ranker "auto" the weights have no
+    measurable effect; with "none" the semantic and keyword lists are fused by RRF with these weights."""
 
-    filename: str
-    score: float
-    text: str
-    attributes: dict | None = None
+    ranker: Literal["none", "auto"]
+    embedding_weight: float
+    text_weight: float
+    score_threshold: float
 
 
 @cache
@@ -36,18 +41,14 @@ def create_store(name: str) -> str:
     return client().vector_stores.create(name=name, chunking_strategy=NO_RESPLIT).id
 
 
-def upload_texts(store_id: str, texts: dict[str, str]) -> None:
-    """Upload each text as its own file and wait until all are indexed."""
-    files = [(name, text.encode()) for name, text in texts.items()]
-    batch = client().vector_stores.file_batches.upload_and_poll(store_id, files=files, chunking_strategy=NO_RESPLIT)
-    if batch.file_counts.completed != len(files):
-        raise RuntimeError(f"vector store batch {batch.id}: {batch.file_counts}")
+def file_name(chunk: Chunk) -> str:
+    """A neutral name, so the document path cannot act as a keyword match (Stack B indexes text only)."""
+    return f"chunk_{uuid.uuid5(uuid.NAMESPACE_URL, chunk.chunk_id).hex}.md"
 
 
 def upload_file(chunk: Chunk) -> str:
-    """Upload one chunk's text as a file named after its chunk id."""
-    name = chunk.chunk_id.replace("/", "__").replace("#", "__") + ".md"
-    return client().files.create(file=(name, chunk.text.encode()), purpose="assistants").id
+    """Upload one chunk's text as its own file and return the file id."""
+    return client().files.create(file=(file_name(chunk), chunk.text.encode()), purpose="assistants").id
 
 
 def chunk_attributes(chunk: Chunk) -> dict:
@@ -56,7 +57,7 @@ def chunk_attributes(chunk: Chunk) -> dict:
 
 def upload_chunks(store_id: str, chunks: list[Chunk]) -> int:
     """Upload each chunk as its own file with its ids as attributes; return the number of files indexed."""
-    with ThreadPoolExecutor(UPLOAD_WORKERS) as pool:
+    with ThreadPoolExecutor(WORKERS) as pool:
         file_ids = list(pool.map(upload_file, chunks))
     completed = 0
     for i in range(0, len(chunks), BATCH_SIZE):
@@ -69,17 +70,28 @@ def upload_chunks(store_id: str, chunks: list[Chunk]) -> int:
     return completed
 
 
-def search(store_id: str, query: str, k: int, ranking_options: dict | None = None) -> list[Hit]:
-    """Return the top-k hits for a query, with query rewriting off. `ranking_options` is sent as is, because
-    the SDK types lack `hybrid_search` although the API accepts it (checked live on 2026-10-27)."""
-    extra = {"ranking_options": ranking_options} if ranking_options else None
+def ranking_body(ranking: Ranking) -> dict:
+    """The `ranking_options` request body. Sent raw, because the SDK types lack `"none"` and `hybrid_search`
+    although the API accepts both (checked live on 2026-10-27)."""
+    return {"ranker": ranking.ranker, "score_threshold": ranking.score_threshold,
+            "hybrid_search": {"embedding_weight": ranking.embedding_weight, "text_weight": ranking.text_weight}}
+
+
+def to_hit(result: VectorStoreSearchResponse) -> Hit:
+    return Hit(result.attributes["chunk_id"], result.attributes["source"], result.score,
+               "".join(c.text for c in result.content))
+
+
+def search(store_id: str, query: str, k: int, ranking: Ranking) -> list[Hit]:
+    """Return the top-k chunks for a query, with query rewriting off."""
     page = client().vector_stores.search(store_id, query=query, max_num_results=k, rewrite_query=False,
-                                         extra_body=extra)
-    return [Hit(r.filename, r.score, "".join(c.text for c in r.content), r.attributes) for r in page.data]
+                                         extra_body={"ranking_options": ranking_body(ranking)})
+    return [to_hit(r) for r in page.data]
 
 
 def delete_store(store_id: str) -> None:
     """Delete the store and its files (deleting a store alone keeps the files)."""
-    for f in client().vector_stores.files.list(store_id):
-        client().files.delete(f.id)
+    file_ids = [f.id for f in client().vector_stores.files.list(store_id, limit=100)]
+    with ThreadPoolExecutor(WORKERS) as pool:
+        list(pool.map(client().files.delete, file_ids))
     client().vector_stores.delete(store_id)

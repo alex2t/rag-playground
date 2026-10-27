@@ -6,6 +6,7 @@ import openai
 import pytest
 from pydantic import BaseModel
 
+from rag_playground.chunking.chunk_sets import Chunk
 from rag_playground.llm.models import model_info
 from rag_playground.llm.openrouter import chat, chat_structured
 from rag_playground.settings import ANSWER_MODELS, EMBED_DIM, JUDGE_MODEL
@@ -43,17 +44,19 @@ def test_judge_returns_structured_output():
 
 
 def test_vector_store_round_trip():
-    texts = {
-        "refunds.txt": "Customers can request a refund within 30 days of purchase.",
-        "shipping.txt": "Standard shipping takes five business days.",
-        "warranty.txt": "Hardware carries a two-year limited warranty.",
-    }
+    texts = ["Customers can request a refund within 30 days of purchase.",
+             "Standard shipping takes five business days.",
+             "Hardware carries a two-year limited warranty."]
+    chunks = [Chunk(chunk_id=f"policy.md#{i}", source="policy.md", doc_type="company", index=i, text=t,
+                    tokens=10, start=0, end=len(t)) for i, t in enumerate(texts)]
+    ranking = store.Ranking(ranker="auto", embedding_weight=1.0, text_weight=1.0, score_threshold=0.0)
     store_id = store.create_store("rag-playground-step1-test")
     try:
-        store.upload_texts(store_id, texts)
-        hits = store.search(store_id, "How long do I have to get my money back?", k=3)
-        assert hits[0].filename == "refunds.txt"
-        assert hits[0].text == texts["refunds.txt"]
+        assert store.upload_chunks(store_id, chunks) == 3
+        hits = store.search(store_id, "How long do I have to get my money back?", 3, ranking)
+        assert len(hits) == 3
+        assert hits[0].chunk_id == "policy.md#0" and hits[0].source == "policy.md"
+        assert hits[0].text == texts[0]
     finally:
         store.delete_store(store_id)
     with pytest.raises(openai.NotFoundError):
