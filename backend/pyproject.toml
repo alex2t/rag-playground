@@ -11,6 +11,7 @@ dependencies = [
     "fastapi>=0.162.0",
     "fastembed>=0.9.1",
     "httpx>=0.28.1",
+    "llama-index-core>=0.14.25",
     "openai>=3.38.0",
     "pydantic-settings>=2.16.1",
     "qdrant-client>=1.20.0",
@@ -31,3 +32,7 @@ dev = [
 testpaths = ["tests"]
 markers = ["live: calls real external APIs (skipped by default)"]
 addopts = "-m 'not live'"
+
+[tool.uv]
+# Copy instead of hard-linking: nltk refuses to open multiply-linked data files (CWE-59 check).
+link-mode = "copy"

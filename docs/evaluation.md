@@ -94,15 +94,15 @@ Every question goes through the same pipeline:
 question -> retrieve the top-K chunks -> (optional) rerank -> answer LLM writes the answer -> judge grades it
 ```
 
-**Two stacks, identical inputs.** Both stacks index exactly the same chunks, made by our own splitter. Prompt, answer model, K and test questions are also the same. The only difference is the retrieval engine. Stack A uploads each chunk as its own file, so OpenAI does not re-split it.
+**Two stacks, identical inputs.** Both stacks index exactly the same chunks. These are made once by LlamaIndex's default splitter, which cuts at paragraph and sentence boundaries where it can. Prompt, answer model, K and test questions are also the same. The only difference is the retrieval engine. Stack A uploads each chunk as its own file, so OpenAI does not re-split it.
 
 **The baseline and the improvement ladder.** Each step changes one setting compared with the step before, on each stack:
 
 | Step | What changes | Setting |
 |---|---|---|
-| S0 | Baseline | LlamaIndex defaults: 1,024-token chunks, 20-token overlap, top-2. No reranking, `gpt-4.1-nano` (these two are our choice, not LlamaIndex defaults). |
+| S0 | Baseline | LlamaIndex out of the box: its default splitter (`SentenceSplitter`) with 1,024-token chunks and a 200-token overlap, top-2. No reranking, `gpt-4.1-nano` (these two are our choice, not LlamaIndex defaults). |
 | S1 | Chunk size | The best size from a sweep of 100, 200, 400, 800, 1,024 and 1,600 tokens |
-| S2 | Overlap | 25% of the chunk size |
+| S2 | Overlap | The best of 0%, about 20% (the baseline's share) and 25% of the chunk size |
 | S3 | Top-K | 10 |
 | S4 | Chunk enrichment | An LLM adds a headline and a summary to each chunk |
 | S5 | Reranking | Retrieve 20 chunks, an LLM reorders them, keep the top 10 |

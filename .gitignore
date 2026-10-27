@@ -4,11 +4,14 @@ decision.md
 fix.md
 plan.md
 implementation-issues.md
+gemReview.md
+agent.md
 
 # Secrets
 .env
 
 # Generated
+var/
 node_modules/
 dist/
 .venv/

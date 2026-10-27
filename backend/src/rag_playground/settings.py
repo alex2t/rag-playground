@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     app_version: str = "dev"
     qdrant_url: str = "http://localhost:6333"
     static_dir: Path = REPO_ROOT / "frontend" / "dist"
+    var_dir: Path = REPO_ROOT / "var"
     openai_api_key: str = ""
     openrouter_api_key: str = ""
 

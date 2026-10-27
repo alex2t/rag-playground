@@ -5,7 +5,7 @@ A controlled study of which RAG techniques improve retrieval and answer quality,
 ## How the evaluation works
 
 **[docs/evaluation.md](docs/evaluation.md)** explains the project from scratch:
-- the data (a fictional Salesforce consulting firm's documents: company policies, staff directories, services, clients and deployment runbooks);
+- the data (a fictional consulting firm's documents: company policies, staff directories, services, clients and deployment runbooks);
 - the 240 test questions;
 - the experiment;
 - how each metric is computed (MRR, Recall@K, nDCG, faithfulness and the others), with a worked example;
