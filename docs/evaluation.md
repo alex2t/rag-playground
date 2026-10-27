@@ -171,7 +171,7 @@ Here, retrieval found everything (recall 1.0), but the first useful chunk was on
 
 ### 4.2 Answers: is the answer right? (LLM judge, 1-5)
 
-A judge model, `google/gemini-3.5-flash-lite` *(proposed)*, grades every answer. It is from a different model family than the answer models (all OpenAI), which reduces the bias of a model favouring its own style. It runs at temperature 0 and returns a fixed structured format. For each question, it receives the question, the reference answer, the retrieved chunks and the system's answer.
+A judge model, `google/gemini-3.5-flash-lite`, grades every answer. It is from a different model family than the answer models (all OpenAI), which reduces the bias of a model favouring its own style. It runs at temperature 0 and returns a fixed structured format. It grades each answer in two separate requests: accuracy, completeness and relevance from the question, the reference answer and the answer; faithfulness from the question, the retrieved chunks and the answer, without the reference answer. In one combined request, the judge was seen giving full faithfulness to a correct answer that the retrieved chunks did not support, because it matched the reference answer.
 
 | Metric | Compares | Question to the judge |
 |---|---|---|
