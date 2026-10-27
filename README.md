@@ -2,7 +2,14 @@
 
 A controlled study of which RAG techniques improve retrieval and answer quality, changing one variable at a time on two stacks (OpenAI Vector Store, Qdrant + nomic). FastAPI + React, deployed with Docker and a CI evaluation gate.
 
-What the data represents, which tests are run and how success is measured: [docs/evaluation.md](docs/evaluation.md).
+## How the evaluation works
+
+**[docs/evaluation.md](docs/evaluation.md)** explains the project from scratch:
+- the data (a fictional Salesforce consulting firm's documents: company policies, staff directories, services, clients and deployment runbooks);
+- the 240 test questions;
+- the experiment;
+- how each metric is computed (MRR, Recall@K, nDCG, faithfulness and the others), with a worked example;
+- what counts as an improvement.
 
 ## Run locally
 
