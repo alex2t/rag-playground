@@ -1,4 +1,4 @@
-"""Environment settings and the model catalogue. Sizes, ladder and gates are added in later steps."""
+"""Environment settings, the model catalogue and the selection gates. Sizes and ladder are added later."""
 
 from pathlib import Path
 
@@ -18,6 +18,12 @@ AUDIT_MODEL = "openai/gpt-6.1-sol"
 EMBED_MODEL = "nomic-ai/nomic-embed-text-v1.5"
 EMBED_DIM = 768
 BM25_MODEL = "Qdrant/bm25"
+
+# Minimum scores a run needs before it can be "best" (T08): custom values, confirmed 2026-10-27,
+# to be reviewed after the first real runs. Each gate passes when the score is >= its value.
+GATES = {"mrr": 0.75, "recall": 0.80, "faithfulness": 4.0, "correct_refusal_rate": 0.80}
+BOOTSTRAP_RESAMPLES = 1000
+BOOTSTRAP_SEED = 42
 
 
 class Settings(BaseSettings):
