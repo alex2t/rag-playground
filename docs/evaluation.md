@@ -114,14 +114,18 @@ The baseline is the framework's documented defaults, not a deliberately weak set
 
 | Setting | Range | Notes |
 |---|---|---|
+| Stack | A, B or both | With both, the same settings run on each stack and the results are shown side by side. |
 | Chunk size | 64-2,048 tokens | A chunk set that does not exist yet is built and indexed on both stacks after a cost estimate and a confirmation. |
 | Overlap | 0-50% of the chunk size | |
 | Top-K | 1-20 | |
 | Chunking method | fixed or LLM-enriched | |
-| Hybrid search | off / on | Combines keyword matching (BM25) with vector similarity, merged by reciprocal rank fusion. It helps with exact strings such as commands and error messages. On Stack B it uses Qdrant's sparse vectors. For Stack A, an equivalent OpenAI mode is still to be checked; if there is none, hybrid search is Stack B only. |
+| Hybrid search | off / on | Combines keyword matching (BM25) with vector similarity, merged by reciprocal rank fusion. It helps with exact strings such as commands and error messages. On Stack B it uses Qdrant's sparse vectors. On Stack A it uses OpenAI's own hybrid mode, with a semantic weight and a keyword weight. |
 | Reranking | off / on | |
+| OpenAI ranking (Stack A only) | ranker `none` or `auto`; hybrid weights; score threshold | OpenAI's `auto` ranker is an undocumented ranking step with no Stack B equivalent; results that use it are labelled. |
 | Answer model | the 3 catalogue models | |
 | System prompt | named versions | The prompt can be edited and saved as a new version. Saved versions never change, and every run records which version it used. |
+
+Every setting is chosen explicitly; nothing falls back to a library or vendor default, and every run records all of them.
 
 Results outside the ladder are exploratory. They use dev questions only, and the same statistical test decides whether a change is an improvement.
 
@@ -134,7 +138,7 @@ Results outside the ladder are exploratory. They use dev questions only, and the
 - the test questions are overlaid;
 - one question can be highlighted with its gold chunks and the chunks actually retrieved for it.
 
-This shows how a question can land next to the wrong document. Stack B's embeddings come from the local nomic model. OpenAI's vector store does not return its embeddings, so for Stack A the chunks are embedded again with the same OpenAI embedding model (about $0.01). **How to read it:** t-SNE keeps local neighbourhoods but not global distances, so the gaps between clusters and the cluster sizes mean nothing. The two maps are separate fits: compare their structure, not their positions. The map is an illustration; the conclusions come from the metrics.
+This shows how a question can land next to the wrong document. Stack B's embeddings come from the local nomic model. OpenAI's vector store does not return its embeddings, so for Stack A the chunks are embedded again with an OpenAI embedding model (about $0.01). OpenAI does not document which model its vector store uses, so the map names the model actually used. **How to read it:** t-SNE keeps local neighbourhoods but not global distances, so the gaps between clusters and the cluster sizes mean nothing. The two maps are separate fits: compare their structure, not their positions. The map is an illustration; the conclusions come from the metrics.
 
 ## 4. The metrics, and how each is computed
 
@@ -205,7 +209,8 @@ Latency per question (median and 95th percentile) and cost per question in USD.
 
 ## 6. Fairness and known asymmetries
 
-- OpenAI's vector store may apply its own ranking step; Qdrant returns plain similarity scores. We will try to switch OpenAI's ranker off and record the exact settings. Every comparison of the two stacks states them, and says if Stack A's advantage may be overstated.
+- **OpenAI's search defaults are not plain vector search.** Checked live: by default OpenAI fuses a semantic list with a keyword list, then applies an undocumented ranking step (`auto`). The ranker can be switched off (`none`), and the weights of the two lists can be set. Qdrant returns plain similarity scores. Every comparison of the two stacks states the OpenAI ranking settings, and results with the `auto` ranker say that Stack A's advantage may come from it.
+- **Open question:** in a first 12-question check, OpenAI's "semantic only" mode (ranker off, keyword weight 0) found the right document for 7 of 12 questions, against 12 of 12 for Stack B's semantic search. Why is not yet known, so no conclusion is drawn from that mode until it is explained.
 - Relevance is judged per document, not per passage: a chunk from the right document might be the wrong part of it. Faithfulness and accuracy catch this downstream.
 
 ## 7. Limitations
@@ -217,5 +222,6 @@ Latency per question (median and 95th percentile) and cost per question in USD.
   - 12 of the 30 `multi_doc` questions follow one template: "how long had X been at the firm when...".
 - **Document length.** Most documents are shorter than the largest chunk sizes, so at those sizes a chunk is often a whole document.
 - **Custom choices.** The gate thresholds, the dashboard setting ranges and the test-variety rules are our own choices, not standards.
-- **Hybrid search may be one-sided.** If OpenAI's search has no equivalent hybrid mode, hybrid search runs on Stack B only and cannot be part of the comparison between stacks.
+- **Hybrid search is similar, not identical, on the two stacks.** Both fuse a semantic and a keyword list, but OpenAI's keyword scoring is not documented, while Stack B uses BM25.
+- **Undocumented vendor behaviour.** OpenAI does not document its `auto` ranker or which embedding model its vector store uses.
 - **Judge check.** The judge is checked against one human on 30 answers. That is a light check, not a full agreement study.
