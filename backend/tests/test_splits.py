@@ -35,6 +35,12 @@ def test_split_gives_200_dev_and_50_heldout_stratified():
     assert len(heldout_unanswerable) == 5
 
 
+def test_heldout_is_a_fifth_of_any_total_rounded():
+    smaller = {**COUNTS, "temporal": 35, "multi_doc": 30}
+    assert list(assign_splits(make_ids(smaller)).values()).count("heldout") == 48
+    assert list(assign_splits(make_ids({**smaller, "multi_doc": 36})).values()).count("heldout") == 49
+
+
 def test_split_is_identical_on_every_call_and_ignores_input_order():
     ids = make_ids(COUNTS)
     reversed_ids = {c: list(reversed(v)) for c, v in reversed(list(ids.items()))}

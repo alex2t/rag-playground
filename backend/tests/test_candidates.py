@@ -70,6 +70,58 @@ def test_unanswerable_needs_no_sources_fixed_answer_and_absent_keywords():
     ]
 
 
+DATED_KB = {"clients/a.md": "Client since: 2015", "employees/e.md": "Joined: 2014-10-13", "clients/b.md": "2016-03-01"}
+
+
+def dated(question: str, keywords: list[str], docs: list[str]) -> Candidate:
+    return candidate(question=question, category="multi_doc", source_docs=docs, keywords=keywords,
+                     reference_answer=" and ".join(keywords))
+
+
+def test_interval_between_a_bare_year_and_a_full_date_is_reported():
+    ambiguous = "interval mixes a bare year and a full date: 2015, 2014-10-13"
+    for question in ["How many years after joining did Ashgrove become a client?", "How long before ..."]:
+        c = dated(question, ["2014-10-13", "2015"], ["clients/a.md", "employees/e.md"])
+        assert candidate_problems(c, DATED_KB) == [ambiguous]
+
+
+def test_ordering_with_a_bare_year_and_intervals_between_full_dates_are_allowed():
+    first = dated("Which came first: joining or Ashgrove becoming a client?", ["2014-10-13", "2015"],
+                  ["clients/a.md", "employees/e.md"])
+    days = dated("How many days after joining did the project start?", ["2014-10-13", "2016-03-01"],
+                 ["clients/b.md", "employees/e.md"])
+    assert candidate_problems(first, DATED_KB) == candidate_problems(days, DATED_KB) == []
+
+
+def test_interval_wording_anywhere_in_the_question_is_checked_unless_calendar_years_are_stated():
+    keywords, docs = ["2014-10-13", "2015"], ["clients/a.md", "employees/e.md"]
+    exact = dated("Exactly how many years after joining did Ashgrove become a client?", keywords, docs)
+    assert candidate_problems(exact, DATED_KB) == ["interval mixes a bare year and a full date: 2015, 2014-10-13"]
+    calendar = dated("By how many calendar years did joining precede Ashgrove becoming a client?", keywords, docs)
+    assert candidate_problems(calendar, DATED_KB) == []
+
+
+SPAN_KB = {"employees/e.md": "Joined: 2020-01-13", "clients/b.md": "Ended: 2024-05-06. Started: 2024-05-20."}
+
+
+def span(answer: str, end: str) -> Candidate:
+    return candidate(question="How long had Naveen been at the firm when the project ended?", category="multi_doc",
+                     source_docs=["employees/e.md", "clients/b.md"], keywords=["2020-01-13", end],
+                     reference_answer=f"From 2020-01-13 to {end}: {answer}.")
+
+
+def test_months_and_days_answer_across_a_shorter_month_day_is_reported():
+    borrow = span("4 years, 3 months and 23 days", "2024-05-06")
+    assert candidate_problems(borrow, SPAN_KB) == [
+        "months-and-days answer depends on the counting convention: 2020-01-13 to 2024-05-06",
+    ]
+
+
+def test_months_and_days_without_a_borrow_and_answers_in_days_are_allowed():
+    assert candidate_problems(span("4 years, 4 months and 7 days", "2024-05-20"), SPAN_KB) == []
+    assert candidate_problems(span("1,575 days", "2024-05-06"), SPAN_KB) == []
+
+
 def test_candidate_without_keywords_is_reported():
     assert candidate_problems(candidate(keywords=[]), KB) == ["no keywords"]
 

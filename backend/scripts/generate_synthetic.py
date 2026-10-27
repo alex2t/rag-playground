@@ -250,9 +250,10 @@ def run_topup(args: argparse.Namespace) -> None:
 
 
 def run_assemble(args: argparse.Namespace) -> None:
-    """Select verified candidates per quota and write tests.jsonl."""
-    rows = [json.loads(line) for line in VERIFICATION_PATH.read_text(encoding="utf-8").splitlines() if line.strip()]
-    tests = assemble([Candidate.model_validate(r["candidate"]) for r in rows if r["accepted"]])
+    """Select verified candidates that still pass the code checks per quota and write tests.jsonl."""
+    kb = kb_texts()
+    verified = [Candidate.model_validate(r["candidate"]) for r in load_verification() if r["accepted"]]
+    tests = assemble([c for c in verified if not candidate_problems(c, kb)])
     TESTS_PATH.write_text("".join(t.model_dump_json() + "\n" for t in tests), encoding="utf-8")
     print(f"wrote {TESTS_PATH} | {len(tests)} tests")
     print("per category and split:", dict(Counter((t.category.value, t.split.value) for t in tests)))

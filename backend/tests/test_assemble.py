@@ -56,13 +56,18 @@ def full_pool(extra: int = 3) -> list[Candidate]:
     return [candidate(cat.value, i) for cat, quota in QUOTAS.items() for i in range(quota + extra)]
 
 
-def test_assemble_gives_250_tests_with_quota_counts_and_200_50_split():
+def test_quotas_are_t30_with_temporal_and_multi_doc_reduced():
+    assert QUOTAS == {"direct_fact": 38, "multi_doc": 30, "numerical": 38, "temporal": 35, "comparative": 37,
+                      "exact_term": 37, "unanswerable": 25}
+
+
+def test_assemble_gives_240_tests_with_quota_counts_and_192_48_split():
     tests = assemble(full_pool())
-    assert len(tests) == 250
+    assert len(tests) == 240
     assert Counter(t.category for t in tests) == QUOTAS
-    assert Counter(t.split for t in tests) == {"dev": 200, "heldout": 50}
+    assert Counter(t.split for t in tests) == {"dev": 192, "heldout": 48}
     assert sum(t.split == "heldout" and t.category == "unanswerable" for t in tests) == 5
-    assert len({t.id for t in tests}) == 250
+    assert len({t.id for t in tests}) == 240
     assert tests[0].id == "direct_fact-001"
 
 
@@ -74,7 +79,7 @@ def test_assemble_is_deterministic_and_independent_of_input_order():
 def test_duplicate_questions_count_once_and_shortfall_is_an_error():
     pool = [c for c in full_pool(extra=0) if c.category != "temporal"]
     pool += [candidate("temporal", i % 20) for i in range(40)]
-    with pytest.raises(ValueError, match="temporal: 20 usable of 20 verified candidates, quota 37"):
+    with pytest.raises(ValueError, match="temporal: 20 usable of 20 verified candidates, quota 35"):
         select(pool)
 
 
@@ -115,6 +120,25 @@ def test_tests_sharing_one_value_but_adding_different_ones_are_different_facts()
     assert not same_fact(saltmarsh, maplecrest)
 
 
+def test_same_fact_when_one_tests_docs_are_among_the_others_and_they_share_a_value():
+    kerrawell = "clients/kerrawell.md"
+    duration = two_values([kerrawell], ["2025-03-17", "2025-05-19"])
+    in_weeks = two_values([kerrawell, "services/s.md"], ["2025-05-19", "8 weeks"])
+    assert same_fact(duration, in_weeks) and same_fact(in_weeks, duration)
+    handbook = ["company/employee-handbook.md", "employees/e.md"]
+    assert same_fact(two_values(handbook, ["30 days", "2021-08-23"]), two_values(handbook, ["30 days", "2019-03-04"]))
+    assert not same_fact(duration, two_values([kerrawell], ["2025-06-02"]))
+    assert not same_fact(in_weeks, two_values([kerrawell, "employees/e.md"], ["2025-05-19", "Ana Ruiz"]))
+
+
+def test_a_shared_value_written_with_extra_words_still_counts_as_shared():
+    kerrawell = "clients/kerrawell.md"
+    count = two_values([kerrawell], ["102 of 120", "85.0% pass rate"])
+    comparison = two_values([kerrawell, "clients/maplecrest.md"], ["95.0%", "85.0%"])
+    assert same_fact(count, comparison) and same_fact(comparison, count)
+    assert not same_fact(count, two_values([kerrawell, "clients/maplecrest.md"], ["95.0%", "5.0%"]))
+
+
 def test_a_fact_already_tested_in_an_earlier_category_is_not_tested_again():
     owner = candidate("direct_fact", 0, docs=["deployment-runbooks/r.md"], keyword="Dashiell Pruitt")
     repeat = candidate("multi_doc", 999, docs=["deployment-runbooks/r.md", "employees/e.md"], keyword="Dashiell Pruitt")
@@ -125,8 +149,20 @@ def test_a_fact_already_tested_in_an_earlier_category_is_not_tested_again():
     assert repeat not in chosen["multi_doc"] and len(chosen["multi_doc"]) == QUOTAS["multi_doc"]
 
 
+def test_scarcest_category_picks_first_so_a_shared_fact_goes_to_it():
+    pool = [c for c in full_pool() if c.category not in ("temporal", "direct_fact")]
+    pool += [candidate("temporal", i) for i in range(QUOTAS["temporal"])]
+    shared = candidate("temporal", 0).keywords[0]
+    pool += [candidate("direct_fact", 0, docs=candidate("temporal", 0).source_docs, keyword=shared)]
+    pool += [candidate("direct_fact", i) for i in range(1, QUOTAS["direct_fact"] + 1)]
+    chosen = select(pool)
+    assert len(chosen["temporal"]) == QUOTAS["temporal"]
+    assert all(c.keywords != [shared] for c in chosen["direct_fact"])
+    assert list(chosen) == list(QUOTAS)
+
+
 def test_kind_cap_is_40_percent_and_none_for_unanswerable():
     assert kind_cap(Category.NUMERICAL, 38) == 15
     assert kind_cap(Category.TEMPORAL, 37) == 14
-    assert kind_cap(Category.MULTI_DOC, 38) == 15
+    assert kind_cap(Category.MULTI_DOC, 30) == 12
     assert kind_cap(Category.UNANSWERABLE, 25) == 25

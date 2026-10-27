@@ -2,16 +2,18 @@
 
 import math
 import random
+import re
 from collections import Counter
 
 from rag_playground.datasets.candidates import Candidate
 from rag_playground.datasets.schema import Category, TestCase
 from rag_playground.datasets.splits import SEED, assign_splits
 
-# T30: 25 unanswerable, 225 answerable split evenly over six categories (37 or 38 each).
+# T30: 25 unanswerable and 37 or 38 per answerable category; temporal and multi_doc reduced to what the
+# verified pool fills under the distinct-fact rule and the 40% kind cap (T34 revision).
 QUOTAS = {
-    Category.DIRECT_FACT: 38, Category.MULTI_DOC: 38, Category.NUMERICAL: 38,
-    Category.TEMPORAL: 37, Category.COMPARATIVE: 37, Category.EXACT_TERM: 37,
+    Category.DIRECT_FACT: 38, Category.MULTI_DOC: 30, Category.NUMERICAL: 38,
+    Category.TEMPORAL: 35, Category.COMPARATIVE: 37, Category.EXACT_TERM: 37,
     Category.UNANSWERABLE: 25,
 }
 # T34, custom choice: no document kind (folder or folder pair) may fill more than this share of a category.
@@ -29,9 +31,21 @@ def doc_kind(c: Candidate) -> str:
 
 def same_fact(a: Candidate, b: Candidate) -> bool:
     """T34, custom rule: two tests sharing a source doc test the same fact when every answer value (keyword)
-    of one is also an answer value of the other, so one test is fully covered by the other."""
+    of one is also an answer value of the other, or when every source doc of one is also a source doc of the
+    other and they share an answer value (the same fact reached from the same documents)."""
     ka, kb = {k.lower() for k in a.keywords}, {k.lower() for k in b.keywords}
-    return bool(set(a.source_docs) & set(b.source_docs)) and (ka <= kb or kb <= ka)
+    da, db = set(a.source_docs), set(b.source_docs)
+    return bool(da & db) and (ka <= kb or kb <= ka or ((da <= db or db <= da) and shares_value(ka, kb)))
+
+
+def contains_value(text: str, value: str) -> bool:
+    """`value` appears in `text` as a whole value: "85.0%" is in "85.0% pass rate" but "5.0%" is not in "85.0%"."""
+    return re.search(rf"(?<![\w.-]){re.escape(value)}(?![\w-])", text) is not None
+
+
+def shares_value(ka: set[str], kb: set[str]) -> bool:
+    """Two keyword sets share a value, even when one keyword adds words around it."""
+    return any(contains_value(x, y) or contains_value(y, x) for x in ka for y in kb)
 
 
 def distinct_facts(candidates: list[Candidate]) -> list[Candidate]:
@@ -49,14 +63,23 @@ def kind_cap(category: Category, quota: int) -> int:
     return math.floor(KIND_SHARE * quota)
 
 
+def category_pools(candidates: list[Candidate]) -> dict[Category, list[Candidate]]:
+    """Distinct questions per category, sorted, in scarcest-first order (pool size / quota, then QUOTAS order),
+    so the categories with the fewest spare candidates claim a fact shared with another category."""
+    pools = {}
+    for category in QUOTAS:
+        unique = {c.question.strip().lower(): c for c in candidates if c.category == category}
+        pools[category] = sorted(unique.values(), key=lambda c: c.question)
+    return dict(sorted(pools.items(), key=lambda item: len(item[1]) / QUOTAS[item[0]]))
+
+
 def select(candidates: list[Candidate], seed: int = SEED) -> dict[Category, list[Candidate]]:
-    """Per category: drop duplicate questions, shuffle with the seed, then take candidates in order,
-    skipping any whose document kind is at its cap or whose fact an earlier pick (any category) already tests."""
+    """Per category, scarcest first: shuffle with the seed, then take candidates in order, skipping any whose
+    document kind is at its cap or whose fact an earlier pick (any category) already tests."""
     rng = random.Random(seed)
     chosen, taken = {}, []
-    for category, quota in QUOTAS.items():
-        unique = {c.question.strip().lower(): c for c in candidates if c.category == category}
-        pool = sorted(unique.values(), key=lambda c: c.question)
+    for category, pool in category_pools(candidates).items():
+        quota = QUOTAS[category]
         rng.shuffle(pool)
         picks, kinds = [], Counter()
         for c in pool:
@@ -69,11 +92,11 @@ def select(candidates: list[Candidate], seed: int = SEED) -> dict[Category, list
         if len(picks) < quota:
             raise ValueError(f"{category}: {len(picks)} usable of {len(pool)} verified candidates, quota {quota}")
         chosen[category] = picks
-    return chosen
+    return {category: chosen[category] for category in QUOTAS}
 
 
 def assemble(candidates: list[Candidate], seed: int = SEED) -> list[TestCase]:
-    """Build the 250 test cases with ids like "temporal-007" and the stratified split."""
+    """Build the test cases with ids like "temporal-007" and the stratified split."""
     chosen = select(candidates, seed)
     ids = {cat: [f"{cat.value}-{i:03d}" for i in range(1, len(cs) + 1)] for cat, cs in chosen.items()}
     split = assign_splits({cat.value: v for cat, v in ids.items()}, seed=seed)

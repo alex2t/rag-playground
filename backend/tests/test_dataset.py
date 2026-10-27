@@ -36,13 +36,13 @@ def test_category_counts_per_split_match_t30():
     counts = Counter((t.category.value, t.split.value) for t in TESTS)
     print("\ncategory counts per split:", dict(sorted(counts.items())))
     assert Counter(t.category for t in TESTS) == QUOTAS
-    assert Counter(t.split for t in TESTS) == {"dev": 200, "heldout": 50}
+    assert Counter(t.split for t in TESTS) == {"dev": 192, "heldout": 48}
     assert counts[("unanswerable", "dev")] == 20 and counts[("unanswerable", "heldout")] == 5
 
 
 def test_ids_and_questions_are_unique():
-    assert len({t.id for t in TESTS}) == len(TESTS) == 250
-    assert len({t.question.strip().lower() for t in TESTS}) == 250
+    assert len({t.id for t in TESTS}) == len(TESTS) == 240
+    assert len({t.question.strip().lower() for t in TESTS}) == 240
 
 
 def test_split_is_identical_on_every_load_and_reproducible_from_the_seed():

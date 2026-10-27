@@ -5,7 +5,7 @@ import random
 from collections import defaultdict
 
 SEED = 42
-HELDOUT_TOTAL = 50
+HELDOUT_SHARE = 0.2
 
 
 def heldout_quotas(counts: dict[str, int], total: int) -> dict[str, int]:
@@ -19,9 +19,10 @@ def heldout_quotas(counts: dict[str, int], total: int) -> dict[str, int]:
     return quotas
 
 
-def assign_splits(ids_by_category: dict[str, list[str]], total: int = HELDOUT_TOTAL, seed: int = SEED) -> dict[str, str]:
-    """Map each test id to "dev" or "heldout"; the same input always gives the same split."""
-    quotas = heldout_quotas({c: len(ids) for c, ids in ids_by_category.items()}, total)
+def assign_splits(ids_by_category: dict[str, list[str]], seed: int = SEED) -> dict[str, str]:
+    """Map each test id to "dev" or "heldout" (a fifth, rounded); the same input always gives the same split."""
+    counts = {c: len(ids) for c, ids in ids_by_category.items()}
+    quotas = heldout_quotas(counts, round(HELDOUT_SHARE * sum(counts.values())))
     rng = random.Random(seed)
     split = {}
     for category in sorted(ids_by_category):

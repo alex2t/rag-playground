@@ -1,6 +1,7 @@
 """Test candidates, document pairs for two-document questions, and code checks on tests (T34)."""
 
 import random
+import re
 from itertools import combinations
 
 from pydantic import BaseModel
@@ -13,6 +14,11 @@ from rag_playground.datasets.world import Client, World
 NOT_IN_KB = "Not in the knowledge base."
 HANDBOOK = "company/employee-handbook.md"
 TWO_DOC = {Category.MULTI_DOC, Category.COMPARATIVE}
+INTERVAL = re.compile(r"\bhow (many|long)\b", re.IGNORECASE)
+YEAR = re.compile(r"^\d{4}$")
+DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+ISO_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
+MONTHS_AND_DAYS = re.compile(r"\d+ months? and \d+ days?")
 
 
 class Candidate(BaseModel):
@@ -85,6 +91,26 @@ def unique_keyword_problems(docs: list[str], keywords: list[str], kb: dict[str, 
     return problems
 
 
+def interval_problems(c: Candidate) -> list[str]:
+    """An interval between a bare year ("Client since: 2015") and a full date has no single correct answer,
+    unless the question states that it counts calendar years."""
+    years = [k for k in c.keywords if YEAR.match(k)]
+    dates = [k for k in c.keywords if DATE.match(k)]
+    calendar = "calendar year" in c.question.lower()
+    if INTERVAL.search(c.question) and not calendar and years and dates:
+        return [f"interval mixes a bare year and a full date: {', '.join(years + dates)}"]
+    return []
+
+
+def span_problems(c: Candidate) -> list[str]:
+    """A span in months and days is ambiguous when the end's day of the month is before the start's:
+    2020-01-13 to 2024-05-06 is 23 or 24 extra days depending on whether whole months or days are counted first."""
+    dates = sorted(ISO_DATE.findall(c.reference_answer))
+    if MONTHS_AND_DAYS.search(c.reference_answer) and len(dates) == 2 and dates[1][8:] < dates[0][8:]:
+        return [f"months-and-days answer depends on the counting convention: {dates[0]} to {dates[1]}"]
+    return []
+
+
 def answerable_problems(c: Candidate, kb: dict[str, str]) -> list[str]:
     """Checks on an answerable candidate, using only its source docs that exist."""
     docs = [d for d in c.source_docs if d in kb]
@@ -98,7 +124,7 @@ def answerable_problems(c: Candidate, kb: dict[str, str]) -> list[str]:
     problems += [f"keyword not in gold docs: {k}" for k in c.keywords if k.lower() not in gold]
     problems += [f"keyword not in reference answer: {k}" for k in c.keywords
                  if k.lower() not in c.reference_answer.lower()]
-    return problems
+    return problems + interval_problems(c) + span_problems(c)
 
 
 def unanswerable_problems(c: Candidate, kb: dict[str, str]) -> list[str]:
