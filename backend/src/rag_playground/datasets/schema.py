@@ -1,5 +1,6 @@
 """Test-case schema and the paths of the committed synthetic dataset (D20)."""
 
+import hashlib
 from enum import StrEnum
 from pathlib import Path
 
@@ -47,3 +48,13 @@ def load_tests() -> list[TestCase]:
     """Read every test case from tests.jsonl."""
     lines = TESTS_PATH.read_text(encoding="utf-8").splitlines()
     return [TestCase.model_validate_json(line) for line in lines if line.strip()]
+
+
+def dataset_sha256() -> str:
+    """One hash over tests.jsonl and every KB document with its path. Text is read with universal newlines,
+    so the same content gives the same hash whatever the line endings on disk."""
+    digest = hashlib.sha256()
+    for path in [TESTS_PATH, *sorted(KB_DIR.rglob("*.md"))]:
+        digest.update(path.relative_to(DATA_DIR).as_posix().encode("utf-8") + b"\0")
+        digest.update(path.read_text(encoding="utf-8").encode("utf-8") + b"\0")
+    return digest.hexdigest()
