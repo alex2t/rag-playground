@@ -79,8 +79,12 @@ class Judgement:
     faithfulness_feedback: str
 
 
+NO_CONTEXT = "(no documents were retrieved)"
+
+
 def numbered(context: list[str]) -> str:
-    return "\n\n".join(f"[{i}] {text}" for i, text in enumerate(context, 1))
+    """The chunks as [1], [2]... in rank order, shared by the answer model and the faithfulness judge."""
+    return "\n\n".join(f"[{i}] {text}" for i, text in enumerate(context, 1)) or NO_CONTEXT
 
 
 def answer_messages(test: TestCase, answer: str) -> list[dict]:
