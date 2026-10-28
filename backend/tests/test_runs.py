@@ -42,7 +42,13 @@ def conn(tmp_path):
     connection.close()
 
 
-@pytest.mark.parametrize("meta", [STACK_A, STACK_B])
+NO_RERANK = {"rerank_model": None, "rerank_slug": None, "rerank_candidates": None}
+WITH_RERANK = {"rerank_model": "openai/gpt-4.1-nano", "rerank_slug": "openai/gpt-4.1-nano-2025-04-14",
+               "rerank_candidates": 20}
+
+
+@pytest.mark.parametrize("meta", [STACK_A, replace(STACK_A, **NO_RERANK), STACK_B, replace(STACK_B, **WITH_RERANK)],
+                         ids=["A+rerank", "A", "B", "B+rerank"])
 def test_a_run_keeps_every_metadata_field_exactly(conn, meta):
     run_id = runs.create_run(conn, meta)
     run = runs.get_run(conn, run_id)
