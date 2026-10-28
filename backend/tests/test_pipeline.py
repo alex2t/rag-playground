@@ -17,6 +17,7 @@ from rag_playground.stacks.hits import Hit
 DEV = [t for t in load_tests() if t.split == "dev"][:10]
 HELDOUT = [t for t in load_tests() if t.split == "heldout"][:3]
 NO_TEMPERATURE = "openai/gpt-6.1-sol"
+MINI = "openai/gpt-4.1-mini"  # not the reranker model, so the two can be told apart
 VERDICT = Judgement(refused=False, accuracy=5, completeness=5, relevance=5, faithfulness=5, feedback="ok",
                     faithfulness_feedback="ok")
 CHOICES = pipeline.Choices(stack="B", chunk_set_id="fixed__c1024__o200", top_k=3, hybrid=False,
@@ -29,8 +30,8 @@ def call(cost: float, text: str = "An answer.") -> ChatResult:
                       completion_tokens=1, reasoning_tokens=0, cost_usd=cost)
 
 
-def info(model_id: str) -> ModelInfo:
-    params = frozenset() if model_id == NO_TEMPERATURE else frozenset({"temperature"})
+def info(model_id: str, no_temperature: tuple[str, ...] = (NO_TEMPERATURE,)) -> ModelInfo:
+    params = frozenset() if model_id in no_temperature else frozenset({"temperature"})
     return ModelInfo(model_id, f"{model_id}-2026", params, 0.0, 0.0)
 
 
@@ -81,11 +82,11 @@ def test_a_10_question_run_stores_10_rows_with_full_metadata_and_progress_reache
     """The plan's Step 6 check."""
     run_id = pipeline.start_run(conn, CHOICES, DEV)
     assert runs.progress(conn, run_id) == 0.0
-    pipeline.execute(conn, run_id, DEV, retriever(fakes))
+    pipeline.execute(conn, run_id, retriever(fakes))
     run = runs.get_run(conn, run_id)
     assert run.status == "done"
     assert run.meta == runs.RunMeta(
-        stack="B", split="dev", question_count=10, chunk_set_id="fixed__c1024__o200", top_k=3, hybrid=False,
+        stack="B", split="dev", test_ids=[t.id for t in DEV], chunk_set_id="fixed__c1024__o200", top_k=3, hybrid=False,
         openai_ranking=None, answer_model="openai/gpt-4.1-nano", answer_slug="openai/gpt-4.1-nano-2026",
         judge_model=JUDGE_MODEL, judge_slug=f"{JUDGE_MODEL}-2026", rerank_model=None, rerank_slug=None,
         rerank_candidates=None, temperature_controlled=True, prompt_name="default",
@@ -96,7 +97,7 @@ def test_a_10_question_run_stores_10_rows_with_full_metadata_and_progress_reache
 
 def test_without_rerank_k_chunks_go_to_the_answer_and_the_judge(conn, fakes):
     run_id = pipeline.start_run(conn, CHOICES, DEV[:2])
-    pipeline.execute(conn, run_id, DEV[:2], retriever(fakes))
+    pipeline.execute(conn, run_id, retriever(fakes))
     assert fakes["retrieve"] == [3, 3]
     assert fakes["rerank"] == []
     assert [ids for _, _, ids in fakes["answer"]] == [["c0", "c1", "c2"]] * 2
@@ -109,7 +110,7 @@ def test_without_rerank_k_chunks_go_to_the_answer_and_the_judge(conn, fakes):
 
 def test_with_rerank_20_candidates_are_reranked_and_only_the_top_k_are_answered_and_judged(conn, fakes):
     run_id = pipeline.start_run(conn, replace(CHOICES, rerank=True), DEV[:1])
-    pipeline.execute(conn, run_id, DEV[:1], retriever(fakes))
+    pipeline.execute(conn, run_id, retriever(fakes))
     assert fakes["retrieve"] == [RERANK_CANDIDATES]
     assert fakes["rerank"] == [(DEV[0].question, RERANK_CANDIDATES, 3)]
     reranked = ["c19", "c18", "c17"]
@@ -128,7 +129,7 @@ def test_a_rerank_without_a_model_call_adds_no_cost(conn, fakes, monkeypatch):
     """With 0 or 1 candidate the reranker makes no call and returns no usage."""
     monkeypatch.setattr(pipeline, "rerank", lambda question, hits, k: Reranked(hits[:k], None, repaired=False))
     run_id = pipeline.start_run(conn, replace(CHOICES, rerank=True), DEV[:1])
-    pipeline.execute(conn, run_id, DEV[:1], lambda question, k: [])
+    pipeline.execute(conn, run_id, lambda question, k: [])
     result = runs.get_results(conn, run_id)[0]
     assert (result.hits, result.rerank_repaired) == ([], False)
     assert result.cost_usd == pytest.approx(0.01 + 0.002 + 0.003)
@@ -148,7 +149,7 @@ def test_latency_covers_retrieval_and_answer_but_not_the_judge(conn, fakes, monk
     monkeypatch.setattr(pipeline, "answer", taking(2.0, call(0.01)))
     monkeypatch.setattr(pipeline, "judge", taking(30.0, (VERDICT, [])))
     run_id = pipeline.start_run(conn, CHOICES, DEV[:1])
-    pipeline.execute(conn, run_id, DEV[:1], taking(0.5, candidates("q", 3)))
+    pipeline.execute(conn, run_id, taking(0.5, candidates("q", 3)))
     assert runs.get_results(conn, run_id)[0].latency_s == 2.5
 
 
@@ -164,7 +165,7 @@ def test_a_failure_marks_the_run_failed_keeps_earlier_results_and_is_raised(conn
     monkeypatch.setattr(pipeline, "answer", answer)
     run_id = pipeline.start_run(conn, CHOICES, DEV)
     with pytest.raises(RuntimeError, match="rate limited"):
-        pipeline.execute(conn, run_id, DEV, retriever(fakes))
+        pipeline.execute(conn, run_id, retriever(fakes))
     run = runs.get_run(conn, run_id)
     assert (run.status, run.error) == ("failed", "RuntimeError: rate limited")
     assert len(runs.get_results(conn, run_id)) == 3
@@ -174,19 +175,40 @@ def test_a_failure_marks_the_run_failed_keeps_earlier_results_and_is_raised(conn
 def test_the_run_uses_the_stored_prompt_version(conn, fakes):
     prompts.save(conn, "strict", "Only answer from the context.")
     run_id = pipeline.start_run(conn, replace(CHOICES, prompt_name="strict"), DEV[:1])
-    pipeline.execute(conn, run_id, DEV[:1], retriever(fakes))
+    pipeline.execute(conn, run_id, retriever(fakes))
     assert fakes["answer"][0][1] == "strict"
     assert runs.get_run(conn, run_id).meta.prompt_sha256 == prompts.sha256("Only answer from the context.")
 
 
-@pytest.mark.parametrize("choices, controlled", [
-    (CHOICES, True),
-    (replace(CHOICES, answer_model=NO_TEMPERATURE), False),
-    (replace(CHOICES, answer_model=NO_TEMPERATURE, rerank=True), False),
-])
-def test_a_run_is_temperature_controlled_only_if_every_model_accepts_temperature(fakes, choices, controlled):
+@pytest.mark.parametrize("choices, no_temperature, controlled", [
+    (CHOICES, (), True),
+    (replace(CHOICES, rerank=True), (), True),
+    (CHOICES, ("openai/gpt-4.1-nano",), False),  # the answer model
+    (CHOICES, (JUDGE_MODEL,), False),
+    (replace(CHOICES, answer_model=MINI, rerank=True), (RERANK_MODEL,), False),
+    (replace(CHOICES, answer_model=MINI), (RERANK_MODEL,), True),  # a reranker that is not used does not count
+], ids=["all-accept", "all-accept-rerank", "answer", "judge", "reranker", "unused-reranker"])
+def test_a_run_is_temperature_controlled_only_if_every_model_it_uses_accepts_temperature(
+        fakes, monkeypatch, choices, no_temperature, controlled):
+    """The answer model, the judge and the reranker (when on) are all checked (T14)."""
+    monkeypatch.setattr(pipeline, "model_info", lambda model_id: info(model_id, no_temperature))
     default = prompts.PromptVersion("default", "x", prompts.sha256("x"))
     assert pipeline.build_meta(choices, default, DEV).temperature_controlled is controlled
+
+
+def test_a_run_asking_the_same_question_twice_is_refused(fakes):
+    default = prompts.PromptVersion("default", "x", prompts.sha256("x"))
+    with pytest.raises(ValueError, match="once"):
+        pipeline.build_meta(CHOICES, default, DEV[:2] + DEV[:1])
+
+
+def test_execute_asks_exactly_the_questions_the_run_declared_in_order(conn, fakes):
+    """The questions are read back from the run, so they cannot differ from the declared ones."""
+    chosen = [DEV[4], DEV[1], DEV[7]]
+    run_id = pipeline.start_run(conn, CHOICES, chosen)
+    pipeline.execute(conn, run_id, retriever(fakes))
+    assert [r.test_id for r in runs.get_results(conn, run_id)] == [t.id for t in chosen]
+    assert runs.progress(conn, run_id) == 1.0
 
 
 def test_a_run_mixing_dev_and_heldout_questions_is_refused(fakes):

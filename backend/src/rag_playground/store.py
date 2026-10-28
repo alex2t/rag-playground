@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS runs (
     error TEXT,
     stack TEXT NOT NULL CHECK (stack IN ('A', 'B')),
     split TEXT NOT NULL CHECK (split IN ('dev', 'heldout')),
-    question_count INTEGER NOT NULL CHECK (question_count > 0),
+    test_ids TEXT NOT NULL CHECK (json_array_length(test_ids) > 0),
     chunk_set_id TEXT NOT NULL,
     top_k INTEGER NOT NULL CHECK (top_k > 0),
     hybrid INTEGER NOT NULL,
@@ -68,6 +68,12 @@ CREATE TABLE IF NOT EXISTS results (
     latency_s REAL NOT NULL,
     PRIMARY KEY (run_id, test_id)
 );
+-- A result is only stored for a question the run declared when it was created.
+CREATE TRIGGER IF NOT EXISTS results_declared_test BEFORE INSERT ON results
+WHEN EXISTS (SELECT 1 FROM runs WHERE id = NEW.run_id)
+ AND NOT EXISTS (SELECT 1 FROM runs, json_each(runs.test_ids)
+                 WHERE runs.id = NEW.run_id AND json_each.value = NEW.test_id)
+BEGIN SELECT RAISE(ABORT, 'test is not part of this run'); END;
 """
 
 

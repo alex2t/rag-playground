@@ -10,12 +10,12 @@ from rag_playground.stacks.hits import Hit
 
 @dataclass(frozen=True)
 class RunMeta:
-    """Every setting and version a run needs to be reproduced. Unused options are None (Stack B has no
-    OpenAI ranking; a run without reranking has no reranker)."""
+    """Every setting and version a run needs to be reproduced, including the exact questions it asks, in order.
+    Unused options are None (Stack B has no OpenAI ranking; a run without reranking has no reranker)."""
 
     stack: str
     split: str
-    question_count: int
+    test_ids: list[str]
     chunk_set_id: str
     top_k: int
     hybrid: bool
@@ -68,11 +68,11 @@ def insert(conn: sqlite3.Connection, table: str, row: dict) -> int:
 def create_run(conn: sqlite3.Connection, meta: RunMeta) -> int:
     """Store a new run as "running" and return its id."""
     ranking = None if meta.openai_ranking is None else json.dumps(meta.openai_ranking)
-    return insert(conn, "runs", asdict(meta) | {"openai_ranking": ranking})
+    return insert(conn, "runs", asdict(meta) | {"openai_ranking": ranking, "test_ids": json.dumps(meta.test_ids)})
 
 
 def add_result(conn: sqlite3.Connection, run_id: int, result: Result) -> None:
-    """Store one question's result; a question can be stored once per run."""
+    """Store one question's result; only a question the run declared, and only once."""
     row = {"run_id": run_id} | asdict(result) | asdict(result.judgement)
     del row["judgement"]
     insert(conn, "results", row | {"hits": json.dumps([asdict(hit) for hit in result.hits])})
@@ -97,7 +97,7 @@ def run_row(conn: sqlite3.Connection, run_id: int) -> sqlite3.Row:
 def progress(conn: sqlite3.Connection, run_id: int) -> float:
     """Share of the run's questions with a stored result, from 0.0 to 1.0."""
     row = run_row(conn, run_id)
-    return row["done"] / row["question_count"]
+    return row["done"] / len(json.loads(row["test_ids"]))
 
 
 def get_run(conn: sqlite3.Connection, run_id: int) -> Run:
@@ -106,7 +106,7 @@ def get_run(conn: sqlite3.Connection, run_id: int) -> Run:
     ranking = row["openai_ranking"]
     meta = RunMeta(**{f.name: row[f.name] for f in fields(RunMeta)} | {
         "hybrid": bool(row["hybrid"]), "temperature_controlled": bool(row["temperature_controlled"]),
-        "openai_ranking": None if ranking is None else json.loads(ranking)})
+        "openai_ranking": None if ranking is None else json.loads(ranking), "test_ids": json.loads(row["test_ids"])})
     return Run(id=row["id"], created_at=row["created_at"], status=row["status"], error=row["error"], meta=meta)
 
 

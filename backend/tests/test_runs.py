@@ -13,7 +13,8 @@ from rag_playground.scoring.judging import Judgement
 from rag_playground.stacks.hits import Hit
 
 STACK_A = runs.RunMeta(
-    stack="A", split="dev", question_count=10, chunk_set_id="fixed__c1024__o200", top_k=5, hybrid=True,
+    stack="A", split="dev", test_ids=[f"q{i}" for i in range(10)], chunk_set_id="fixed__c1024__o200", top_k=5,
+    hybrid=True,
     openai_ranking={"ranker": "none", "embedding_weight": 1.0, "text_weight": 1.0, "score_threshold": 0.0},
     answer_model="openai/gpt-6.1-sol", answer_slug="openai/gpt-6.1-sol-20260801",
     judge_model="google/gemini-3.5-flash-lite", judge_slug="google/gemini-3.5-flash-lite-001",
@@ -68,7 +69,7 @@ def test_a_run_prompt_hash_must_match_the_saved_version(conn):
 
 
 @pytest.mark.parametrize("changes", [
-    {"stack": "C"}, {"split": "test"}, {"question_count": 0}, {"top_k": 0},
+    {"stack": "C"}, {"split": "test"}, {"test_ids": []}, {"top_k": 0},
     {"openai_ranking": None},  # Stack A always records its OpenAI ranking (T40)
     {"rerank_slug": None}, {"rerank_candidates": None},  # reranker settings come together
     {"rerank_candidates": 4},  # fewer candidates than the K kept
@@ -87,7 +88,7 @@ def test_stack_b_refuses_openai_ranking_and_a_partial_reranker(conn, changes):
 @pytest.mark.parametrize("changes", [{"accuracy": 0}, {"completeness": 6}, {"relevance": 0}, {"faithfulness": 6}])
 def test_judge_scores_outside_1_to_5_are_refused(conn, changes):
     run_id = runs.create_run(conn, STACK_A)
-    bad = replace(result("numerical-004"), judgement=replace(VERDICT, **changes))
+    bad = replace(result("q0"), judgement=replace(VERDICT, **changes))
     with pytest.raises(sqlite3.IntegrityError, match="CHECK"):
         runs.add_result(conn, run_id, bad)
     assert runs.get_results(conn, run_id) == []
@@ -96,13 +97,13 @@ def test_judge_scores_outside_1_to_5_are_refused(conn, changes):
 @pytest.mark.parametrize("repaired", [None, False, True])
 def test_a_result_keeps_the_chunks_verdict_cost_and_time_exactly(conn, repaired):
     run_id = runs.create_run(conn, STACK_A)
-    runs.add_result(conn, run_id, result("numerical-004", repaired))
-    assert runs.get_results(conn, run_id) == [result("numerical-004", repaired)]
+    runs.add_result(conn, run_id, result("q0", repaired))
+    assert runs.get_results(conn, run_id) == [result("q0", repaired)]
 
 
 def test_a_refusal_comes_back_as_true(conn):
     run_id = runs.create_run(conn, STACK_A)
-    refusal = replace(result("unanswerable-001"), judgement=replace(VERDICT, refused=True))
+    refusal = replace(result("q1"), judgement=replace(VERDICT, refused=True))
     runs.add_result(conn, run_id, refusal)
     assert runs.get_results(conn, run_id)[0].judgement.refused is True
 
@@ -121,23 +122,31 @@ def test_progress_counts_stored_questions_and_reaches_1(conn):
 
 def test_a_question_is_stored_once_per_run_but_again_in_another_run(conn):
     first, second = runs.create_run(conn, STACK_A), runs.create_run(conn, STACK_B)
-    runs.add_result(conn, first, result("numerical-004"))
+    runs.add_result(conn, first, result("q0"))
     with pytest.raises(sqlite3.IntegrityError, match="UNIQUE"):
-        runs.add_result(conn, first, result("numerical-004"))
-    runs.add_result(conn, second, result("numerical-004"))
+        runs.add_result(conn, first, result("q0"))
+    runs.add_result(conn, second, result("q0"))
     assert len(runs.get_results(conn, first)) == len(runs.get_results(conn, second)) == 1
 
 
 def test_a_result_must_belong_to_an_existing_run(conn):
     with pytest.raises(sqlite3.IntegrityError, match="FOREIGN KEY"):
-        runs.add_result(conn, 999, result("numerical-004"))
+        runs.add_result(conn, 999, result("q0"))
+
+
+def test_a_result_for_a_question_the_run_did_not_declare_is_refused(conn):
+    """Runs are compared question by question, so a run must hold results for its own questions only."""
+    run_id = runs.create_run(conn, replace(STACK_A, test_ids=["q0", "q1"]))
+    with pytest.raises(sqlite3.IntegrityError, match="not part of this run"):
+        runs.add_result(conn, run_id, result("q2"))
+    assert runs.get_results(conn, run_id) == []
 
 
 def test_results_of_one_run_do_not_mix_with_another(conn):
     first, second = runs.create_run(conn, STACK_A), runs.create_run(conn, STACK_B)
-    runs.add_result(conn, first, result("a"))
-    runs.add_result(conn, second, result("b"))
-    assert [r.test_id for r in runs.get_results(conn, first)] == ["a"]
+    runs.add_result(conn, first, result("q0"))
+    runs.add_result(conn, second, result("q1"))
+    assert [r.test_id for r in runs.get_results(conn, first)] == ["q0"]
     assert runs.progress(conn, second) == 0.1
 
 

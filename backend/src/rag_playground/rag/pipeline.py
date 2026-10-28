@@ -7,7 +7,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from time import perf_counter
 
-from rag_playground.datasets.schema import TestCase, dataset_sha256
+from rag_playground.datasets.schema import TestCase, dataset_sha256, load_tests
 from rag_playground.llm.models import model_info
 from rag_playground.rag import prompts, runs
 from rag_playground.rag.answer import answer
@@ -35,7 +35,10 @@ class Choices:
 
 def build_meta(choices: Choices, prompt: prompts.PromptVersion, tests: list[TestCase]) -> runs.RunMeta:
     """The run's metadata, taken from the same values the pipeline uses: model versions are read once per run,
-    the split and question count come from the tests. Held-out runs use the default prompt only (T36)."""
+    the split and the question ids come from the tests. Held-out runs use the default prompt only (T36)."""
+    test_ids = [test.id for test in tests]
+    if len(set(test_ids)) != len(test_ids):
+        raise ValueError("A run asks each question once")
     splits = {test.split.value for test in tests}
     if len(splits) != 1:
         raise ValueError(f"A run uses one split, got {sorted(splits)}")
@@ -44,7 +47,7 @@ def build_meta(choices: Choices, prompt: prompts.PromptVersion, tests: list[Test
         raise ValueError("Held-out runs use the default prompt version only")
     used = [choices.answer_model, JUDGE_MODEL] + ([RERANK_MODEL] if choices.rerank else [])
     return runs.RunMeta(
-        stack=choices.stack, split=split, question_count=len(tests), chunk_set_id=choices.chunk_set_id,
+        stack=choices.stack, split=split, test_ids=test_ids, chunk_set_id=choices.chunk_set_id,
         top_k=choices.top_k, hybrid=choices.hybrid, openai_ranking=choices.openai_ranking,
         answer_model=choices.answer_model, answer_slug=model_info(choices.answer_model).canonical_slug,
         judge_model=JUDGE_MODEL, judge_slug=model_info(JUDGE_MODEL).canonical_slug,
@@ -80,13 +83,15 @@ def start_run(conn: sqlite3.Connection, choices: Choices, tests: list[TestCase])
     return runs.create_run(conn, build_meta(choices, prompts.get(conn, choices.prompt_name), tests))
 
 
-def execute(conn: sqlite3.Connection, run_id: int, tests: list[TestCase], retrieve: Retrieve) -> None:
-    """Answer every test with the stored run's settings, storing each result as soon as it is judged so progress
-    can be read meanwhile. A failure stops the run, marks it failed with the error, and is raised again."""
+def execute(conn: sqlite3.Connection, run_id: int, retrieve: Retrieve) -> None:
+    """Answer the run's own questions with its stored settings, storing each result as soon as it is judged so
+    progress can be read meanwhile. The questions are read from the run, so they cannot differ from the ones it
+    declared. A failure stops the run, marks it failed with the error, and is raised again."""
     meta = runs.get_run(conn, run_id).meta
     prompt = prompts.get(conn, meta.prompt_name)
+    by_id = {test.id: test for test in load_tests()}
     try:
-        for test in tests:
+        for test in (by_id[test_id] for test_id in meta.test_ids):
             runs.add_result(conn, run_id, run_question(test, meta, prompt, retrieve))
     except Exception as exc:
         runs.finish_run(conn, run_id, error=f"{type(exc).__name__}: {exc}")
