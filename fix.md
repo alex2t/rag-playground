@@ -4,6 +4,16 @@ Add new bugs at the top. Status: `open` | `investigating` | `fixed`.
 
 ---
 
+## [2026-10-29] Step 6 (first real run): Stack A retrieved almost nothing relevant; the estimate was 64% too high - `fixed` (awaiting Antigravity's confirmation and a re-run)
+- **Symptom:** runs 1 (Stack A) and 2 (Stack B), 10 dev questions round-robin (T46), S0, run by the user. Stack A refused 8 of 10 (mean accuracy 1.8); Stack B refused 2 (4.2). Only 1 of the 10 is unanswerable. The estimate was $0.0192 per stack against $0.0117 (A) and $0.0120 (B) recorded: 64% and 60% above, failing the plan check (within 50%).
+- **Reproduce:** `scripts/first_run.py both` at `ee55ede`; evidence in `var/rag_playground.db` (runs 1-2, their results and spend rows).
+- **Root cause 1 (evidence):** Stack A searched with the 2026-10-28 mapping for hybrid off: ranker `none`, weights 1:0. Every Stack A hit scored 0.016 (1/61 or 1/62: RRF ranks 1-2 from one list, k=60), and a gold document was retrieved for 2 of 9 answerable questions; Stack B retrieved its first gold document at rank 1 or 2 for 9 of 9. T12 had already measured this mode at 7/12 Hit@5 against 12/12 for plain cosine over OpenAI's own embeddings: it is not plain vector search, and OpenAI does not document it.
+- **Root cause 2 (evidence):** prices solved from the 40 judge rows ($0.30 / $2.50 per million tokens, exact) and the estimate split into input and output: input matched within 1-7%; output was assumed at 150 tokens per answer (29 measured) and 200 per judge reply (about 58).
+- **Fix (user decisions 2026-10-29):** each stack runs independently with its own settings (T40 revision 2026-10-29); Stack A's S0 uses OpenAI's default search (ranker `auto`, which T12 measured at 12/12), Stack B plain vector search (`S0["search"]` in `settings.py`); `hybrid_ranking` removed. Estimate output lengths set to the measured 30 and 60 tokens (T43 revision). `scripts/first_run.py A|B|both [batch]`: batch 2 re-checks on 10 questions the lengths were not measured on.
+- **Tests changed (requirement changed, reported):** `test_answer_output_is_the_assumed_150_tokens` and `test_judge_output_is_200_tokens_...` now check 30 and 60 (renamed), and `test_prices_are_applied_per_token` the new sums; the hybrid mapping test removed with the mapping; `test_s0_choices_...` checks each stack's own search.
+- **Verified:** 5 deliberate breaks caught (Stack A ranker `none`, Stack B hybrid on, every batch = batch 1, old answer length, old judge length). Full suite 346 passed. Still to verify: batch 2 on both stacks (run by the user).
+- **Status:** `fixed` (awaiting Antigravity's confirmation and the batch 2 re-run)
+
 ## [2026-10-29] Step 6 (item 7 re-check): a "final" run and its results could still be edited, deleted or renumbered with plain SQL - `fixed` (confirmed by Antigravity, Gemini 3.8, 2026-10-29)
 - **Reviewer:** Antigravity, Gemini 3.8 (review-queue item 7). Verdict "fit to commit"; the item 3 fix holds through our functions; 2 `minor` findings; all 5 of Claude's breaks re-checked and caught.
 - **Symptom:** `store.py` and the status said "a finished run is final in the database", but only status changes and new results were blocked.

@@ -223,13 +223,46 @@ def test_a_run_mixing_dev_and_heldout_questions_is_refused(fakes):
         pipeline.build_meta(CHOICES, default, DEV[:2] + HELDOUT[:1])
 
 
-def test_heldout_runs_use_the_default_prompt_only(fakes):
-    """Prompt tuning happens on dev questions; held-out questions confirm, they never tune (T36)."""
-    default = prompts.PromptVersion("default", "x", prompts.sha256("x"))
-    other = prompts.PromptVersion("strict", "y", prompts.sha256("y"))
-    assert pipeline.build_meta(CHOICES, default, HELDOUT).split == "heldout"
-    with pytest.raises(ValueError, match="default prompt"):
-        pipeline.build_meta(replace(CHOICES, prompt_name="strict"), other, HELDOUT)
+def run_ids(conn):
+    return [row[0] for row in conn.execute("SELECT id FROM runs")]
+
+
+def test_heldout_runs_may_use_the_default_prompt(conn, fakes):
+    run_id = pipeline.start_run(conn, CHOICES, HELDOUT)
+    assert runs.get_run(conn, run_id).meta.split == "heldout"
+
+
+@pytest.mark.parametrize("dev_run", [None, "failed", "running"])
+def test_heldout_runs_refuse_a_prompt_version_not_evaluated_on_dev(conn, fakes, monkeypatch, dev_run):
+    """Prompt versions are chosen on dev questions; held-out questions confirm, they never choose (T36 revision).
+    A dev run that failed or is still running has not evaluated the version."""
+    prompts.save(conn, "strict", "Only answer from the context.")
+    strict = replace(CHOICES, prompt_name="strict")
+    if dev_run:
+        run_id = pipeline.start_run(conn, strict, DEV[:1])
+        if dev_run == "failed":
+            monkeypatch.setattr(pipeline, "answer", lambda *a: (_ for _ in ()).throw(RuntimeError("down")))
+            with pytest.raises(RuntimeError):
+                pipeline.execute(conn, run_id, retriever(fakes))
+    before = run_ids(conn)
+    with pytest.raises(ValueError, match="'strict' has no finished dev run"):
+        pipeline.start_run(conn, strict, HELDOUT)
+    assert run_ids(conn) == before
+
+
+def test_heldout_runs_may_use_a_prompt_version_evaluated_on_dev(conn, fakes):
+    prompts.save(conn, "strict", "Only answer from the context.")
+    strict = replace(CHOICES, prompt_name="strict")
+    pipeline.execute(conn, pipeline.start_run(conn, strict, DEV[:1]), retriever(fakes))
+    assert runs.get_run(conn, pipeline.start_run(conn, strict, HELDOUT)).meta.prompt_name == "strict"
+
+
+def test_another_version_s_dev_run_does_not_count(conn, fakes):
+    prompts.save(conn, "strict", "Only answer from the context.")
+    prompts.save(conn, "short", "Answer in one sentence.")
+    pipeline.execute(conn, pipeline.start_run(conn, replace(CHOICES, prompt_name="short"), DEV[:1]), retriever(fakes))
+    with pytest.raises(ValueError, match="'strict' has no finished dev run"):
+        pipeline.start_run(conn, replace(CHOICES, prompt_name="strict"), HELDOUT)
 
 
 @pytest.mark.parametrize("fail", [False, True], ids=["done", "failed"])

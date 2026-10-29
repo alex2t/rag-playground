@@ -21,8 +21,8 @@ from rag_playground.scoring.judging import faithfulness_messages
 from rag_playground.settings import JUDGE_MODEL, RERANK_CANDIDATES, RERANK_MODEL
 from rag_playground.stacks.hits import Hit
 
-ANSWER_TOKENS = 150  # assumed answer length (plan.md 1.3)
-JUDGE_TOKENS = 200  # assumed length of each judge reply (plan.md 1.3)
+ANSWER_TOKENS = 30  # mean answer length measured in runs 1-2, gpt-4.1-nano at S0, 2026-10-29 (T43)
+JUDGE_TOKENS = 60  # mean judge reply length measured in runs 1-2, 2026-10-29 (T43)
 MESSAGE_OVERHEAD = 4  # tokens per chat message, as in OpenAI's cookbook "How to count tokens with tiktoken"
 
 

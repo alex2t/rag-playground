@@ -2,11 +2,12 @@
 on a stack if it is missing, runs the questions, and prints the estimate against the recorded spend.
 
 Paid: OpenRouter (answers and judge), and on Stack A the OpenAI index build and searches. Run by the user.
-Usage: uv run python scripts/first_run.py A|B|both
+Usage: uv run python scripts/first_run.py A|B|both [batch]
+Batch 1 (default) is the first 10 questions in round-robin order (T46), batch 2 the next 10, and so on, so a later
+batch checks the estimate on questions it was not fitted to.
 """
 
 import sys
-from dataclasses import asdict
 
 from rag_playground import store
 from rag_playground.chunking.chunk_sets import chunk_set_id, load_or_build
@@ -15,16 +16,21 @@ from rag_playground.datasets.splits import round_robin
 from rag_playground.rag import estimate, pipeline, prompts, runs, spend
 from rag_playground.settings import S0, settings
 from rag_playground.stacks import indexes
-from rag_playground.stacks.openai_vector_store import hybrid_ranking
 
 QUESTIONS = 10
 
 
 def s0_choices(stack: str) -> pipeline.Choices:
-    ranking = asdict(hybrid_ranking(S0["hybrid"])) if stack == "A" else None
+    search = S0["search"][stack]
     return pipeline.Choices(stack=stack, chunk_set_id=chunk_set_id(S0["chunk_size"], S0["overlap"]),
-                            top_k=S0["top_k"], hybrid=S0["hybrid"], openai_ranking=ranking, rerank=S0["rerank"],
-                            answer_model=S0["answer_model"], prompt_name=prompts.DEFAULT_NAME)
+                            top_k=S0["top_k"], hybrid=search["hybrid"], openai_ranking=search["openai_ranking"],
+                            rerank=S0["rerank"], answer_model=S0["answer_model"], prompt_name=prompts.DEFAULT_NAME)
+
+
+def batch_questions(batch: int) -> list:
+    """Questions (batch - 1) * 10 + 1 to batch * 10 of the dev set in round-robin order."""
+    dev = [t for t in load_tests() if t.split == "dev"]
+    return round_robin(dev, batch * QUESTIONS)[(batch - 1) * QUESTIONS:]
 
 
 def spend_by_model(conn, run_id: int) -> list[tuple]:
@@ -52,11 +58,11 @@ def run_stack(conn, stack: str, tests: list) -> None:
               f"({reasoning_tokens} reasoning), ${cost:.4f}")
 
 
-def main(which: str) -> None:
+def main(which: str, batch: int = 1) -> None:
     stacks = {"A": ["A"], "B": ["B"], "both": ["A", "B"]}[which]
     conn = store.connect()
     prompts.ensure_default(conn)
-    tests = round_robin([t for t in load_tests() if t.split == "dev"], QUESTIONS)
+    tests = batch_questions(batch)
     print(f"BUDGET_USD ${settings.budget_usd:.2f}, ${pipeline.remaining(conn):.4f} left; questions: "
           f"{', '.join(t.id for t in tests)}")
     for stack in stacks:
@@ -64,4 +70,4 @@ def main(which: str) -> None:
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    main(sys.argv[1], int(sys.argv[2]) if len(sys.argv) > 2 else 1)

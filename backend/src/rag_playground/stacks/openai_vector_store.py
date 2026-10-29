@@ -30,12 +30,6 @@ class Ranking:
     score_threshold: float
 
 
-def hybrid_ranking(hybrid: bool) -> Ranking:
-    """The fixed ranking behind the hybrid switch shared with Stack B (T40 revision, custom choice): no built-in
-    ranker and threshold 0; off searches the embeddings only, on fuses both lists equally by RRF."""
-    return Ranking(ranker="none", embedding_weight=1.0, text_weight=1.0 if hybrid else 0.0, score_threshold=0.0)
-
-
 @cache
 def client() -> OpenAI:
     """OpenAI SDK client for the OpenAI API itself."""

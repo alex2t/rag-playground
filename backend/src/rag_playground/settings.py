@@ -14,9 +14,13 @@ JUDGE_MODEL = "google/gemini-3.5-flash-lite"
 RERANK_MODEL = "openai/gpt-4.1-nano"
 RERANK_CANDIDATES = 20  # chunks retrieved for the reranker, which keeps the top K (T21)
 MAX_TOP_K = 8  # the KB is small (48 documents), so more chunks would hand the model a large share of it (T45)
-# S0 baseline: LlamaIndex out-of-the-box defaults plus our cheapest answer model (T27 revision).
-S0 = {"chunk_size": 1024, "overlap": 200, "top_k": 2, "hybrid": False, "rerank": False,
-      "answer_model": "openai/gpt-4.1-nano"}
+# S0 baseline: LlamaIndex out-of-the-box defaults plus our cheapest answer model (T27 revision). Each stack
+# searches with its own out-of-the-box search (T40 revision 2026-10-29): Qdrant plain vector search; OpenAI's
+# default, which T12 measured as hybrid search with its "auto" ranker (weights have no effect with "auto").
+S0 = {"chunk_size": 1024, "overlap": 200, "top_k": 2, "rerank": False, "answer_model": "openai/gpt-4.1-nano",
+      "search": {"A": {"hybrid": True, "openai_ranking": {"ranker": "auto", "embedding_weight": 1.0,
+                                                          "text_weight": 1.0, "score_threshold": 0.0}},
+                 "B": {"hybrid": False, "openai_ranking": None}}}
 GENERATOR_MODEL = "anthropic/claude-sonnet-5.5"
 AUDIT_MODEL = "openai/gpt-6.1-sol"
 

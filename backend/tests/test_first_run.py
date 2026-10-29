@@ -2,11 +2,12 @@
 database and chunk-set folder (no network, no cost)."""
 
 import importlib.util
-from dataclasses import asdict
 
 import pytest
 
 from rag_playground import store
+from rag_playground.datasets.schema import load_tests
+from rag_playground.datasets.splits import round_robin
 from rag_playground.llm.models import ModelInfo
 from rag_playground.llm.openrouter import ChatResult, paid
 from rag_playground.rag import estimate, pipeline, runs, spend
@@ -54,12 +55,24 @@ def world(tmp_path, monkeypatch):
     return seen
 
 
-def test_s0_choices_are_the_baseline_on_both_stacks():
+def test_s0_choices_are_the_baseline_with_each_stack_s_own_default_search():
+    """Shared S0 settings; Stack A uses OpenAI's default search (T12: hybrid with the "auto" ranker), Stack B
+    plain vector search (T40 revision 2026-10-29)."""
     a, b = first_run.s0_choices("A"), first_run.s0_choices("B")
-    assert (a.chunk_set_id, a.top_k, a.hybrid, a.rerank, a.answer_model, a.prompt_name) == (
-        "fixed__c1024__o200", 2, False, False, "openai/gpt-4.1-nano", "default")
-    assert a.openai_ranking == asdict(openai_vector_store.hybrid_ranking(False))
-    assert b.openai_ranking is None and (b.chunk_set_id, b.top_k) == (a.chunk_set_id, a.top_k)
+    shared = ("fixed__c1024__o200", 2, False, "openai/gpt-4.1-nano", "default")
+    for choices in (a, b):
+        assert (choices.chunk_set_id, choices.top_k, choices.rerank, choices.answer_model,
+                choices.prompt_name) == shared
+    assert (a.hybrid, a.openai_ranking) == (True, {"ranker": "auto", "embedding_weight": 1.0, "text_weight": 1.0,
+                                                   "score_threshold": 0.0})
+    assert (b.hybrid, b.openai_ranking) == (False, None)
+
+
+def test_batches_of_10_follow_the_round_robin_order_without_overlap():
+    first, second = first_run.batch_questions(1), first_run.batch_questions(2)
+    dev = [t for t in load_tests() if t.split == "dev"]
+    assert first + second == round_robin(dev, 20)
+    assert len(first) == len(second) == 10 and not {t.id for t in first} & {t.id for t in second}
 
 
 def test_both_stacks_index_s0_once_and_answer_the_same_10_questions(world, capsys):
@@ -69,7 +82,7 @@ def test_both_stacks_index_s0_once_and_answer_the_same_10_questions(world, capsy
     assert [(r.meta.stack, r.status) for r in done] == [("A", "done"), ("B", "done")]
     assert done[0].meta.test_ids == done[1].meta.test_ids and len(done[0].meta.test_ids) == 10
     assert world["created"] == ["rag-playground-dev-fixed__c1024__o200", "fixed__c1024__o200"]
-    ranking = openai_vector_store.hybrid_ranking(False)
+    ranking = openai_vector_store.Ranking(**S0["search"]["A"]["openai_ranking"])
     assert world["searched"] == [("A", "vs_1", 2, ranking)] * 10 + [("B", "fixed__c1024__o200", 2, False)] * 10
     assert spend.total(conn) == pytest.approx(2 * 10 * 0.0004)
     out = capsys.readouterr().out

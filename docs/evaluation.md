@@ -106,7 +106,8 @@ question -> retrieve the top-K chunks -> (optional) rerank -> answer LLM writes 
 | S3 | Top-K | The best of 2, 4, 6 and 8 chunks |
 | S4 | Chunk enrichment | An LLM adds a headline and a summary to each chunk |
 | S5 | Reranking | Retrieve 20 chunks, an LLM reorders them, keep the top K (S3's value) |
-| S6 | Answer model | A stronger model, shown as a cost trade-off rather than a RAG technique |
+| S6 | System prompt | The best of at most 4 prompt versions, written before the step runs and compared on dev questions only |
+| S7 | Answer model | A stronger model, shown as a cost trade-off rather than a RAG technique |
 
 The baseline is the framework's documented defaults, not a deliberately weak setup. A weak baseline would inflate every gain.
 
@@ -129,7 +130,7 @@ Every setting is chosen explicitly; nothing falls back to a library or vendor de
 
 Results outside the ladder are exploratory. They use dev questions only, and the same statistical test decides whether a change is an improvement.
 
-**Held fixed in every run:** temperature 0, the judge model (pinned to an exact version) and the test split. The system prompt is the default version everywhere in the ladder, the held-out confirmation and the CI gate. It changes only in runs that compare prompt versions. One model, `gpt-6.1-sol`, does not accept a temperature setting, so its results are labelled "temperature not controlled".
+**Held fixed in every run:** temperature 0, the judge model (pinned to an exact version) and the test split. The system prompt is the default version from S0 to S5 and in the CI gate. Ladder step S6 compares at most 4 prompt versions, written before it runs, on dev questions only; from then on the chosen version is used, including in the held-out confirmation. Held-out questions never choose a prompt. One model, `gpt-6.1-sol`, does not accept a temperature setting, so its results are labelled "temperature not controlled".
 
 **Reproducibility:** every run stores the git commit, the exact model versions, the system prompt version and its hash, a hash of the dataset, the chunk set and the search settings (including hybrid search).
 

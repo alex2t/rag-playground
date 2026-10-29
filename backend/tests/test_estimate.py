@@ -85,9 +85,9 @@ def test_the_answer_prompt_version_is_counted(prices):
     assert estimate.question_cost(TEST, longer, ANSWER_MODEL, 3, False, CHUNK_TOKENS) - cost() == 1000
 
 
-def test_answer_output_is_the_assumed_150_tokens(prices):
+def test_answer_output_is_the_measured_30_tokens(prices):
     prices[ANSWER_MODEL, "out"] = 1.0
-    assert cost() == 150
+    assert cost() == 30
 
 
 def test_judge_input_is_the_reference_call_plus_the_faithfulness_call_with_the_k_chunks(prices):
@@ -98,9 +98,9 @@ def test_judge_input_is_the_reference_call_plus_the_faithfulness_call_with_the_k
     assert cost(top_k=3) == expected
 
 
-def test_judge_output_is_200_tokens_for_each_of_its_two_calls(prices):
+def test_judge_output_is_60_tokens_for_each_of_its_two_calls(prices):
     prices[JUDGE_MODEL, "out"] = 1.0
-    assert cost() == 400
+    assert cost() == 120
 
 
 def test_the_reranker_is_paid_only_when_reranking_is_on(prices):
@@ -129,7 +129,7 @@ def test_reranking_still_answers_and_judges_only_k_chunks(prices):
 def test_prices_are_applied_per_token(prices):
     prices[ANSWER_MODEL, "out"] = 2e-6
     prices[JUDGE_MODEL, "out"] = 5e-7
-    assert cost() == pytest.approx(150 * 2e-6 + 400 * 5e-7)
+    assert cost() == pytest.approx(30 * 2e-6 + 120 * 5e-7)
 
 
 def chunk(tokens_: int) -> Chunk:

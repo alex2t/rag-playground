@@ -41,9 +41,9 @@ The reasons for each decision are in `decision.md`. Items marked *(proposed)* ha
 | Answer models | 3 models: `openai/gpt-4.1-nano` (cheap), `openai/gpt-4.1-mini` (mid), `openai/gpt-6.1-sol` (latest). |
 | Judge model | `google/gemini-3.5-flash-lite` (confirmed 2026-10-27): a different model family from the answer models, pinned to its exact version, and calibrated against human grades. |
 | Baseline (S0) | LlamaIndex out-of-the-box defaults: `SentenceSplitter` with 1024-token chunks and a 200-token overlap (checked in the 0.14.25 code), K=2, no reranking, `gpt-4.1-nano` (T27 revision). |
-| Improvements | Ladder: chunk size, overlap, top-K, LLM chunking/enrichment, reranking, and a stronger LLM (presented as a cost trade-off). Outside the ladder (dashboard and sweeps): hybrid search (T37) and system prompt versions (T36). |
-| Dashboard settings | Stack A, Stack B or both (side by side) (T40). Chunk size 64-2,048 tokens, overlap 0-50%, top-K 1-8 (T45), chunking method, hybrid search, reranking, answer model, system prompt version. The menu is identical for both stacks (T40 revision 2026-10-28); Stack A's hybrid switch is translated to OpenAI ranker `none` with weights 1:0 (off) or 1:1 (on), threshold 0. Every setting is chosen by the user, with no hidden defaults (T40). Missing chunk sets are built and indexed on demand after an estimate and confirmation (T35). |
-| System prompt | Editable on the dashboard as named, immutable versions; each run stores the version and hash. S0, the ladder, the held-out confirmation and the CI gate use the default version (T36). |
+| Improvements | Ladder: chunk size, overlap, top-K, LLM chunking/enrichment, reranking, system prompt version (S6, T36 revision 2026-10-29), and a stronger LLM (presented as a cost trade-off). Outside the ladder (dashboard and sweeps): hybrid search (T37). |
+| Dashboard settings | Stack A, Stack B or both (side by side) (T40). Chunk size 64-2,048 tokens, overlap 0-50%, top-K 1-8 (T45), chunking method, reranking, answer model, system prompt version, and each stack's own search settings: Stack A OpenAI's options (ranker, hybrid weights, score threshold), Stack B hybrid on/off. Each stack runs independently; nothing is mapped between them (T40 revision 2026-10-29). Every setting is chosen by the user, with no hidden defaults (T40). Missing chunk sets are built and indexed on demand after an estimate and confirmation (T35). |
+| System prompt | Written by the user on the dashboard as named, immutable versions, any number; each run stores the version and hash. The default version is used from S0 to S5 and in the CI gate; ladder step S6 picks the best of at most 4 versions on dev questions; held-out runs use the default or a version with a finished dev run (T36 revision 2026-10-29). |
 | Hybrid search | Stack B: BM25 sparse vectors (fastembed `Qdrant/bm25`) + nomic dense vectors, fused with RRF. Stack A: OpenAI's `hybrid_search` weights with `ranker: none` (checked live in Step 4, T37). |
 | Embedding map | 2D t-SNE images (scikit-learn) of one chunk set for both stacks, for the presentation; Stack A chunks re-embedded with the vector store's OpenAI embedding model (T38). |
 | Data | Synthetic KB only for the presentation. `rag-mini-wikipedia` is moved to phase 2. |
@@ -125,7 +125,7 @@ The app computes the estimate from live prices before every run and sweep.
 
 | Item | Cost |
 |---|---|
-| Ladder S0-S6 on both stacks | about $12 |
+| Ladder S0-S7 on both stacks | about $12 |
 | One-variable sweeps on both stacks | about $21 |
 | Held-out confirmation (baseline + best, both stacks, 48 questions) | about $2 |
 | Enrichment + index builds | about $1 |
@@ -146,13 +146,13 @@ The CI gate runs in staging, which has its own $5 cap: 20 questions, about $0.05
 | Chunking method | `fixed`, `llm_enriched` (an LLM adds a headline and summary to each meaningful chunk) |
 | Top-K | Maximum 8 (T45): the KB is small (48 documents, about 730 tokens each). Ladder sweep: 2, 4, 6, 8. Dashboard: 1-8. Matters most for `multi_doc` questions and long documents, where one subject is spread across several chunks. |
 | Hybrid search | off / on (BM25 + vector, fused with RRF). Dashboard and sweeps only, not a ladder step (T37). |
-| System prompt | Named versions; the default version everywhere in the ladder. Dashboard and sweeps only (T36). |
+| System prompt | Named versions written by the user. Ladder: the default from S0 to S5, then S6 = best of at most 4 versions on dev questions. Dashboard and sweeps: any version (T36 revision 2026-10-29). |
 | Reranking | off / on. When on: retrieve 20 candidates, an LLM reranker (`gpt-4.1-nano`, temperature 0) reorders them, and the top K are kept (accepted 2026-10-28, T21). |
 | Answer LLM | `openai/gpt-4.1-nano`, `openai/gpt-4.1-mini`, `openai/gpt-6.1-sol` (IDs checked on OpenRouter on 2026-10-26) |
 
 **Controlled (fixed) variables:**
 - Temperature 0 for answer, judge and reranker.
-- System prompt: the default version, except in runs that compare prompt versions (T36).
+- System prompt: the default version from S0 to S5 and in the CI gate; from S6 on, the version S6 chose (T36 revision 2026-10-29).
 - Judge model, pinned to its exact version (OpenRouter `canonical_slug`).
 - The test split.
 
@@ -181,12 +181,13 @@ Each step changes **one** thing compared with the step before.
 | S3 | Top-K | Best of K = {2, 4, 6, 8}, at S2's chunk set (T45) |
 | S4 | Chunking method | `llm_enriched` |
 | S5 | Reranking | Retrieve 20, rerank, keep the top K (S3's K) |
-| S6 | Answer LLM | A stronger model. Presented as a **cost trade-off** ("accuracy +X for cost ×Y"), not as a RAG technique |
+| S6 | System prompt | Best of at most 4 prompt versions written before the step runs, on dev questions only (T36 revision 2026-10-29) |
+| S7 | Answer LLM | A stronger model. Presented as a **cost trade-off** ("accuracy +X for cost ×Y"), not as a RAG technique |
 
 The ladder is stored as data in config.
 
 ### 3.2 Head-to-head
-At every ladder step, Stack A and Stack B run with identical settings. One chart shows both stacks across S0 to S6: the climb within each stack, and the gap between them.
+At every ladder step, Stack A and Stack B run with identical settings. One chart shows both stacks across S0 to S7: the climb within each stack, and the gap between them.
 
 ### 3.3 Held-out confirmation
 After the ladder, S0 and the best eligible configuration are run on the **48 held-out** questions for each stack. The held-out numbers are the ones quoted as the final result. With only 48 questions their confidence intervals are wider, and the report says so.
@@ -438,16 +439,18 @@ Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Swe
   - Held-out confirmation panel.
   - Best eligible run highlighted.
 - **Settings panel (shared by Ask, Evaluate and Sweep, T35):**
-  - Chunk size (64-2,048), overlap (0-50%), chunking method, top-K (1-8), hybrid search, reranking, answer model and system prompt version.
+  - Chunk size (64-2,048), overlap (0-50%), chunking method, top-K (1-8), reranking, answer model and system prompt version.
+  - Each stack's own search settings (T40 revision 2026-10-29): Stack A shows OpenAI's options (ranker, the two hybrid weights, score threshold), Stack B its hybrid on/off switch.
   - A configuration whose chunk set is not built yet shows its estimate and builds it on confirmation.
 - **Prompt page (T36):**
-  - View the default system prompt, edit it and save it as a new named version; see the runs that used each version.
+  - Write prompt versions: start from the default or any saved version, edit, save under a new name (any number); see the runs that used each version.
 - **Ask page:**
   - Use the settings panel, then type a question or pick a test question.
   - Shows the answer, the chunks (source, rank, score) and the gold sources (highlighted where they were retrieved).
   - For test questions, also the reference answer and the judge's scores.
+  - **Interview demo (user requirement, 2026-10-29):** before the presentation the user picks the best-performing configuration; the Ask page opens with it loaded, so interviewers can type their own questions and see the answer and its chunks. A free question has no reference answer or gold sources, so it shows no scores. Each question costs about $0.0002-$0.0003 at S0 (gpt-4.1-nano) and counts against `BUDGET_USD`.
 - **Evaluate page:**
-  - The settings panel plus the split (dev, held-out, or the 20-question smoke test). Estimate, then **Evaluate**. Held-out runs use the default prompt version only.
+  - The settings panel plus the split (dev, held-out, or the 20-question smoke test). Estimate, then **Evaluate**. Held-out runs use the default prompt or a version with a finished dev run (T36 revision 2026-10-29).
   - The 4 headline KPI tiles with a "show all" toggle, trust metrics, scores by category, and a per-question table that links to Ask.
   - Export to CSV.
 - **Compare page:**
@@ -508,7 +511,7 @@ Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Swe
   5. **What did not work:** steps whose interval crosses 0, and techniques that cost more than they gained.
   6. **Stack A vs Stack B:** head-to-head, with the ranking caveat (T12) and the build-versus-buy trade-off.
   7. **Trust:** refusal rates and faithfulness.
-  8. **Cost:** cost per question against accuracy, and the S6 trade-off.
+  8. **Cost:** cost per question against accuracy, and the S7 trade-off.
   9. **Deployment:** architecture, CI/CD gate, staging to prod, rollback, observability.
   - **Embedding map (T38), placed in the method part:** the t-SNE images of both stacks (`scripts/embedding_map.py`, 200-token chunk set), with one question, its gold chunks and its retrieved chunks marked. The slide states that t-SNE distances between clusters are not meaningful.
   - **Beyond the ladder:** hybrid search and prompt-version results from sweeps, marked as exploratory (dev only).

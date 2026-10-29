@@ -185,3 +185,19 @@ Antigravity's review confirmed 5 of 6 findings:
 **Lessons.**
 - Section 9's lesson again: "final" must hold for every way of writing, not just the one that caused the last bug.
 - Database rules have their own blind spots; test them by attacking them, not by reading them.
+
+## 13. Step 6: the first real run, and a setting that quietly broke one stack (2026-10-29)
+**Where we were.** The first paid run: 10 questions on each stack with the baseline settings, to check the cost estimate.
+
+**What happened.** The run worked, but two things were wrong. The estimate was 64% too high. And the OpenAI stack refused 8 of 10 questions, while the self-hosted stack answered almost all of them.
+
+**Why the OpenAI stack failed.** To make both stacks "look the same", its "hybrid off" switch had been mapped to an OpenAI search mode that an earlier probe had already flagged as strange. In the real run it found the right document for 2 of 9 questions. The decision was to stop forcing the two stacks into one shape: each stack runs independently, with its own settings, and the OpenAI baseline now uses OpenAI's own default search.
+
+**Why the estimate was high.** Splitting it into parts showed the counted part (what the models read) was right within a few percent. The guessed part, how long the answers and grades would be, was five times too long. The guesses were replaced by the measured lengths, and the check is repeated on ten *different* questions, so the estimate is not checked on the data it was fitted to.
+
+**Also decided.** The system prompt became a ladder step (S6), so the configuration shown in the live demo includes the best prompt, not only the default one.
+
+**Lessons.**
+- A warning in your notes is not the same as a fix: the strange OpenAI mode was known, and still chosen later for consistency.
+- Do not force two different products into one menu; compare each at its own best and say how it was set.
+- When a number is off, split it into the part you measured and the part you guessed.

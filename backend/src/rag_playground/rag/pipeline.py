@@ -46,7 +46,7 @@ class Choices:
 
 def build_meta(choices: Choices, prompt: prompts.PromptVersion, tests: list[TestCase]) -> runs.RunMeta:
     """The run's metadata, taken from the same values the pipeline uses: model versions are read once per run,
-    the split and the question ids come from the tests. Held-out runs use the default prompt only (T36)."""
+    the split and the question ids come from the tests."""
     test_ids = [test.id for test in tests]
     if len(set(test_ids)) != len(test_ids):
         raise ValueError("A run asks each question once")
@@ -54,8 +54,6 @@ def build_meta(choices: Choices, prompt: prompts.PromptVersion, tests: list[Test
     if len(splits) != 1:
         raise ValueError(f"A run uses one split, got {sorted(splits)}")
     split = splits.pop()
-    if split == "heldout" and prompt.name != prompts.DEFAULT_NAME:
-        raise ValueError("Held-out runs use the default prompt version only")
     used = [choices.answer_model, JUDGE_MODEL] + ([RERANK_MODEL] if choices.rerank else [])
     return runs.RunMeta(
         stack=choices.stack, split=split, test_ids=test_ids, chunk_set_id=choices.chunk_set_id,
@@ -89,11 +87,22 @@ def run_question(test: TestCase, meta: runs.RunMeta, prompt: prompts.PromptVersi
                        judgement=verdict, cost_usd=cost, latency_s=latency)
 
 
+def evaluated_on_dev(conn: sqlite3.Connection, prompt_name: str) -> bool:
+    """Whether a prompt version has a finished run on dev questions."""
+    return conn.execute("SELECT 1 FROM runs WHERE prompt_name = ? AND split = 'dev' AND status = 'done'",
+                        (prompt_name,)).fetchone() is not None
+
+
 def start_run(conn: sqlite3.Connection, choices: Choices, tests: list[TestCase]) -> int:
-    """Store a new run with its metadata and return its id, before any question is asked. A run whose
-    estimate (T43) exceeds what is left of BUDGET_USD is refused, and nothing is stored."""
+    """Store a new run with its metadata and return its id, before any question is asked. A held-out run uses the
+    default prompt or a version already evaluated on dev questions: held-out questions confirm a choice made on dev,
+    never make one (T36 revision). A run whose estimate (T43) exceeds what is left of BUDGET_USD is refused. Nothing
+    is stored when a run is refused."""
     prompt = prompts.get(conn, choices.prompt_name)
     meta = build_meta(choices, prompt, tests)
+    if meta.split == "heldout" and prompt.name != prompts.DEFAULT_NAME and not evaluated_on_dev(conn, prompt.name):
+        raise ValueError(f"Held-out runs use the default prompt or a version evaluated on dev questions; "
+                         f"{prompt.name!r} has no finished dev run")
     cost = estimate.run_cost(tests, prompt, choices.answer_model, choices.top_k, choices.rerank,
                              load_chunk_set(choices.chunk_set_id))
     if cost > remaining(conn):

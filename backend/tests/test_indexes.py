@@ -57,13 +57,6 @@ def rows(conn):
     return [tuple(row) for row in conn.execute("SELECT stack, chunk_set_id, ref, chunk_count FROM indexes")]
 
 
-@pytest.mark.parametrize("hybrid, text_weight", [(False, 0.0), (True, 1.0)])
-def test_the_hybrid_switch_maps_to_fixed_openai_ranking(hybrid, text_weight):
-    """T40 revision: no built-in ranker, threshold 0; the keyword list counts only with hybrid on."""
-    assert openai_vector_store.hybrid_ranking(hybrid) == openai_vector_store.Ranking(
-        ranker="none", embedding_weight=1.0, text_weight=text_weight, score_threshold=0.0)
-
-
 def test_stack_a_uploads_every_chunk_to_a_new_store_and_records_it(conn, stacks):
     assert indexes.build(conn, "A", SET_ID) == "vs_1"
     assert stacks == [("create", f"rag-playground-dev-{SET_ID}"), ("upload", "vs_1", CHUNKS)]
