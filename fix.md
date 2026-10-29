@@ -4,7 +4,7 @@ Add new bugs at the top. Status: `open` | `investigating` | `fixed`.
 
 ---
 
-## [2026-10-29] Step 6 (item 7 re-check): a "final" run and its results could still be edited, deleted or renumbered with plain SQL - `fixed` (awaiting Antigravity's confirmation)
+## [2026-10-29] Step 6 (item 7 re-check): a "final" run and its results could still be edited, deleted or renumbered with plain SQL - `fixed` (confirmed by Antigravity, Gemini 3.8, 2026-10-29)
 - **Reviewer:** Antigravity, Gemini 3.8 (review-queue item 7). Verdict "fit to commit"; the item 3 fix holds through our functions; 2 `minor` findings; all 5 of Claude's breaks re-checked and caught.
 - **Symptom:** `store.py` and the status said "a finished run is final in the database", but only status changes and new results were blocked.
 - **Reproduce (Claude's script, in-memory database, run marked `done`):** `UPDATE runs SET top_k = 4`, `UPDATE runs SET test_ids = ...`, `UPDATE results SET answer = 'tampered'`, `DELETE FROM results`, `DELETE FROM runs`, and `INSERT INTO runs (..., status) VALUES (..., 'done')` with 0 results: all allowed. Finding 1 (settings of a finished run) and finding 2 (results updated or deleted) confirmed; the run deletion, the run created already `done` (its check 2 noted it, not listed as a finding) and the settings of a *running* run were also open.
