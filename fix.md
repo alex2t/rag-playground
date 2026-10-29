@@ -16,7 +16,7 @@ Add new bugs at the top. Status: `open` | `investigating` | `fixed`.
 - **Not changed:** the `spend` table can still be edited with plain SQL. It is a budget record, not evaluation evidence; not raised by the review. To decide with the user if needed.
 - **Status:** `fixed` (awaiting Antigravity's confirmation)
 
-## [2026-10-29] Step 6 (increment 7): the estimate tests could not catch a wrong per-message overhead or truncated chunk length - `fixed` (awaiting Antigravity's confirmation)
+## [2026-10-29] Step 6 (increment 7): the estimate tests could not catch a wrong per-message overhead or truncated chunk length - `fixed` (confirmed by Antigravity, Gemini 3.8, 2026-10-29)
 - **Reviewer:** Antigravity, Gemini 3.8 (review-queue item 5). Verdict "fit to commit"; 2 findings, 3 own deliberate breaks (2 missed).
 - **Finding 1 (`minor`, confirmed):** `real_count()` in `tests/test_estimate.py` added `estimate.MESSAGE_OVERHEAD`, the very constant under test. Reproduced: `MESSAGE_OVERHEAD = 999` passes all 13 tests. **Fix:** the test uses its own value 4, naming the source (OpenAI cookbook). The break now fails 4 tests.
 - **Its own break, missed (confirmed):** `round(chunk_tokens)` changed to `int(chunk_tokens)` passes all tests, which only used whole-number means. **Fix:** new test with chunks of 100, 101 and 101 tokens (mean 100.67) that must be priced as 101. The break now fails it.
