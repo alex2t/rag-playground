@@ -157,12 +157,69 @@ def test_results_of_one_run_do_not_mix_with_another(conn):
     assert runs.progress(conn, second) == 0.1
 
 
+def complete(conn, run_id):
+    """Store a result for every question of a STACK_A run."""
+    for test_id in STACK_A.test_ids:
+        runs.add_result(conn, run_id, result(test_id))
+
+
 def test_finishing_marks_done_or_failed_with_the_error(conn):
     done, failed = runs.create_run(conn, STACK_A), runs.create_run(conn, STACK_A)
+    complete(conn, done)
     runs.finish_run(conn, done)
     runs.finish_run(conn, failed, error="RateLimitError: 429")
     assert (runs.get_run(conn, done).status, runs.get_run(conn, done).error) == ("done", None)
     assert (runs.get_run(conn, failed).status, runs.get_run(conn, failed).error) == ("failed", "RateLimitError: 429")
+
+
+def test_a_run_is_done_only_with_a_result_for_every_question(conn):
+    run_id = runs.create_run(conn, STACK_A)
+    runs.add_result(conn, run_id, result("q0"))
+    with pytest.raises(sqlite3.IntegrityError, match="every question"):
+        runs.finish_run(conn, run_id)
+    assert runs.get_run(conn, run_id).status == "running"
+
+
+def test_a_run_can_fail_before_all_its_questions_are_answered(conn):
+    run_id = runs.create_run(conn, STACK_A)
+    runs.finish_run(conn, run_id, error="RateLimitError: 429")
+    assert runs.get_run(conn, run_id).status == "failed"
+
+
+def finished(conn, status):
+    run_id = runs.create_run(conn, STACK_A)
+    if status == "done":
+        complete(conn, run_id)
+    runs.finish_run(conn, run_id, error=None if status == "done" else "boom")
+    return run_id
+
+
+@pytest.mark.parametrize("status", ["done", "failed"])
+@pytest.mark.parametrize("error", [None, "late error"])
+def test_a_finished_run_keeps_its_status(conn, status, error):
+    run_id = finished(conn, status)
+    before = runs.get_run(conn, run_id)
+    with pytest.raises(sqlite3.IntegrityError, match="finished"):
+        runs.finish_run(conn, run_id, error=error)
+    assert runs.get_run(conn, run_id) == before
+
+
+def test_a_finished_run_cannot_be_reopened_on_a_raw_connection(conn):
+    run_id = finished(conn, "failed")
+    with pytest.raises(sqlite3.IntegrityError, match="finished"), conn:
+        conn.execute("UPDATE runs SET status = 'running' WHERE id = ?", (run_id,))
+
+
+def test_a_failed_run_takes_no_new_results(conn):
+    run_id = finished(conn, "failed")
+    with pytest.raises(sqlite3.IntegrityError, match="finished"):
+        runs.add_result(conn, run_id, result("q0"))
+    assert runs.get_results(conn, run_id) == []
+
+
+def test_finishing_an_unknown_run_raises_key_error(conn):
+    with pytest.raises(KeyError):
+        runs.finish_run(conn, 999)
 
 
 def test_unknown_run_raises_key_error(conn):

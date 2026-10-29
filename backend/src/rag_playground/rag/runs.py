@@ -79,10 +79,13 @@ def add_result(conn: sqlite3.Connection, run_id: int, result: Result) -> None:
 
 
 def finish_run(conn: sqlite3.Connection, run_id: int, error: str | None = None) -> None:
-    """Mark the run "done", or "failed" with the error message."""
+    """Mark a running run "done" (only with every result stored), or "failed" with the error message; KeyError if
+    the run does not exist."""
     with conn:
-        conn.execute("UPDATE runs SET status = ?, error = ? WHERE id = ?",
-                     ("failed" if error else "done", error, run_id))
+        updated = conn.execute("UPDATE runs SET status = ?, error = ? WHERE id = ?",
+                               ("failed" if error else "done", error, run_id)).rowcount
+    if not updated:
+        raise KeyError(run_id)
 
 
 def run_row(conn: sqlite3.Connection, run_id: int) -> sqlite3.Row:

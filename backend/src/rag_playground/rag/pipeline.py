@@ -88,7 +88,10 @@ def execute(conn: sqlite3.Connection, run_id: int, retrieve: Retrieve) -> None:
     progress can be read meanwhile; every paid call is recorded as it returns (T44). The questions are read from
     the run, so they cannot differ from the ones it declared. A failure stops the run, marks it failed with the
     error, and is raised again."""
-    meta = runs.get_run(conn, run_id).meta
+    run = runs.get_run(conn, run_id)
+    if run.status != "running":
+        raise ValueError(f"Run {run_id} is {run.status}; a finished run is never run again")
+    meta = run.meta
     prompt = prompts.get(conn, meta.prompt_name)
     by_id = {test.id: test for test in load_tests()}
     try:

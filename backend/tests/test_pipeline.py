@@ -224,3 +224,20 @@ def test_heldout_runs_use_the_default_prompt_only(fakes):
     assert pipeline.build_meta(CHOICES, default, HELDOUT).split == "heldout"
     with pytest.raises(ValueError, match="default prompt"):
         pipeline.build_meta(replace(CHOICES, prompt_name="strict"), other, HELDOUT)
+
+
+@pytest.mark.parametrize("fail", [False, True], ids=["done", "failed"])
+def test_a_finished_run_is_never_run_again(conn, fakes, monkeypatch, fail):
+    """A second execute would flip a complete run to failed; it is refused before any call."""
+    if fail:
+        monkeypatch.setattr(pipeline, "answer", lambda *a: (_ for _ in ()).throw(RuntimeError("down")))
+    run_id = pipeline.start_run(conn, CHOICES, DEV[:2])
+    if fail:
+        with pytest.raises(RuntimeError):
+            pipeline.execute(conn, run_id, retriever(fakes))
+    else:
+        pipeline.execute(conn, run_id, retriever(fakes))
+    before = (runs.get_run(conn, run_id), runs.get_results(conn, run_id), len(fakes["retrieve"]))
+    with pytest.raises(ValueError, match="finished run"):
+        pipeline.execute(conn, run_id, retriever(fakes))
+    assert (runs.get_run(conn, run_id), runs.get_results(conn, run_id), len(fakes["retrieve"])) == before

@@ -74,6 +74,17 @@ WHEN EXISTS (SELECT 1 FROM runs WHERE id = NEW.run_id)
  AND NOT EXISTS (SELECT 1 FROM runs, json_each(runs.test_ids)
                  WHERE runs.id = NEW.run_id AND json_each.value = NEW.test_id)
 BEGIN SELECT RAISE(ABORT, 'test is not part of this run'); END;
+-- A finished run is final: no new results, no status change; "done" needs a result for every declared question.
+CREATE TRIGGER IF NOT EXISTS results_running_run BEFORE INSERT ON results
+WHEN (SELECT status FROM runs WHERE id = NEW.run_id) <> 'running'
+BEGIN SELECT RAISE(ABORT, 'the run is finished'); END;
+CREATE TRIGGER IF NOT EXISTS runs_finish_once BEFORE UPDATE OF status ON runs
+WHEN OLD.status <> 'running'
+BEGIN SELECT RAISE(ABORT, 'the run is finished'); END;
+CREATE TRIGGER IF NOT EXISTS runs_done_complete BEFORE UPDATE OF status ON runs
+WHEN OLD.status = 'running' AND NEW.status = 'done'
+ AND (SELECT count(*) FROM results WHERE run_id = NEW.id) <> json_array_length(NEW.test_ids)
+BEGIN SELECT RAISE(ABORT, 'a run is done only with a result for every question'); END;
 -- One row per paid OpenRouter call, written as soon as it returns (T44). run_id is NULL outside runs.
 CREATE TABLE IF NOT EXISTS spend (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
