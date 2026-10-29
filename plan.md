@@ -414,6 +414,9 @@ Validate each step before starting the next one. Log bugs in `fix.md`. Record de
   - Live judge: the reference answer scores ≥ 4.5, a wrong answer gets accuracy 1, an invented fact scores low on faithfulness, and a refusal on an unanswerable question gets accuracy 5 with `refused = true`.
 
 ### Step 6 - Answer pipeline, reranker, evaluation job, estimate, metadata
+- **Status (2026-10-29): in progress.** Built and committed: prompt versions, answer, reranker, runs and results (permanent, D21), pipeline, spend per call (T44), estimate (T43), budget guard, indexes and real search on both stacks (D24), the first real run (runs 1-4), the background job runner (D07) and `POST /api/runs` (D25). Every check below passes. Still to build: best-run selection (T08 gates, highest accuracy, cheaper on a tie). Open questions: D26, D27.
+- Job runner (D07): one worker thread, one job at a time; `GET /api/jobs/{id}` returns status, progress, message and error; unfinished jobs are marked failed at startup.
+- `POST /api/runs` (D25): every setting required, each stack its own search settings; a refused run stores nothing and returns its reason.
 - Pipeline: retrieve (vector or hybrid), optional rerank, system prompt version, answer, judge, then store the row and the run metadata.
 - System prompt versions (T36): a default version, saved edits are new immutable versions.
 - **Check:**

@@ -2,7 +2,7 @@
 
 How to use the RAG Playground dashboard: ask questions, run evaluations, compare set-ups and prepare the live demo.
 
-> **Status (2026-10-29):** the dashboard is designed but not built yet (plan step 9). This manual follows the design in `plan.md` and will be updated when the pages exist. The evaluation engine behind it is built and tested.
+> **Status (2026-10-29):** the dashboard pages are designed but not built yet (plan step 9). This manual follows the design in `plan.md` and will be updated when the pages exist. What is behind them is built and tested: the evaluation engine, background runs, the API that starts a run (`POST /api/runs`) and the progress API (`GET /api/jobs/{id}`).
 
 ## 1. What the app does
 
@@ -71,7 +71,7 @@ You see the answer, the chunks it was given (document, rank and score), and for 
 Use it to measure a configuration on many questions.
 1. Choose the settings and the question set: **dev** (192), **held-out** (48), or the 20-question **smoke test**.
 2. Press **Estimate** to see the number of questions, the cost and the time.
-3. Press **Evaluate**. Progress updates while it runs; you can leave the page.
+3. Press **Evaluate**. Progress updates while it runs (for example "12 of 192 questions"); you can leave the page. Runs go one at a time: a second run waits as **queued** until the first finishes.
 
 The result shows 4 headline tiles (MRR, Recall@K, Accuracy, Faithfulness), a **show all** switch for the other metrics, refusal rates, scores by question category, and a table of every question that opens it in **Ask**. Export it as CSV.
 
@@ -105,7 +105,7 @@ For the ladder's prompt step (S6), choose up to 4 of your versions before the st
 Choose the chunking method, chunk size, overlap and stacks, then press **Embed**. A green message confirms the chunks are stored on each stack; a red one says what failed.
 
 ### Sweep: try several values of one setting
-Pick a base configuration, the setting to vary (for example chunk size, K, hybrid search or prompt version) and its values. Press **Estimate**, then **Confirm**. Combinations already run are reused, not paid twice.
+Pick a base configuration, the setting to vary (for example chunk size, K, a stack's search settings or prompt version) and its values. Press **Estimate**, then **Confirm**. Combinations already run are reused, not paid twice.
 
 ### Ops: health and spend
 Spend against the budget, error rate, slowest-answer time (p95) and the app version.
@@ -157,5 +157,7 @@ Most of the cost of an evaluation is the judge. Stack A may add OpenAI's own sea
 | "The run is estimated at ..., but only ... is left" | The run would pass the budget. | Choose fewer questions or a cheaper model, or raise `BUDGET_USD`. |
 | A run ends **failed** with "Budget reached" | It stopped before a question that could pass the budget. Its finished questions are kept. | As above; start a new run. |
 | A run ends **failed** with another error | A model or a stack did not respond. | Check **Ops**, then start a new run (a finished run is never re-run). |
-| "... is not indexed on Stack ..." | The chunks for this configuration are not built on that stack. | Build them on **Build**, or accept the offer in the settings panel. |
+| A run ends **failed** with "interrupted: the app restarted" | The app restarted while the run was queued or running. Its finished questions are kept. | Start a new run. |
+| "Not found: ..." with a prompt name | No saved prompt version has that name. | Pick a saved version on **Prompt**. |
+| "Not found: ... is not indexed on Stack ..." | The chunks for this configuration are not built on that stack. | Build them on **Build**, or accept the offer in the settings panel. |
 | "Held-out runs use the default prompt or a version evaluated on dev questions" | This prompt version has no finished dev run. | Evaluate it on dev questions first. |

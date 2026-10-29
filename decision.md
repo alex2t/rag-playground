@@ -483,7 +483,7 @@ Status: `accepted` | `proposed` (default, needs review) | `open` | `superseded`.
 - **Best practice:** yes; dev/prod parity.
 
 ### D24 - One recorded index per stack and chunk set - `accepted` 2026-10-29 (implements the `indexes` table of plan.md section 5)
-- **Decision:** an `indexes` table records, for each (stack, chunk set), the OpenAI vector store id (Stack A, store named `rag-playground-{APP_ENV}-{chunk set id}`) or the Qdrant collection name (Stack B, the chunk set id), with its chunk count. An index is built once from the saved chunk set; building it again is refused. A run searches the index recorded for its stack and chunk set, with its own stored settings (Stack A: its stored `openai_ranking`; Stack B: its `hybrid` flag). Stack A's hybrid switch maps to fixed OpenAI ranking values (T40 revision), in `openai_vector_store.hybrid_ranking`.
+- **Decision:** an `indexes` table records, for each (stack, chunk set), the OpenAI vector store id (Stack A, store named `rag-playground-{APP_ENV}-{chunk set id}`) or the Qdrant collection name (Stack B, the chunk set id), with its chunk count. An index is built once from the saved chunk set; building it again is refused. A run searches the index recorded for its stack and chunk set, with its own stored settings (Stack A: its stored `openai_ranking`; Stack B: its `hybrid` flag). (The fixed mapping of a shared hybrid switch onto OpenAI ranking values, built here first, was removed the same day: each stack takes its own search settings, T40 revision 2026-10-29.)
 - **Why:** Stack A's store id is only known once OpenAI creates the store, so it must be stored to be found again; a failed Stack A upload deletes its store, so no half-filled paid store is left; a Qdrant collection missing chunks is refused.
 - **Limits:** no rebuild or delete yet (a changed chunk set needs a new id or a manual clean-up); the run does not store the Stack A store id itself, only its chunk set id. If the clean-up delete itself fails, or the process is killed during an upload, an unrecorded OpenAI store is left (never searched, but billed for storage until deleted by hand).
 - **Best practice:** yes; a registry of built indexes is the usual way to tie experiments to their index.
@@ -500,3 +500,14 @@ Status: `accepted` | `proposed` (default, needs review) | `open` | `superseded`.
 - **Stack A's `hybrid` flag** (stored for every run) is derived, not sent: it records whether OpenAI's keyword list takes part, `text_weight > 0`. Custom rule; with ranker `auto` the weights have no measurable effect (T12), so it then records the setting sent, not a measured effect.
 - **Refusals, nothing stored:** 404 (chunk set not indexed on that stack, unknown prompt version), 409 (over the remaining `BUDGET_USD`), 422 (invalid settings, or a held-out run with a prompt version not evaluated on dev). The message says why.
 - **Best practice:** yes; validation at the API boundary with the reason returned to the user.
+
+### D26 - SQLite WAL mode - `open` (asked 2026-10-29)
+- **Question for the user:** turn on SQLite's write-ahead log (`PRAGMA journal_mode = WAL`, one line in `store.connect`; the setting persists in the database file).
+- **Why it matters:** with the background job writing results while the dashboard polls `/api/jobs/{id}` (D07), the default rollback journal makes a reader wait while a write commits; Python's driver gives up with "database is locked" after 5 s. Writes are single small rows (milliseconds), so the risk is low, not zero.
+- **Trade-off:** two small extra files next to the database (`-wal`, `-shm`), inside the same Docker volume.
+- **Recommendation:** yes; WAL is the usual set-up for one writer with concurrent readers.
+
+### D27 - Strict types in run requests - `open` (asked 2026-10-29)
+- **Question for the user:** make `RunRequest` (D25) strict, so `"3"` is not accepted as K=3, `"yes"` as reranking on, or `0` as hybrid off.
+- **Today:** Pydantic's default (lax) mode converts such values; the stored setting always matches what the value means, and the dashboard sends proper JSON types, so nothing goes wrong. Found by Claude when checking Antigravity's review of D25.
+- **Recommendation:** yes; an API that refuses ambiguous input is easier to trust.

@@ -11,6 +11,8 @@ A controlled study of which RAG techniques improve retrieval and answer quality,
 - how each metric is computed (MRR, Recall@K, nDCG, faithfulness and the others), with a worked example;
 - what counts as an improvement.
 
+**[docs/user-manual.md](docs/user-manual.md)** explains how to use the dashboard.
+
 ## Run locally
 
 ```

@@ -201,3 +201,14 @@ Antigravity's review confirmed 5 of 6 findings:
 - A warning in your notes is not the same as a fix: the strange OpenAI mode was known, and still chosen later for consistency.
 - Do not force two different products into one menu; compare each at its own best and say how it was set.
 - When a number is off, split it into the part you measured and the part you guessed.
+
+## 14. Step 6: a reviewer that was confidently wrong (2026-10-29)
+**Where we were.** Building the background job runner and the API that starts a run, each checked by the reviewer (Gemini 3.8).
+
+**What happened.** The reviewer approved the job runner with zero findings. But its report said the database runs in a mode that lets readers and writers work at the same time (it does not; Claude checked), and it named five tests as proof that do not exist in the code. Its verdict happened to be right, but part of the reasoning behind it was invented.
+
+**What was done.** Every claim was checked against the code before anything was accepted. The real question it skipped (can the dashboard's progress check be blocked while a result is written?) was answered by Claude: briefly, yes, and a one-line setting would remove it; that is now an open question for the user.
+
+**Lessons.**
+- A clean verdict is not evidence; the claims under it are. Check the facts a review rests on, not only its conclusion.
+- Names a reviewer cites (tests, settings, files) are the cheapest thing to verify, and the first thing to check.
