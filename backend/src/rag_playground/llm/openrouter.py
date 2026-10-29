@@ -1,5 +1,7 @@
 """Chat and structured output through OpenRouter (D03, D19)."""
 
+from collections.abc import Callable
+from contextvars import ContextVar
 from dataclasses import dataclass
 from functools import cache
 
@@ -23,6 +25,17 @@ class ChatResult:
     completion_tokens: int
     reasoning_tokens: int
     cost_usd: float
+
+
+# Called with every paid call as soon as it returns, so spend is recorded even if a later call fails (T44).
+cost_listener: ContextVar[Callable[[ChatResult], None] | None] = ContextVar("cost_listener", default=None)
+
+
+def paid(result: ChatResult) -> ChatResult:
+    """Report a returned call to the current cost listener, if any, and pass it on."""
+    if listener := cost_listener.get():
+        listener(result)
+    return result
 
 
 @cache
@@ -56,7 +69,7 @@ def chat(model: str, messages: list[dict]) -> ChatResult:
     """Send one chat request and return the answer with usage."""
     info = model_info(model)
     completion = client().chat.completions.create(model=model, messages=messages, **sampling_params(info))
-    return to_result(completion, info)
+    return paid(to_result(completion, info))
 
 
 def chat_structured[T: BaseModel](
@@ -68,4 +81,5 @@ def chat_structured[T: BaseModel](
     completion = client().chat.completions.parse(
         model=model, messages=messages, response_format=schema, **sampling_params(info), **limit
     )
-    return completion.choices[0].message.parsed, to_result(completion, info)
+    result = paid(to_result(completion, info))
+    return completion.choices[0].message.parsed, result

@@ -9,7 +9,7 @@ from time import perf_counter
 
 from rag_playground.datasets.schema import TestCase, dataset_sha256, load_tests
 from rag_playground.llm.models import model_info
-from rag_playground.rag import prompts, runs
+from rag_playground.rag import prompts, runs, spend
 from rag_playground.rag.answer import answer
 from rag_playground.rag.rerank import rerank
 from rag_playground.scoring.judging import judge
@@ -85,14 +85,16 @@ def start_run(conn: sqlite3.Connection, choices: Choices, tests: list[TestCase])
 
 def execute(conn: sqlite3.Connection, run_id: int, retrieve: Retrieve) -> None:
     """Answer the run's own questions with its stored settings, storing each result as soon as it is judged so
-    progress can be read meanwhile. The questions are read from the run, so they cannot differ from the ones it
-    declared. A failure stops the run, marks it failed with the error, and is raised again."""
+    progress can be read meanwhile; every paid call is recorded as it returns (T44). The questions are read from
+    the run, so they cannot differ from the ones it declared. A failure stops the run, marks it failed with the
+    error, and is raised again."""
     meta = runs.get_run(conn, run_id).meta
     prompt = prompts.get(conn, meta.prompt_name)
     by_id = {test.id: test for test in load_tests()}
     try:
-        for test in (by_id[test_id] for test_id in meta.test_ids):
-            runs.add_result(conn, run_id, run_question(test, meta, prompt, retrieve))
+        with spend.recording(conn, run_id):
+            for test in (by_id[test_id] for test_id in meta.test_ids):
+                runs.add_result(conn, run_id, run_question(test, meta, prompt, retrieve))
     except Exception as exc:
         runs.finish_run(conn, run_id, error=f"{type(exc).__name__}: {exc}")
         raise

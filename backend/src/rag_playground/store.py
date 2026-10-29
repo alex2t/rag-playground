@@ -74,6 +74,17 @@ WHEN EXISTS (SELECT 1 FROM runs WHERE id = NEW.run_id)
  AND NOT EXISTS (SELECT 1 FROM runs, json_each(runs.test_ids)
                  WHERE runs.id = NEW.run_id AND json_each.value = NEW.test_id)
 BEGIN SELECT RAISE(ABORT, 'test is not part of this run'); END;
+-- One row per paid OpenRouter call, written as soon as it returns (T44). run_id is NULL outside runs.
+CREATE TABLE IF NOT EXISTS spend (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    run_id INTEGER REFERENCES runs (id),
+    model TEXT NOT NULL,
+    prompt_tokens INTEGER NOT NULL,
+    completion_tokens INTEGER NOT NULL,
+    reasoning_tokens INTEGER NOT NULL,
+    cost_usd REAL NOT NULL CHECK (cost_usd >= 0)
+);
 """
 
 
