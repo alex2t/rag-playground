@@ -329,7 +329,7 @@ rag-playground/
 | GET / POST | `/api/prompts` | List system prompt versions / save a new named version (T36) |
 | POST | `/api/ask` | One question: answer, chunks, gold sources, reference answer and scores |
 | POST | `/api/estimate` | Run count, cost and time |
-| POST | `/api/runs` | Start an evaluation job (`split=dev` by default, or `heldout`) |
+| POST | `/api/runs` | Start an evaluation job: every setting plus `questions` = `dev`, `heldout` or `smoke` (20, round-robin, T46), all required (T40); refusals return 404, 409 or 422 with the reason (D25) |
 | POST | `/api/sweeps` | Start a confirmed sweep |
 | POST | `/api/story` | Run the ladder on one or both stacks |
 | GET | `/api/jobs/{id}` | Status, progress, message, error |

@@ -121,6 +121,23 @@ CREATE TABLE IF NOT EXISTS indexes (
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     PRIMARY KEY (stack, chunk_set_id)
 );
+-- Background jobs (D07): one evaluation run per job, run one at a time; the UI polls a job's status.
+CREATE TABLE IF NOT EXISTS jobs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    kind TEXT NOT NULL CHECK (kind IN ('evaluate')),
+    status TEXT NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'running', 'done', 'failed')),
+    run_id INTEGER NOT NULL REFERENCES runs (id),
+    error TEXT,
+    finished_at TEXT,
+    CHECK ((status = 'failed') = (error IS NOT NULL)),
+    CHECK ((status IN ('done', 'failed')) = (finished_at IS NOT NULL))
+);
+-- A job moves forward only: queued -> running -> done or failed; queued -> failed when interrupted.
+CREATE TRIGGER IF NOT EXISTS jobs_forward_only BEFORE UPDATE OF status ON jobs
+WHEN NOT ((OLD.status = 'queued' AND NEW.status IN ('running', 'failed'))
+          OR (OLD.status = 'running' AND NEW.status IN ('done', 'failed')))
+BEGIN SELECT RAISE(ABORT, 'a job moves forward only'); END;
 -- One row per paid OpenRouter call, written as soon as it returns (T44). run_id is NULL outside runs.
 CREATE TABLE IF NOT EXISTS spend (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

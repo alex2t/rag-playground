@@ -48,6 +48,7 @@ Status: `accepted` | `proposed` (default, needs review) | `open` | `superseded`.
   - Polling wastes requests and adds lag. SSE or WebSockets push progress instead.
   - In-process jobs are lost on restart and force a single API worker.
   - Production would use a job queue (Celery, RQ or arq with Redis) plus SSE.
+- **Built 2026-10-29 (`jobs.py`):** one worker thread, so jobs run one at a time (the budget guard counts spend only for one run in flight, T44). A job is an evaluation run; refusals (chunk set not indexed, over budget, held-out prompt not evaluated on dev) are raised when the job is submitted, before any run or job is stored. The worker opens its own SQLite connection and calls `execute` in its thread, so the spend listener records every paid call. A job moves forward only (queued, running, then done or failed; a database trigger). At startup, jobs left queued or running, and their runs, are marked failed with "interrupted: the app restarted". `GET /api/jobs/{id}` returns status, progress, message and error.
 
 ### D08 - Caddy basic auth - `accepted`
 - **Why:** stops strangers from spending the API credits, with no application code.
@@ -493,3 +494,9 @@ Status: `accepted` | `proposed` (default, needs review) | `open` | `superseded`.
 - **Alternatives:** a seeded random sample (can miss a category with 10 of 192); the first 10 in the file.
 - **Limits:** with 10 questions the mix is not proportional to the category sizes; good enough for a cost check, not for scoring.
 - **Best practice:** stratified sampling is standard; this particular round-robin order is a custom choice.
+
+### D25 - The request that starts an evaluation run - `accepted` 2026-10-29 (follows T35, T40, T46)
+- **Decision:** `POST /api/runs` takes every setting of the settings panel, all required (no hidden defaults, T40): stack, chunk size and overlap (T35 ranges), top-K (1-8, T45), reranking, answer model (the catalogue only), prompt version, and `questions` (`dev` = 192, `heldout` = 48, `smoke` = 20 dev questions round-robin by category, T46). Each stack takes its own search settings (T40 revision 2026-10-29): Stack A `openai_ranking` (ranker `none` or `auto`, two weights of 0 or more, threshold 0-1), Stack B `hybrid`; sending the other stack's field is refused. Unknown fields are refused. It returns 202 with the job id; the UI polls `/api/jobs/{id}` (D07).
+- **Stack A's `hybrid` flag** (stored for every run) is derived, not sent: it records whether OpenAI's keyword list takes part, `text_weight > 0`. Custom rule; with ranker `auto` the weights have no measurable effect (T12), so it then records the setting sent, not a measured effect.
+- **Refusals, nothing stored:** 404 (chunk set not indexed on that stack, unknown prompt version), 409 (over the remaining `BUDGET_USD`), 422 (invalid settings, or a held-out run with a prompt version not evaluated on dev). The message says why.
+- **Best practice:** yes; validation at the API boundary with the reason returned to the user.
