@@ -469,3 +469,16 @@ Status: `accepted` | `proposed` (default, needs review) | `open` | `superseded`.
 - **Why:** building could continue without putting unreviewed code on the public `main`.
 - **Trade-off:** reviews ran later than the code, so a finding could touch work already built on top (item 3's finding led to items 7 and 9).
 - **Best practice:** yes; a feature branch merged only after review is the usual pull-request workflow.
+
+### D23 - Qdrant on the dev PC runs in Docker, like prod - `accepted` 2026-10-29 (user decision)
+- **Decision:** for real runs on the dev PC, Stack B uses the same Qdrant server image as staging and prod (`qdrant/qdrant:v1.20.0`, `deploy/docker-compose.yml`), started in Docker Desktop and bound to `127.0.0.1:6333` only. Offline tests keep using Qdrant's in-process mode (`QdrantClient(":memory:")`).
+- **Why:** dev results then come from the exact server version prod uses.
+- **Alternatives:** Qdrant's local mode in the Python client (a folder under `var/`, no server): lighter on RAM, but a separate implementation, so results could differ from prod.
+- **Trade-off:** Docker Desktop uses about 1-2 GB of the PC's 8 GB RAM while running; close it after a run.
+- **Best practice:** yes; dev/prod parity.
+
+### D24 - One recorded index per stack and chunk set - `accepted` 2026-10-29 (implements the `indexes` table of plan.md section 5)
+- **Decision:** an `indexes` table records, for each (stack, chunk set), the OpenAI vector store id (Stack A, store named `rag-playground-{APP_ENV}-{chunk set id}`) or the Qdrant collection name (Stack B, the chunk set id), with its chunk count. An index is built once from the saved chunk set; building it again is refused. A run searches the index recorded for its stack and chunk set, with its own stored settings (Stack A: its stored `openai_ranking`; Stack B: its `hybrid` flag). Stack A's hybrid switch maps to fixed OpenAI ranking values (T40 revision), in `openai_vector_store.hybrid_ranking`.
+- **Why:** Stack A's store id is only known once OpenAI creates the store, so it must be stored to be found again; a failed Stack A upload deletes its store, so no half-filled paid store is left; a Qdrant collection missing chunks is refused.
+- **Limits:** no rebuild or delete yet (a changed chunk set needs a new id or a manual clean-up); the run does not store the Stack A store id itself, only its chunk set id. If the clean-up delete itself fails, or the process is killed during an upload, an unrecorded OpenAI store is left (never searched, but billed for storage until deleted by hand).
+- **Best practice:** yes; a registry of built indexes is the usual way to tie experiments to their index.

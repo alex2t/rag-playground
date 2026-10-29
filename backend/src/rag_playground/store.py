@@ -112,6 +112,15 @@ CREATE TRIGGER IF NOT EXISTS runs_done_complete BEFORE UPDATE OF status ON runs
 WHEN OLD.status = 'running' AND NEW.status = 'done'
  AND (SELECT count(*) FROM results WHERE run_id = NEW.id) <> json_array_length(NEW.test_ids)
 BEGIN SELECT RAISE(ABORT, 'a run is done only with a result for every question'); END;
+-- Where each chunk set is indexed: the OpenAI vector store id (Stack A) or the Qdrant collection name (Stack B).
+CREATE TABLE IF NOT EXISTS indexes (
+    stack TEXT NOT NULL CHECK (stack IN ('A', 'B')),
+    chunk_set_id TEXT NOT NULL,
+    ref TEXT NOT NULL CHECK (ref <> ''),
+    chunk_count INTEGER NOT NULL CHECK (chunk_count > 0),
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (stack, chunk_set_id)
+);
 -- One row per paid OpenRouter call, written as soon as it returns (T44). run_id is NULL outside runs.
 CREATE TABLE IF NOT EXISTS spend (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

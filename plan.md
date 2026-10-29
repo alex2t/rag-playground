@@ -419,6 +419,7 @@ Validate each step before starting the next one. Log bugs in `fix.md`. Record de
   - `gpt-6.1-sol` runs are flagged `temperature_controlled = false`.
   - The estimate is within 50% of the actual cost.
   - Spend is recorded, and a run that would exceed the budget is refused.
+  - First real run (user decision 2026-10-29): 10 dev questions with the S0 set-up on both stacks, run by the user (Stack B on Qdrant in Docker, D23).
 
 ### Step 7 - LLM chunking and enrichment
 - **Check:**
