@@ -60,7 +60,7 @@ The reasons for each decision are in `decision.md`. Items marked *(proposed)* ha
 | Environments | `staging` and `prod` on the same VPS, as two compose projects on separate subdomains. |
 | Edge | One shared Caddy: TLS, basic auth, routes each subdomain to its environment. |
 | CI/CD | GitHub Actions: test, build, push to GHCR (tagged with the git SHA), deploy to staging, smoke test and evaluation gate, manual approval, then deploy the same image to prod. Rollback = redeploy the previous tag. |
-| Storage | SQLite in a Docker volume, one per environment. |
+| Storage | SQLite in a Docker volume, one per environment. Runs and results are permanent: the database refuses any edit, deletion or replacement, and a run changes only once, from running to finished (D21). |
 | Long jobs | Background job; the UI polls `GET /api/jobs/{id}`. |
 | Observability | Structured JSON logs and an Ops page (spend against budget, error rate, p95 latency). |
 | Secrets | `.env` per environment on the VPS (owner-only permissions, never committed). CI secrets in GitHub Actions secrets. |
