@@ -74,13 +74,40 @@ WHEN EXISTS (SELECT 1 FROM runs WHERE id = NEW.run_id)
  AND NOT EXISTS (SELECT 1 FROM runs, json_each(runs.test_ids)
                  WHERE runs.id = NEW.run_id AND json_each.value = NEW.test_id)
 BEGIN SELECT RAISE(ABORT, 'test is not part of this run'); END;
--- A finished run is final: no new results, no status change; "done" needs a result for every declared question.
+-- Runs and results are the evidence behind every score, so the database keeps them as written:
+-- a run starts "running", its settings never change, it finishes once, and nothing is deleted or replaced.
+-- "done" needs a result for every declared question.
+CREATE TRIGGER IF NOT EXISTS runs_start_running BEFORE INSERT ON runs
+WHEN NEW.status <> 'running' OR NEW.error IS NOT NULL
+BEGIN SELECT RAISE(ABORT, 'a new run starts running, with no error'); END;
+CREATE TRIGGER IF NOT EXISTS runs_no_replace BEFORE INSERT ON runs
+WHEN EXISTS (SELECT 1 FROM runs WHERE id = NEW.id)
+BEGIN SELECT RAISE(ABORT, 'runs are permanent'); END;
+CREATE TRIGGER IF NOT EXISTS runs_no_delete BEFORE DELETE ON runs
+BEGIN SELECT RAISE(ABORT, 'runs are permanent'); END;
+CREATE TRIGGER IF NOT EXISTS runs_settings_fixed BEFORE UPDATE OF
+    id, created_at, stack, split, test_ids, chunk_set_id, top_k, hybrid, openai_ranking, answer_model, answer_slug,
+    judge_model, judge_slug, rerank_model, rerank_slug, rerank_candidates, temperature_controlled, prompt_name,
+    prompt_sha256, dataset_sha256, app_version ON runs
+BEGIN SELECT RAISE(ABORT, 'run settings are permanent'); END;
+-- "UPDATE OF id" does not fire for "SET rowid = ...", which renumbers the run just the same.
+CREATE TRIGGER IF NOT EXISTS runs_id_fixed BEFORE UPDATE ON runs
+WHEN NEW.id <> OLD.id
+BEGIN SELECT RAISE(ABORT, 'run settings are permanent'); END;
+CREATE TRIGGER IF NOT EXISTS runs_finish_once BEFORE UPDATE ON runs
+WHEN OLD.status <> 'running' OR NEW.status = 'running'
+BEGIN SELECT RAISE(ABORT, 'a run changes once, from running to finished'); END;
 CREATE TRIGGER IF NOT EXISTS results_running_run BEFORE INSERT ON results
 WHEN (SELECT status FROM runs WHERE id = NEW.run_id) <> 'running'
 BEGIN SELECT RAISE(ABORT, 'the run is finished'); END;
-CREATE TRIGGER IF NOT EXISTS runs_finish_once BEFORE UPDATE OF status ON runs
-WHEN OLD.status <> 'running'
-BEGIN SELECT RAISE(ABORT, 'the run is finished'); END;
+-- REPLACE deletes the old row without firing delete triggers, so inserts over an existing row are blocked here.
+CREATE TRIGGER IF NOT EXISTS results_no_replace BEFORE INSERT ON results
+WHEN EXISTS (SELECT 1 FROM results WHERE (run_id = NEW.run_id AND test_id = NEW.test_id) OR rowid = NEW.rowid)
+BEGIN SELECT RAISE(ABORT, 'stored results are permanent'); END;
+CREATE TRIGGER IF NOT EXISTS results_no_update BEFORE UPDATE ON results
+BEGIN SELECT RAISE(ABORT, 'stored results are permanent'); END;
+CREATE TRIGGER IF NOT EXISTS results_no_delete BEFORE DELETE ON results
+BEGIN SELECT RAISE(ABORT, 'stored results are permanent'); END;
 CREATE TRIGGER IF NOT EXISTS runs_done_complete BEFORE UPDATE OF status ON runs
 WHEN OLD.status = 'running' AND NEW.status = 'done'
  AND (SELECT count(*) FROM results WHERE run_id = NEW.id) <> json_array_length(NEW.test_ids)

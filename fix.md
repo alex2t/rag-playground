@@ -4,6 +4,18 @@ Add new bugs at the top. Status: `open` | `investigating` | `fixed`.
 
 ---
 
+## [2026-10-29] Step 6 (item 7 re-check): a "final" run and its results could still be edited, deleted or renumbered with plain SQL - `fixed` (awaiting Antigravity's confirmation)
+- **Reviewer:** Antigravity, Gemini 3.8 (review-queue item 7). Verdict "fit to commit"; the item 3 fix holds through our functions; 2 `minor` findings; all 5 of Claude's breaks re-checked and caught.
+- **Symptom:** `store.py` and the status said "a finished run is final in the database", but only status changes and new results were blocked.
+- **Reproduce (Claude's script, in-memory database, run marked `done`):** `UPDATE runs SET top_k = 4`, `UPDATE runs SET test_ids = ...`, `UPDATE results SET answer = 'tampered'`, `DELETE FROM results`, `DELETE FROM runs`, and `INSERT INTO runs (..., status) VALUES (..., 'done')` with 0 results: all allowed. Finding 1 (settings of a finished run) and finding 2 (results updated or deleted) confirmed; the run deletion, the run created already `done` (its check 2 noted it, not listed as a finding) and the settings of a *running* run were also open.
+- **Root cause:** the triggers locked only the paths the item 3 bug used (`UPDATE OF status`, `INSERT` into results), not the record as a whole. The suggested fix (`BEFORE UPDATE ON runs` for finished runs, no update/delete on results) still leaves running runs, deletion, replacement and runs created finished.
+- **Fix (user decision 2026-10-29: lock everything our code never changes, as for prompt versions):** a new run must start `running` with no error; runs cannot be deleted or replaced; every column but `status` and `error` is permanent; a run changes once, from `running` to finished; results cannot be updated, deleted or replaced (`INSERT OR REPLACE` deletes without firing delete triggers, so it is blocked on insert, as in `prompt_versions`).
+- **Found while testing the fix:** `BEFORE UPDATE OF id` does not fire for `SET rowid = 99`, so the update that finishes a run could renumber it (reproduced: id 1 became 99). Fixed with `runs_id_fixed` (`WHEN NEW.id <> OLD.id`).
+- **Test changed (reported explicitly):** `test_a_question_is_stored_once_per_run_but_again_in_another_run` expected the message `UNIQUE`; the new `results_no_replace` trigger runs before SQLite's unique check, so the same insert is refused with "stored results are permanent". The behaviour tested (a second result for the same question is refused) is unchanged; only the expected message changed.
+- **Verified:** 9 deliberate breaks (each new trigger removed in turn) all caught. `test_runs.py` 67, full suite 306 passed.
+- **Not changed:** the `spend` table can still be edited with plain SQL. It is a budget record, not evaluation evidence; not raised by the review. To decide with the user if needed.
+- **Status:** `fixed` (awaiting Antigravity's confirmation)
+
 ## [2026-10-29] Step 6 (increment 7): the estimate tests could not catch a wrong per-message overhead or truncated chunk length - `fixed` (awaiting Antigravity's confirmation)
 - **Reviewer:** Antigravity, Gemini 3.8 (review-queue item 5). Verdict "fit to commit"; 2 findings, 3 own deliberate breaks (2 missed).
 - **Finding 1 (`minor`, confirmed):** `real_count()` in `tests/test_estimate.py` added `estimate.MESSAGE_OVERHEAD`, the very constant under test. Reproduced: `MESSAGE_OVERHEAD = 999` passes all 13 tests. **Fix:** the test uses its own value 4, naming the source (OpenAI cookbook). The break now fails 4 tests.
@@ -13,7 +25,7 @@ Add new bugs at the top. Status: `open` | `investigating` | `fixed`.
 - **Verified:** `tests/test_estimate.py` 14 passed; full suite 285 passed.
 - **Status:** `fixed` (awaiting Antigravity's confirmation)
 
-## [2026-10-29] Step 6 (increment 5 re-check): a finished run is not final; a second `execute()` flips a complete run to `failed` - `fixed` (awaiting Antigravity's confirmation)
+## [2026-10-29] Step 6 (increment 5 re-check): a finished run is not final; a second `execute()` flips a complete run to `failed` - `fixed` (confirmed by Antigravity, Gemini 3.8, 2026-10-29; raw-SQL gaps in the entry above)
 - **Severity:** reported as `minor` (two missed edge cases, verdict "fit to commit"); Claude rates the first `should fix`: it corrupts a valid run.
 - **Reviewer:** Antigravity, Gemini 3.8, re-check of `0d0cc38` (review-queue item 3). It confirmed the `test_ids` fix; Claude checked its answers to checks 1 and 2 against the code and tests.
 - **Symptom:** (1) `execute()` on a `done` run starts again, fails on `UNIQUE (run_id, test_id)` and marks the complete run `failed`. (2) `finish_run(conn, 999)` updates 0 rows silently. (3) Its edge-case note: `finish_run(conn, run_id)` marks a run `done` with results missing.

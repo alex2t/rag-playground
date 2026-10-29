@@ -130,7 +130,7 @@ def test_progress_counts_stored_questions_and_reaches_1(conn):
 def test_a_question_is_stored_once_per_run_but_again_in_another_run(conn):
     first, second = runs.create_run(conn, STACK_A), runs.create_run(conn, STACK_B)
     runs.add_result(conn, first, result("q0"))
-    with pytest.raises(sqlite3.IntegrityError, match="UNIQUE"):
+    with pytest.raises(sqlite3.IntegrityError, match="permanent"):
         runs.add_result(conn, first, result("q0"))
     runs.add_result(conn, second, result("q0"))
     assert len(runs.get_results(conn, first)) == len(runs.get_results(conn, second)) == 1
@@ -215,6 +215,106 @@ def test_a_failed_run_takes_no_new_results(conn):
     with pytest.raises(sqlite3.IntegrityError, match="finished"):
         runs.add_result(conn, run_id, result("q0"))
     assert runs.get_results(conn, run_id) == []
+
+
+def copy_sql(conn, table, verb="INSERT", **exprs):
+    """SQL copying the rows matched by `WHERE {where}` into the same table, with some columns replaced by SQL
+    expressions; `rowid` is copied too when given."""
+    columns = ["rowid"] * ("rowid" in exprs) + [row[1] for row in conn.execute(f"PRAGMA table_info({table})")]
+    values = ", ".join(exprs.get(column, column) for column in columns)
+    return f"{verb} INTO {table} ({', '.join(columns)}) SELECT {values} FROM {table} WHERE " + "{where}"
+
+
+def state(conn, run_id):
+    return runs.get_run(conn, run_id), runs.get_results(conn, run_id)
+
+
+def a_run_in(conn, status):
+    """A STACK_A run with one result, still running or finished."""
+    if status != "running":
+        return finished(conn, status)
+    run_id = runs.create_run(conn, STACK_A)
+    runs.add_result(conn, run_id, result("q0"))
+    return run_id
+
+
+def run_columns(conn):
+    return [row[1] for row in conn.execute("PRAGMA table_info(runs)")]
+
+
+def test_no_run_setting_can_change_in_the_update_that_finishes_the_run(conn):
+    """Every column but status and error is fixed when the run is created, so a stored run shows what produced it.
+    The update that finishes a run is the only one allowed, so a setting changed in it must be refused too."""
+    run_id = a_run_in(conn, "running")
+    before = state(conn, run_id)
+    settings = [column for column in run_columns(conn) if column not in ("status", "error")] + ["rowid"]
+    for column in settings:
+        with pytest.raises(sqlite3.IntegrityError, match="permanent"), conn:
+            conn.execute(f"UPDATE runs SET status = 'failed', error = 'x', {column} = 1000 WHERE id = ?", (run_id,))
+    assert state(conn, run_id) == before
+    assert len(settings) == len(run_columns(conn)) - 1
+
+
+@pytest.mark.parametrize("status", ["done", "failed"])
+def test_no_column_of_a_finished_run_can_change_on_a_raw_connection(conn, status):
+    run_id = a_run_in(conn, status)
+    before = state(conn, run_id)
+    for column in run_columns(conn) + ["rowid"]:
+        with pytest.raises(sqlite3.IntegrityError, match="finished|permanent"), conn:
+            conn.execute(f"UPDATE runs SET {column} = 1000 WHERE id = ?", (run_id,))
+    assert state(conn, run_id) == before
+
+
+def test_a_running_run_changes_only_by_finishing(conn):
+    run_id = a_run_in(conn, "running")
+    before = state(conn, run_id)
+    for sql in ["UPDATE runs SET error = 'x' WHERE id = ?", "UPDATE runs SET status = 'running' WHERE id = ?"]:
+        with pytest.raises(sqlite3.IntegrityError, match="once"), conn:
+            conn.execute(sql, (run_id,))
+    assert state(conn, run_id) == before
+
+
+@pytest.mark.parametrize("status", ["running", "done", "failed"])
+@pytest.mark.parametrize("sql", ["DELETE FROM runs WHERE id = ?", "REPLACE"])
+def test_a_run_cannot_be_deleted_or_replaced(conn, status, sql):
+    run_id = a_run_in(conn, status)
+    before = state(conn, run_id)
+    sql = copy_sql(conn, "runs", "INSERT OR REPLACE").format(where="id = ?") if sql == "REPLACE" else sql
+    with pytest.raises(sqlite3.IntegrityError, match="permanent"), conn:
+        conn.execute(sql, (run_id,))
+    assert state(conn, run_id) == before
+
+
+@pytest.mark.parametrize("exprs", [{"status": "'done'"}, {"status": "'failed'"}, {"error": "'boom'"}])
+def test_a_new_run_starts_running_with_no_error(conn, exprs):
+    """A run created already "done" would skip the check that it holds a result for every question."""
+    run_id = runs.create_run(conn, STACK_A)
+    with pytest.raises(sqlite3.IntegrityError, match="starts running"), conn:
+        conn.execute(copy_sql(conn, "runs", id="NULL", **exprs).format(where="id = ?"), (run_id,))
+    assert [row[0] for row in conn.execute("SELECT id FROM runs")] == [run_id]
+
+
+@pytest.mark.parametrize("status", ["running", "done"])
+@pytest.mark.parametrize("sql", ["UPDATE results SET answer = 'tampered' WHERE run_id = ?",
+                                 "UPDATE results SET accuracy = 1 WHERE run_id = ?",
+                                 "DELETE FROM results WHERE run_id = ?"])
+def test_a_stored_result_cannot_be_edited_or_deleted(conn, status, sql):
+    run_id = a_run_in(conn, status)
+    before = state(conn, run_id)
+    with pytest.raises(sqlite3.IntegrityError, match="permanent"), conn:
+        conn.execute(sql, (run_id,))
+    assert state(conn, run_id) == before
+
+
+@pytest.mark.parametrize("exprs", [{}, {"rowid": "rowid", "test_id": "'q1'"}], ids=["same question", "same rowid"])
+def test_a_stored_result_cannot_be_replaced(conn, exprs):
+    """REPLACE removes the old row without firing delete triggers, so it is refused separately."""
+    run_id = a_run_in(conn, "running")
+    before = state(conn, run_id)
+    sql = copy_sql(conn, "results", "INSERT OR REPLACE", **exprs).format(where="run_id = ?")
+    with pytest.raises(sqlite3.IntegrityError, match="permanent"), conn:
+        conn.execute(sql, (run_id,))
+    assert state(conn, run_id) == before
 
 
 def test_finishing_an_unknown_run_raises_key_error(conn):

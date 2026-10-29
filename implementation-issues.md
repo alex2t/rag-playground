@@ -172,3 +172,16 @@ Antigravity's review confirmed 5 of 6 findings:
 **Lessons.**
 - Rules about a record's life cycle (running, done, failed) belong where every path must pass: the database.
 - A test can encode a bug. When the code is fixed and a test breaks, ask which one was wrong.
+
+## 12. Step 6: "final" only on the paths we had thought of (2026-10-29)
+**Where we were.** The reviewer (Gemini 3.8) re-checked the fix from section 11.
+
+**What happened.** The fix held for our own code. But the reviewer showed that plain SQL, typed in any database tool, could still edit a finished run's settings and its stored answers and scores. Claude reproduced that, and found more: a run could be deleted, created already "done" with no answers, or have its settings changed while running. A run is the evidence behind every score in the presentation; if it can be edited silently, nobody can be sure a result is the one the system produced.
+
+**Fix.** The database now keeps runs and results exactly as written. A run starts as "running", its settings never change, it finishes once, and nothing is deleted or replaced. The reviewer's suggestion covered only finished runs; the fix covers every way of writing.
+
+**A trap found while testing the fix.** The rule "the run id cannot change" did not fire when the id was changed through SQLite's hidden alias for it (`rowid`), so finishing a run could also renumber it. Each rule was then removed on purpose, one at a time, to prove a test notices.
+
+**Lessons.**
+- Section 9's lesson again: "final" must hold for every way of writing, not just the one that caused the last bug.
+- Database rules have their own blind spots; test them by attacking them, not by reading them.
