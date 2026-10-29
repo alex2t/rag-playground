@@ -24,6 +24,7 @@ TEST = TESTS[0]
 PROMPT = PromptVersion(DEFAULT_NAME, DEFAULT_TEXT, sha256(DEFAULT_TEXT))
 ANSWER_MODEL = "openai/gpt-4.1-mini"  # not the reranker model, so the two can be priced apart
 CHUNK_TOKENS = 200
+MESSAGE_OVERHEAD = 4  # per chat message, OpenAI cookbook "How to count tokens with tiktoken"
 
 
 def tokens(text: str) -> int:
@@ -42,7 +43,7 @@ def real_hits(k: int) -> list[Hit]:
 
 
 def real_count(messages: list[dict]) -> int:
-    return sum(tokens(m["content"]) + estimate.MESSAGE_OVERHEAD for m in messages)
+    return sum(tokens(m["content"]) + MESSAGE_OVERHEAD for m in messages)
 
 
 @pytest.fixture
@@ -140,3 +141,10 @@ def test_a_run_costs_the_sum_of_its_questions_at_the_mean_chunk_length(prices):
     total = estimate.run_cost(TESTS, PROMPT, ANSWER_MODEL, 3, False, [chunk(100), chunk(300)])
     assert total == sum(cost(test=t) for t in TESTS)
     assert total != estimate.run_cost(TESTS, PROMPT, ANSWER_MODEL, 3, False, [chunk(100), chunk(100)])
+
+
+def test_the_mean_chunk_length_is_rounded_to_the_nearest_token(prices):
+    prices[ANSWER_MODEL, "in"] = 1.0
+    chunks = [chunk(100), chunk(101), chunk(101)]  # mean 100.67
+    nearest = estimate.question_cost(TEST, PROMPT, ANSWER_MODEL, 3, False, 101)
+    assert estimate.run_cost([TEST], PROMPT, ANSWER_MODEL, 3, False, chunks) == nearest
