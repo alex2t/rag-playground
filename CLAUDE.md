@@ -1,6 +1,6 @@
 # RAG Playground
 
-A study project. It is a controlled study of which RAG techniques improve retrieval and answer quality: starting from a documented default baseline, it changes one variable at a time on two stacks, and it deploys the system with a CI evaluation gate. FastAPI + React, Docker on a Hostinger VPS (staging and prod). The roadmap is in `plan.md`, decisions are in `decision.md`, and bugs and reviews are in `fix.md`. The dashboard user manual is `docs/user-manual.md`: update it whenever a page, setting, message or cost changes.
+A study project. It is a controlled study of which RAG techniques improve retrieval and answer quality: starting from a documented default baseline, it changes one variable at a time on two stacks, and it deploys the system with a CI evaluation gate. FastAPI + React, Docker on a Hostinger VPS (staging and prod). The roadmap is in `plan.md`, decisions are in `decision.md`, and bugs and reviews are in `fix.md`. The dashboard user manual is `docs/user-manual.md`: when a page, setting, message or cost changes, propose the manual change to the user (see Rules).
 
 ## Current status (update at the end of every step)
 - **2026-10-26:** Step 0 (scaffold) and **Step 1 (API connectivity) are done**. All 9 live tests pass. **Step 2 - Dataset: done 2026-10-27.** Enriched world (T33), 48 KB documents (T32), tests selected from 743 verified candidates (T34 revision; 250 committed, 240 after the 2026-10-27 fix). `tests/test_dataset.py` holds the 10 Step 2 checks. Public description of data, tests and metrics: `docs/evaluation.md`. Problems log (private): `implementation-issues.md`. Step 2 OpenRouter spend: about $26.9 on the key (limit $27, dataset generation, not evaluation); the key is no longer used (see "Working with the user").
@@ -74,6 +74,7 @@ A study project. It is a controlled study of which RAG techniques improve retrie
 - **All entities are fictional.** No real company name may be mentioned in the README or in any new content. Every person, firm, client and product we create must be invented.
 - **Ask before any architecture or test decision** that is not already listed under "Confirmed decisions" in `plan.md`. This covers new services, libraries, storage, layout, protocols, metrics and thresholds. Once confirmed, record it in `plan.md` and add an entry to `decision.md` (why, alternatives, trade-offs, and whether it is best practice).
 - Never present an invented formula or threshold as a standard. Name the source, or label it as a custom choice in `decision.md`.
+- **Every change to the user manual (`docs/user-manual.md`) needs the user's approval first** (user rule, 2026-10-29). Show the exact change (old and new text) and why, and edit the file only after the user says yes. This includes the settings it describes, wording, costs and messages.
 - The project is self-contained. It has no dependency on any parent repository.
 - Work one plan step at a time, and validate it before moving on.
 - Keep modules and functions short. Use clear docstrings and few comments. No emoji in code, logs or UI.
