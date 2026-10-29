@@ -103,9 +103,9 @@ question -> retrieve the top-K chunks -> (optional) rerank -> answer LLM writes 
 | S0 | Baseline | LlamaIndex out of the box: its default splitter (`SentenceSplitter`) with 1,024-token chunks and a 200-token overlap, top-2. No reranking, `gpt-4.1-nano` (these two are our choice, not LlamaIndex defaults). |
 | S1 | Chunk size | The best size from a sweep of 100, 200, 400, 800, 1,024 and 1,600 tokens |
 | S2 | Overlap | The best of 0%, about 20% (the baseline's share) and 25% of the chunk size |
-| S3 | Top-K | 10 |
+| S3 | Top-K | The best of 2, 4, 6 and 8 chunks |
 | S4 | Chunk enrichment | An LLM adds a headline and a summary to each chunk |
-| S5 | Reranking | Retrieve 20 chunks, an LLM reorders them, keep the top 10 |
+| S5 | Reranking | Retrieve 20 chunks, an LLM reorders them, keep the top K (S3's value) |
 | S6 | Answer model | A stronger model, shown as a cost trade-off rather than a RAG technique |
 
 The baseline is the framework's documented defaults, not a deliberately weak setup. A weak baseline would inflate every gain.
@@ -117,7 +117,7 @@ The baseline is the framework's documented defaults, not a deliberately weak set
 | Stack | A, B or both | With both, the same settings run on each stack and the results are shown side by side. |
 | Chunk size | 64-2,048 tokens | A chunk set that does not exist yet is built and indexed on both stacks after a cost estimate and a confirmation. |
 | Overlap | 0-50% of the chunk size | |
-| Top-K | 1-20 | |
+| Top-K | 1-8 | The knowledge base is small (48 documents of about 730 tokens), so more than 8 chunks would hand the model a large share of it. |
 | Chunking method | fixed or LLM-enriched | |
 | Hybrid search | off / on | Combines keyword matching (BM25) with vector similarity, merged by reciprocal rank fusion. It helps with exact strings such as commands and error messages. On Stack B it uses Qdrant's sparse vectors. On Stack A it uses OpenAI's own hybrid mode, with a semantic weight and a keyword weight. |
 | Reranking | off / on | |

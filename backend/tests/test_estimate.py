@@ -16,7 +16,7 @@ from rag_playground.rag.prompts import DEFAULT_NAME, DEFAULT_TEXT, PromptVersion
 from rag_playground.rag.rerank import rerank_messages
 from rag_playground.scoring.judging import answer_messages as grade_messages
 from rag_playground.scoring.judging import faithfulness_messages
-from rag_playground.settings import JUDGE_MODEL, RERANK_CANDIDATES, RERANK_MODEL
+from rag_playground.settings import JUDGE_MODEL, MAX_TOP_K, RERANK_CANDIDATES, RERANK_MODEL
 from rag_playground.stacks.hits import Hit
 
 TESTS = load_tests()[:3]
@@ -74,7 +74,7 @@ def test_answer_input_matches_a_real_request_with_chunks_of_the_average_length(p
 
 def test_answer_input_grows_with_k(prices):
     prices[ANSWER_MODEL, "in"] = 1.0
-    for k in (1, 5, 20):
+    for k in (1, 5, MAX_TOP_K):
         assert cost(top_k=k) == real_count(answer_messages(PROMPT, TEST.question, real_hits(k)))
 
 

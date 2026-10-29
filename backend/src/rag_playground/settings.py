@@ -13,6 +13,7 @@ ANSWER_MODELS = ["openai/gpt-4.1-nano", "openai/gpt-4.1-mini", "openai/gpt-6.1-s
 JUDGE_MODEL = "google/gemini-3.5-flash-lite"
 RERANK_MODEL = "openai/gpt-4.1-nano"
 RERANK_CANDIDATES = 20  # chunks retrieved for the reranker, which keeps the top K (T21)
+MAX_TOP_K = 8  # the KB is small (48 documents), so more chunks would hand the model a large share of it (T45)
 GENERATOR_MODEL = "anthropic/claude-sonnet-5.5"
 AUDIT_MODEL = "openai/gpt-6.1-sol"
 

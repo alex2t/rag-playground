@@ -10,6 +10,7 @@ from rag_playground import store
 from rag_playground.datasets import schema
 from rag_playground.rag import prompts, runs
 from rag_playground.scoring.judging import Judgement
+from rag_playground.settings import MAX_TOP_K
 from rag_playground.stacks.hits import Hit
 
 STACK_A = runs.RunMeta(
@@ -69,7 +70,7 @@ def test_a_run_prompt_hash_must_match_the_saved_version(conn):
 
 
 @pytest.mark.parametrize("changes", [
-    {"stack": "C"}, {"split": "test"}, {"test_ids": []}, {"top_k": 0},
+    {"stack": "C"}, {"split": "test"}, {"test_ids": []}, {"top_k": 0}, {"top_k": MAX_TOP_K + 1},  # T45
     {"openai_ranking": None},  # Stack A always records its OpenAI ranking (T40)
     {"rerank_slug": None}, {"rerank_candidates": None},  # reranker settings come together
     {"rerank_candidates": 4},  # fewer candidates than the K kept
@@ -77,6 +78,12 @@ def test_a_run_prompt_hash_must_match_the_saved_version(conn):
 def test_invalid_or_incomplete_settings_are_refused(conn, changes):
     with pytest.raises(sqlite3.IntegrityError, match="CHECK"):
         runs.create_run(conn, replace(STACK_A, **changes))
+
+
+@pytest.mark.parametrize("top_k", [1, MAX_TOP_K])
+def test_top_k_from_1_to_the_maximum_is_accepted(conn, top_k):
+    meta = replace(STACK_B, top_k=top_k)
+    assert runs.get_run(conn, runs.create_run(conn, meta)).meta == meta
 
 
 @pytest.mark.parametrize("changes", [{"openai_ranking": STACK_A.openai_ranking}, {"rerank_model": "openai/gpt-4.1-nano"}])

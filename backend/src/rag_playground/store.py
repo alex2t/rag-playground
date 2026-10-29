@@ -3,9 +3,9 @@
 import sqlite3
 from pathlib import Path
 
-from rag_playground.settings import settings
+from rag_playground.settings import MAX_TOP_K, settings
 
-SCHEMA = """
+SCHEMA = f"""
 PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS prompt_versions (
     name TEXT PRIMARY KEY CHECK (trim(name, char(9, 10, 13, 32)) <> ''),
@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS runs (
     split TEXT NOT NULL CHECK (split IN ('dev', 'heldout')),
     test_ids TEXT NOT NULL CHECK (json_array_length(test_ids) > 0),
     chunk_set_id TEXT NOT NULL,
-    top_k INTEGER NOT NULL CHECK (top_k > 0),
+    top_k INTEGER NOT NULL CHECK (top_k BETWEEN 1 AND {MAX_TOP_K}),
     hybrid INTEGER NOT NULL,
     openai_ranking TEXT,
     answer_model TEXT NOT NULL,
