@@ -176,7 +176,7 @@ Antigravity's review confirmed 5 of 6 findings:
 ## 12. Step 6: "final" only on the paths we had thought of (2026-10-29)
 **Where we were.** The reviewer (Gemini 3.8) re-checked the fix from section 11.
 
-**What happened.** The fix held for our own code. But the reviewer showed that plain SQL, typed in any database tool, could still edit a finished run's settings and its stored answers and scores. Claude reproduced that, and found more: a run could be deleted, created already "done" with no answers, or have its settings changed while running. A run is the evidence behind every score in the presentation; if it can be edited silently, nobody can be sure a result is the one the system produced.
+**What happened.** The fix held for our own code. But the reviewer showed that plain SQL, typed in any database tool, could still edit a finished run's settings and its stored answers and scores. Claude reproduced that, and found more: a run could be deleted, created already "done" with no answers, or have its settings changed while running. A run is the evidence behind every score in the report; if it can be edited silently, nobody can be sure a result is the one the system produced.
 
 **Fix.** The database now keeps runs and results exactly as written. A run starts as "running", its settings never change, it finishes once, and nothing is deleted or replaced. The reviewer's suggestion covered only finished runs; the fix covers every way of writing.
 

@@ -134,7 +134,7 @@ Results outside the ladder are exploratory. They use dev questions only, and the
 
 **Reproducibility:** every run stores the git commit, the exact model versions, the system prompt version and its hash, a hash of the dataset, the chunk set and the search settings (including hybrid search).
 
-**Embedding map (for the presentation).** A script draws a 2D picture of each stack's embedding space with t-SNE, a method that places points that are close in the original space close together on the page. It uses a 200-token chunk set:
+**Embedding map (for the report).** A script draws a 2D picture of each stack's embedding space with t-SNE, a method that places points that are close in the original space close together on the page. It uses a 200-token chunk set:
 - each chunk is a dot coloured by its folder (company, employees, services, clients, runbooks);
 - the test questions are overlaid;
 - one question can be highlighted with its gold chunks and the chunks actually retrieved for it.

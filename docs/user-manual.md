@@ -112,11 +112,11 @@ Spend against the budget, error rate, slowest-answer time (p95) and the app vers
 
 ## 6. Common tasks
 
-### Prepare the live demo for the interview
+### Prepare a live demo
 1. Run the ladder (**Story**) on both stacks, and confirm on held-out questions.
 2. Note the best eligible configuration (highlighted), including its prompt version.
 3. Load it in the settings panel and open **Ask**.
-4. Let the interviewers type their own questions. Each costs about $0.0002 to $0.0003 with `gpt-4.1-nano`, more with a stronger model.
+4. Let your guests type their own questions. Each costs about $0.0002 to $0.0003 with `gpt-4.1-nano`, more with a stronger model.
 
 ### Find out whether a setting helps
 1. **Evaluate** the configuration without the change, on dev questions.

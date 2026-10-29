@@ -2,7 +2,7 @@
 
 ## Goal
 
-A presentation on RAG. It shows which RAG techniques work and which do not, measured with best-practice evaluation, and how such a system is deployed and gated in production.
+A study of RAG. It shows which RAG techniques work and which do not, measured with best-practice evaluation, and how such a system is deployed and gated in production.
 
 The demo proves four things:
 
@@ -45,11 +45,11 @@ The reasons for each decision are in `decision.md`. Items marked *(proposed)* ha
 | Dashboard settings | Stack A, Stack B or both (side by side) (T40). Chunk size 64-2,048 tokens, overlap 0-50%, top-K 1-8 (T45), chunking method, reranking, answer model, system prompt version, and each stack's own search settings: Stack A OpenAI's options (ranker, hybrid weights, score threshold), Stack B hybrid on/off. Each stack runs independently; nothing is mapped between them (T40 revision 2026-10-29). Every setting is chosen by the user, with no hidden defaults (T40). Missing chunk sets are built and indexed on demand after an estimate and confirmation (T35). |
 | System prompt | Written by the user on the dashboard as named, immutable versions, any number; each run stores the version and hash. The default version is used from S0 to S5 and in the CI gate; ladder step S6 picks the best of at most 4 versions on dev questions; held-out runs use the default or a version with a finished dev run (T36 revision 2026-10-29). |
 | Hybrid search | Stack B: BM25 sparse vectors (fastembed `Qdrant/bm25`) + nomic dense vectors, fused with RRF. Stack A: OpenAI's `hybrid_search` weights with `ranker: none` (checked live in Step 4, T37). |
-| Embedding map | 2D t-SNE images (scikit-learn) of one chunk set for both stacks, for the presentation; Stack A chunks re-embedded with the vector store's OpenAI embedding model (T38). |
-| Data | Synthetic KB only for the presentation. `rag-mini-wikipedia` is moved to phase 2. |
+| Embedding map | 2D t-SNE images (scikit-learn) of one chunk set for both stacks, for the report; Stack A chunks re-embedded with the vector store's OpenAI embedding model (T38). |
+| Data | Synthetic KB only in phase 1. `rag-mini-wikipedia` is moved to phase 2. |
 | Test set | 240 generated tests: **192 dev** (tuning) + **48 held-out** (final confirmation). About 10% of each split is unanswerable. Each test has its gold source document(s). |
 | Best-RAG rule | Primary metric (accuracy) plus minimum gates. No invented composite score. |
-| Metrics display | The presentation shows all 8 core metrics. The live dashboard defaults to 4 headline metrics, with a "show all" toggle. |
+| Metrics display | The report shows all 8 core metrics. The live dashboard defaults to 4 headline metrics, with a "show all" toggle. |
 | Automated evaluation | Pick the index (stack, chunk size, overlap, method), K, hybrid search, reranking on/off, model and system prompt version, then one click runs the 192 dev questions. |
 | Manual testing | Ask page: free-form questions, or any test question shown with its reference answer, gold sources and scores. |
 | Temperature | Not a variable. Fixed at 0 for answers, judge and reranker. Not sent to models that reject it (`gpt-6.1-sol`); those runs are flagged. |
@@ -91,9 +91,9 @@ Any new architecture or test decision must be confirmed with the user, then adde
 - **Location (D20):** `backend/data/synthetic/` (`world.json`, `kb/`, `tests.jsonl`), committed after review.
 - Cost is about $3, run once. You review the output by hand, then commit it.
 
-### 1.2 Phase 2 (not in the presentation): `rag-datasets/rag-mini-wikipedia`
+### 1.2 Phase 2 (not in phase 1): `rag-datasets/rag-mini-wikipedia`
 - Source: `https://huggingface.co/datasets/rag-datasets/rag-mini-wikipedia` (CC-BY-3.0).
-- Added only after the presentation, as an external check against bias from our self-generated data.
+- Added only after phase 1, as an external check against bias from our self-generated data.
 
 ### 1.3 Cost and time of one 200-question run (estimate)
 
@@ -121,7 +121,7 @@ The app computes the estimate from live prices before every run and sweep.
 
 > **Note (2026-10-29): these figures are first guesses, made before the dataset existed.** Measured on the real S0 set-up (51 chunks averaging 694 tokens, K=2), an answer request is about 1,600 input tokens, not 4,500, so most costs above are likely too high. Input grows with K (about 700 tokens per extra S0 chunk). The app's own estimate (T43) is what counts before a run. These tables, and the budget in 1.4, will be replaced with measured costs after the first real 10-question run (which is also the Step 6 check "estimate within 50% of the actual cost").
 
-### 1.4 Budget for the presentation (production, cap $60)
+### 1.4 Budget for the experiments (production, cap $60)
 
 | Item | Cost |
 |---|---|
@@ -238,8 +238,8 @@ The judge also returns `refused` (true/false) and short feedback.
 - Cost per question in USD.
 
 ### 4.5 What is shown where
-- **Presentation:** all 8 core metrics (MRR, Recall@K, nDCG@K, Hit@K, Accuracy, Completeness, Relevance, Faithfulness), plus the trust and operational metrics.
-- **Live dashboard:** by default, 4 headline metrics: **MRR, Recall@K, Accuracy, Faithfulness**. A "show all" toggle reveals the rest. If the audience asks to see the app live, suggest the 4-metric view.
+- **Report:** all 8 core metrics (MRR, Recall@K, nDCG@K, Hit@K, Accuracy, Completeness, Relevance, Faithfulness), plus the trust and operational metrics.
+- **Live dashboard:** by default, 4 headline metrics: **MRR, Recall@K, Accuracy, Faithfulness**. A "show all" toggle reveals the rest. When the app is shown live, use the 4-metric view.
 
 ### 4.6 How "best RAG" is decided
 1. **Gates.** A run is eligible only if all of these hold:
@@ -448,7 +448,7 @@ Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Swe
   - Use the settings panel, then type a question or pick a test question.
   - Shows the answer, the chunks (source, rank, score) and the gold sources (highlighted where they were retrieved).
   - For test questions, also the reference answer and the judge's scores.
-  - **Interview demo (user requirement, 2026-10-29):** before the presentation the user picks the best-performing configuration; the Ask page opens with it loaded, so interviewers can type their own questions and see the answer and its chunks. A free question has no reference answer or gold sources, so it shows no scores. Each question costs about $0.0002-$0.0003 at S0 (gpt-4.1-nano) and counts against `BUDGET_USD`.
+  - **Live demo (user requirement, 2026-10-29):** before a demo the user picks the best-performing configuration; the Ask page opens with it loaded, so guests can type their own questions and see the answer and its chunks. A free question has no reference answer or gold sources, so it shows no scores. Each question costs about $0.0002-$0.0003 at S0 (gpt-4.1-nano) and counts against `BUDGET_USD`.
 - **Evaluate page:**
   - The settings panel plus the split (dev, held-out, or the 20-question smoke test). Estimate, then **Evaluate**. Held-out runs use the default prompt or a version with a finished dev run (T36 revision 2026-10-29).
   - The 4 headline KPI tiles with a "show all" toggle, trust metrics, scores by category, and a per-question table that links to Ask.
@@ -502,8 +502,8 @@ Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Swe
 - Run the ladder and sweeps on both stacks (dev), then the held-out confirmation.
 - **Check:** all runs pass smoke tests, and spend stays within budget.
 
-### Step 14 - Presentation
-- **Deck outline:**
+### Step 14 - Report
+- **Report outline:**
   1. **Problem:** RAG that looks fine but answers badly. How do you know, and how do you fix it safely?
   2. **Method:** controlled variables, gold labels, dev and held-out split, paired bootstrap, a calibrated judge.
   3. **Baseline:** S0 numbers on both stacks.
@@ -513,14 +513,14 @@ Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Swe
   7. **Trust:** refusal rates and faithfulness.
   8. **Cost:** cost per question against accuracy, and the S7 trade-off.
   9. **Deployment:** architecture, CI/CD gate, staging to prod, rollback, observability.
-  - **Embedding map (T38), placed in the method part:** the t-SNE images of both stacks (`scripts/embedding_map.py`, 200-token chunk set), with one question, its gold chunks and its retrieved chunks marked. The slide states that t-SNE distances between clusters are not meaningful.
+  - **Embedding map (T38), placed in the method part:** the t-SNE images of both stacks (`scripts/embedding_map.py`, 200-token chunk set), with one question, its gold chunks and its retrieved chunks marked. The report states that t-SNE distances between clusters are not meaningful.
   - **Beyond the ladder:** hybrid search and prompt-version results from sweeps, marked as exploratory (dev only).
   10. **Salesforce mapping:**
       - Data Cloud vector and hybrid search ↔ the two stacks.
       - Agentforce testing tools ↔ the evaluation runner.
       - Einstein Trust Layer ↔ faithfulness and refusal.
       - Sandbox → production ↔ staging → prod gate.
-      - Check the current product names before presenting.
+      - Check the current product names before publishing.
   11. **Limitations:**
       - T05 (keyword proxy kept as secondary).
       - T12 (OpenAI ranker).
@@ -536,7 +536,7 @@ Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Swe
   - CSV exports of the runs.
 - **Check:**
   - `scripts/embedding_map.py` writes one PNG per stack with seed 42, and a second run gives the same images.
-  - A dry run of the talk within the time slot.
+  - A dry run of the live demo.
   - The backup video plays offline.
 
 ---
@@ -545,10 +545,10 @@ Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Swe
 - One chunk set can be indexed on both stacks from the UI, with clear success and error messages.
 - Any configuration within the T35 ranges (chunk size, overlap, method, K, hybrid search, reranking, model, system prompt version) can be evaluated: 192 dev questions answered, judged and charted automatically.
 - The system prompt can be edited and saved as a new version from the dashboard.
-- The t-SNE images of both stacks are generated for the deck.
+- The t-SNE images of both stacks are generated for the report.
 - Any question can be asked manually, and test questions show their reference answer, gold sources and scores.
 - Story mode shows the climb on **each** stack, the head-to-head comparison, and the held-out confirmation.
 - The judge is calibrated, and its agreement is reported.
 - CI blocks a quality regression, staging-to-prod promotion works, and rollback works.
 - Both environments run behind HTTPS and basic auth, and data survives restarts.
-- The deck, the README findings and the backup video are ready.
+- The report, the README findings and the backup video are ready.
