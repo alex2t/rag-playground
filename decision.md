@@ -88,7 +88,7 @@ Status: `accepted` | `proposed` (default, needs review) | `open` | `superseded`.
 
 ### D13 - Staging and prod environments on the same VPS - `accepted`
 - **Decision:** two compose projects, `rag-playground-staging` and `rag-playground-prod`, each with its own `.env`, data volume and Qdrant.
-- **Why:** it mirrors the Salesforce sandbox → production flow. CI tests in staging before prod is touched.
+- **Why:** CI tests in staging before prod is touched.
 - **Not best practice:** both environments share one host, so a host failure takes down both. Production would put them on separate infrastructure.
 - **Cost:** about double the RAM (two apps with nomic loaded, two Qdrant instances). Fits a VPS with 8 GB.
 
@@ -236,7 +236,7 @@ Status: `accepted` | `proposed` (default, needs review) | `open` | `superseded`.
 - **Decision:** about 10% of each split asks for information that is not in the KB. The judge flags `refused`. Two metrics:
   - **Correct refusal rate** (higher is better), which is also a gate.
   - **False refusal rate** (lower is better).
-- **Why:** hallucination is the main enterprise risk with RAG. A RAG that refuses safely is as important as one that answers well. This matches Salesforce's trust message.
+- **Why:** hallucination is the main enterprise risk with RAG. A RAG that refuses safely is as important as one that answers well.
 - **Trade-off:** prompts that make the model refuse more often can hurt the false refusal rate. Both metrics are reported, so the trade-off is visible.
 
 ### T20 - Judge calibration against human grades - `accepted`
@@ -269,7 +269,7 @@ Status: `accepted` | `proposed` (default, needs review) | `open` | `superseded`.
 - **Revision 2026-10-27 (user decision, after T27's overlap became 200 tokens):** ladder step S2 picks the best overlap from {0%, about 20% (S0's 200/1024 share), 25%}, at S1's chunk size, the same way S1 picks the best chunk size. A fixed 25% would only be a small change from S0's 20%. Cost: about one extra run per stack, since the 20% run already exists from the size sweep. Any other overlap (0-50%) is available on the dashboard (T35).
 
 ### T25 - Wikipedia dataset moved to phase 2 - `accepted`
-- **Why:** its keyword signal is weak (it has no gold passage labels in our schema), and it is unrelated to the Salesforce story. Removing it halves the runs.
+- **Why:** its keyword signal is weak (it has no gold passage labels in our schema), and it is unrelated to the knowledge base's domain. Removing it halves the runs.
 - **Consequence:** synthetic-data bias (T11) has no external check in the report. Listed as a limitation.
 
 ### T26 - Report rules - `accepted`

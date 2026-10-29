@@ -33,7 +33,7 @@ On every new session:
 
 ## 3. Project Context
 
-- **Goal:** A presentation project demonstrating a controlled RAG evaluation study (one variable at a time from a documented baseline on two stacks, plus a CI/CD evaluation release gate on a Hostinger VPS with `staging` and `prod` environments).
+- **Goal:** A project demonstrating a controlled RAG evaluation study (one variable at a time from a documented baseline on two stacks, plus a CI/CD evaluation release gate on a Hostinger VPS with `staging` and `prod` environments).
 - **Two Retrieval Stacks:**
   - **Stack A (Hosted):** OpenAI Vector Store (`OPENAI_API_KEY`). Receives one file per pre-split chunk with `max_chunk_size_tokens=4096, chunk_overlap_tokens=0` so OpenAI does not re-split chunks (`T01`).
   - **Stack B (Self-hosted):** Qdrant + `fastembed` (`nomic-ai/nomic-embed-text-v1.5`, 768 dims, 8192-token context, ONNX, no torch) with mandatory `search_document: ` and `search_query: ` prefixes (`D02`), plus optional sparse BM25 (`Qdrant/bm25`) fused via RRF for hybrid search (`T37`).

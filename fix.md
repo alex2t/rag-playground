@@ -4,15 +4,15 @@ Add new bugs at the top. Status: `open` | `investigating` | `fixed`.
 
 ---
 
-## [2026-10-29] Step 6 (first real run): Stack A retrieved almost nothing relevant; the estimate was 64% too high - `fixed` (awaiting Antigravity's confirmation and a re-run)
+## [2026-10-29] Step 6 (first real run): Stack A retrieved almost nothing relevant; the estimate was 64% too high - `fixed` (confirmed by Antigravity, Gemini 3.8, and by the batch 2 re-run, 2026-10-29)
 - **Symptom:** runs 1 (Stack A) and 2 (Stack B), 10 dev questions round-robin (T46), S0, run by the user. Stack A refused 8 of 10 (mean accuracy 1.8); Stack B refused 2 (4.2). Only 1 of the 10 is unanswerable. The estimate was $0.0192 per stack against $0.0117 (A) and $0.0120 (B) recorded: 64% and 60% above, failing the plan check (within 50%).
 - **Reproduce:** `scripts/first_run.py both` at `ee55ede`; evidence in `var/rag_playground.db` (runs 1-2, their results and spend rows).
 - **Root cause 1 (evidence):** Stack A searched with the 2026-10-28 mapping for hybrid off: ranker `none`, weights 1:0. Every Stack A hit scored 0.016 (1/61 or 1/62: RRF ranks 1-2 from one list, k=60), and a gold document was retrieved for 2 of 9 answerable questions; Stack B retrieved its first gold document at rank 1 or 2 for 9 of 9. T12 had already measured this mode at 7/12 Hit@5 against 12/12 for plain cosine over OpenAI's own embeddings: it is not plain vector search, and OpenAI does not document it.
 - **Root cause 2 (evidence):** prices solved from the 40 judge rows ($0.30 / $2.50 per million tokens, exact) and the estimate split into input and output: input matched within 1-7%; output was assumed at 150 tokens per answer (29 measured) and 200 per judge reply (about 58).
 - **Fix (user decisions 2026-10-29):** each stack runs independently with its own settings (T40 revision 2026-10-29); Stack A's S0 uses OpenAI's default search (ranker `auto`, which T12 measured at 12/12), Stack B plain vector search (`S0["search"]` in `settings.py`); `hybrid_ranking` removed. Estimate output lengths set to the measured 30 and 60 tokens (T43 revision). `scripts/first_run.py A|B|both [batch]`: batch 2 re-checks on 10 questions the lengths were not measured on.
 - **Tests changed (requirement changed, reported):** `test_answer_output_is_the_assumed_150_tokens` and `test_judge_output_is_200_tokens_...` now check 30 and 60 (renamed), and `test_prices_are_applied_per_token` the new sums; the hybrid mapping test removed with the mapping; `test_s0_choices_...` checks each stack's own search.
-- **Verified:** 5 deliberate breaks caught (Stack A ranker `none`, Stack B hybrid on, every batch = batch 1, old answer length, old judge length). Full suite 346 passed. Still to verify: batch 2 on both stacks (run by the user).
-- **Status:** `fixed` (awaiting Antigravity's confirmation and the batch 2 re-run)
+- **Verified:** 5 deliberate breaks caught (Stack A ranker `none`, Stack B hybrid on, every batch = batch 1, old answer length, old judge length). Full suite 346 passed. **Batch 2** (runs 3-4, 10 other dev questions, run by the user): estimate $0.0110 per stack against $0.0125 (A) and $0.0111 (B) recorded, 12% and 1% below, within the plan's 50%. Stack A with OpenAI's default search retrieved a gold document for 9 of 9 answerable questions and refused only the unanswerable one (mean accuracy 4.4; Stack B 9 of 9, 4.6). 10 questions are not enough to compare the stacks.
+- **Status:** `fixed`
 
 ## [2026-10-29] Step 6 (item 7 re-check): a "final" run and its results could still be edited, deleted or renumbered with plain SQL - `fixed` (confirmed by Antigravity, Gemini 3.8, 2026-10-29)
 - **Reviewer:** Antigravity, Gemini 3.8 (review-queue item 7). Verdict "fit to commit"; the item 3 fix holds through our functions; 2 `minor` findings; all 5 of Claude's breaks re-checked and caught.
@@ -523,58 +523,7 @@ Add new bugs at the top. Status: `open` | `investigating` | `fixed`.
 
 ## [2026-10-26] Plan review: drop / change / add - `fixed`
 
-**Applied on 2026-10-26.** All P1, P2 and P3 items were applied to `plan.md` and `decision.md`. R4 was changed at the user's request: the report shows all 8 metrics, and the live dashboard defaults to 4 (T23). Applying A9 also changed D05: the frontend is now served by FastAPI inside the release image, and one shared edge Caddy sits in front (proposed).
-
-The project's purpose is a write-up on deploying RAG. Its readers care about three things:
-1. Can you take an AI feature from prototype to a trusted, measured production rollout?
-2. Can you prove quality with evidence, not opinion?
-3. Can you explain trade-offs (cost, risk, vendor lock-in) to customers and stakeholders?
-
-This review judges `plan.md` against those three questions. Nothing below is applied yet. Each item needs your approval before it goes into `plan.md` and `decision.md`.
-
-Priority: **P1** = do it, a strong gain for the project. **P2** = worth it if time allows. **P3** = optional.
-
-### Drop or simplify
-
-| # | Item | Recommendation | Why | Priority |
-|---|---|---|---|---|
-| R1 | Six answer models | Cut to 3: one cheap (`gpt-4.1-nano`), one mid (`gpt-4.1-mini`), one latest (`gpt-6.1-sol`). | Comparing models is not a RAG technique, by the same reasoning that removed temperature. Fewer models means less cost, less time and a clearer story. | P1 |
-| R2 | Full-grid sweep switch | Remove it. | It exceeds the $60 cap, so it can never run. Dead features are code to build, test and explain. | P1 |
-| R3 | `rag-mini-wikipedia` as a second dataset | Move it to "phase 2". Use only the synthetic KB in phase 1. | Its "keyword = answer" signal is weak, and it is unrelated to the Salesforce story. It doubles ingest and evaluation runs. Note: the self-bias risk in T11 then has no counterweight; C3 (judge calibration) partly covers that. | P2 |
-| R4 | Headline metrics | Compute all metrics, but put only 4 up front: **MRR, recall@K, accuracy, faithfulness**. Keep nDCG, Hit@K, completeness and relevance in a detail view. | A non-technical reader loses the thread with 8 numbers per run. Four metrics map to two simple questions: "did we find it?" and "did we say it correctly?" | P1 |
-| R5 | Overlap values 0/10/25/50% | Keep 0% and 25% only. | 10% and 50% rarely change the conclusion, so cutting them saves 2 runs per stack. | P3 |
-
-### Change
-
-| # | Item | Recommendation | Why | Priority |
-|---|---|---|---|---|
-| C1 | Keyword matching as the relevance signal (T05) | Store the **gold source document(s)** with each synthetic test. The generator knows which document it wrote each answer from. Score retrieval on source match (MRR and recall@K on document IDs). Keep keyword match as a secondary metric. | This is the weakest point of the method. A chunk can contain "2015" without answering the question. Gold labels are best practice, and they are free here because we generate the data. | P1 |
-| C2 | Same 200 questions used for tuning and for reporting | Split them: **150 dev** questions for sweeps and ladder decisions, plus **50 held-out** questions run only on the baseline and the final configuration. Alternatively, generate 250 questions so the dev set stays at 200. | Choosing the best configuration on the same questions you report on overfits to those questions and inflates the result. A held-out set is standard practice and a strong rigour point in the report. Cost: 2 extra runs, about $2. | P1 |
-| C3 | The LLM judge is trusted without checking it (T07) | **Calibrate it.** You grade about 30 answers by hand, then report how often the judge agrees with you (for example "judge agrees with human on 27/30"). Pin the exact judge model version and use a family not used for answering. | "Who checks the judge?" is the first question an evaluation expert will ask. A small human check answers it. | P1 |
-| C4 | Ladder step S5 "stronger LLM" | Keep it, but present it as a cost trade-off, not a technique: "accuracy +X, cost ×Y". | For a deployment role, "worth the money or not" is the real decision a customer makes. | P2 |
-| C5 | Building FastAPI + React from scratch | Keep the stack, but **time-box the frontend**: one shared layout and charts before polish. Build the Story and Ask pages first; they carry the demo. | React is the largest time cost in the plan. The project needs the story working end to end more than a polished UI. | P2 |
-
-### Add
-
-| # | Item | Recommendation | Why | Priority |
-|---|---|---|---|---|
-| A1 | **CI/CD pipeline with an evaluation gate** | GitHub Actions on each push: unit tests, then build images, push to a registry tagged with the git SHA, deploy to the VPS over SSH, run a smoke test, and run a 20-question evaluation gate (about $0.05). A failed gate blocks the deploy; rollback means redeploying the previous tag. | This is the core of a **deployment** role. "Evaluation as a release gate" is the bridge between RAG quality and deployment strategy, and probably the strongest part of the report. Earlier we kept automation inside the UI only; this is the deployment-side version. | P1 |
-| A2 | **Unanswerable questions** | Add about 20 tests whose answer is not in the KB. Measure the correct-refusal rate ("I don't know" rather than an invented answer). | Hallucination is the top enterprise concern, and Salesforce sells AI on trust. Showing that the RAG refuses safely is as important as showing that it answers. | P1 |
-| A3 | **Reproducibility metadata on every run** | Store the git SHA, image tag, exact model IDs, prompt hash, dataset hash, judge version and date. | Every number in the report can be traced and re-run. That is an audit trail, which enterprise customers expect. | P1 |
-| A4 | **"What did not work" section** | The report must include negative and neutral results, for example a step whose confidence interval crosses 0, or enrichment that cost more than it gained. | The goal is "what works and what does not". Reporting only wins looks like cherry-picking; honest null results build credibility. | P1 |
-| A5 | **Salesforce mapping section** | Map each part of the project to its Salesforce equivalent (verify current product names before publishing): Data Cloud vector and hybrid search ↔ the two stacks; the Agentforce testing tools ↔ the evaluation runner; the Einstein Trust Layer ↔ faithfulness and refusal; sandbox → production promotion ↔ the CI gate. | It shows you can turn a generic RAG lesson into the customer's platform. That is the actual job. | P1 |
-| A6 | **Report deliverable in the plan** | Add a step for the report outline: problem → method → baseline → ladder results → what did not work → limitations (T05, T12, T14, T15) → deployment architecture → how I would roll this out at a customer. | The plan ends at "Findings in README". The report is the real deliverable, so it should be planned, not improvised. | P1 |
-| A7 | **Backup plan for the live demo** | Record a 3-minute screen video, and keep static exports of the key charts. | The VPS, OpenRouter or OpenAI could be down during a live demo. A deployment plan includes failure. | P1 |
-| A8 | **Basic observability** | Structured JSON logs with request id, latency, tokens and cost, plus a small "Ops" panel showing spend against budget, error rate and p95 latency. | "How would you monitor this in production?" will come up. A simple answer you can show beats a long explanation. | P2 |
-| A9 | **Staging and production on the VPS** | Two compose projects (`rag-playground-staging`, `rag-playground-prod`) on different subdomains. CI deploys to staging; promotion to prod is a manual approval. | It mirrors Salesforce's sandbox → production flow. Low effort with compose; it is optional because it doubles the memory used on the VPS. | P3 |
-| A10 | **Reranking as a ladder step** | Retrieve 20, rerank with an LLM or a cross-encoder, keep the top 5. | It is one of the most widely recommended RAG techniques. It was not selected earlier, so it is listed only for reconsideration. | P3 |
-
-### Suggested order if all P1 items are accepted
-1. C1, C2, A2 and A3 change the dataset and the data model, so do them before Step 2.
-2. R1, R2 and R4 simplify the catalogue and the UI, so do them before Step 8.
-3. C3 comes after the first real runs.
-4. A1 comes with Step 9.
-5. A4, A5, A6 and A7 come with Step 11.
+A review of `plan.md` before Step 2; all items were applied to `plan.md` and `decision.md` on 2026-10-26. Dropped or simplified: answer models cut to 3, no full-grid sweep, the Wikipedia dataset moved to phase 2, 4 headline metrics on the dashboard (8 in the report), overlap values reduced. Changed: gold source documents as the relevance signal (keyword match kept as secondary), a dev / held-out split, a calibrated judge, the stronger model shown as a cost trade-off, a time-boxed frontend. Added: a CI/CD evaluation gate, unanswerable questions with refusal metrics, reproducibility metadata on every run, a "what did not work" section, a report step, a backup for the live demo, basic observability, staging and production, reranking as a ladder step.
 
 ---
 

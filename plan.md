@@ -95,44 +95,47 @@ Any new architecture or test decision must be confirmed with the user, then adde
 - Source: `https://huggingface.co/datasets/rag-datasets/rag-mini-wikipedia` (CC-BY-3.0).
 - Added only after phase 1, as an external check against bias from our self-generated data.
 
-### 1.3 Cost and time of one 200-question run (estimate)
+### 1.3 Cost of one run (measured 2026-10-29)
 
-Assumptions:
-- About 4,500 input and 150 output tokens per answer.
-- About 4,500 input and 200 output tokens per judgement.
-- Judge: `gemini-3.5-flash-lite`, about $0.37 per run.
-- 5 questions in parallel.
-- Prices from OpenRouter on 2026-10-26.
+Measured on runs 2-4 (10 dev questions each, S0: 1,024-token chunks, K=2, no reranking, `gpt-4.1-nano`; Stack A with OpenAI's default search, Stack B plain vector search). Run 1 is left out: its Stack A search was broken (`fix.md`, 2026-10-29).
+- Per question: about **$0.0012** per stack (runs: $0.00120, $0.00125, $0.00111). The judge (`gemini-3.5-flash-lite`, $0.30 / $2.50 per million input / output tokens, read from the spend rows) is about 85-90% of it.
+- Tokens per question: the answer model reads about 1,500 and writes about 30; the judge's two calls read about 1,250 each and write about 60 each.
+- Each extra chunk (K + 1) adds about 700 input tokens to the answer and to the judge's faithfulness call: about +$0.0003 per question.
 
-| Answer model | Cost per run (answer + judge) | Time per run |
+| Run | Cost per stack | Source |
 |---|---|---|
-| `gpt-4.1-nano` | about $0.50 | about 3-5 min |
-| `gpt-4.1-mini` | about $0.80 | about 3-5 min |
-| `gpt-6.1-sol` | about $2.50 or more (reasoning tokens add to it) | about 5-10 min |
-| Reranking on (any model) | about +$0.10 | about +1 min |
+| 192 dev questions, `gpt-4.1-nano`, K=2 | about $0.23 | measured per question × 192 |
+| 192 dev questions, `gpt-4.1-nano`, K=8 | about $0.55 | projected (+700 tokens per chunk) |
+| 192 dev questions, `gpt-4.1-mini`, K=2 | about $0.32 | projected from its list price ($0.40 / $1.60 per million) |
+| 192 dev questions, `gpt-6.1-sol`, K=2 | $2.50 or more | not measured; hidden reasoning tokens add to it |
+| Reranking on | about +$0.27 | projected: the reranker reads 20 candidates (about 14,000 tokens) per question |
+| 48 held-out questions, `gpt-4.1-nano`, K=2 | about $0.06 | measured per question × 48 |
+
+Time: questions run one at a time; retrieval and answer take about 2-3.5 s per question, the judge comes on top. A full run's time is not measured yet.
 
 Fixed costs:
 - Qdrant + fastembed: $0.
 - OpenAI Vector Store storage: free under 1 GB.
 - Stack A embedding: under $0.05 per build.
 - Enrichment: about $1, once.
+- Stack A searches: possibly billed by OpenAI (about $2.50 per 1,000 searches if so, about $0.48 per 192-question run); being checked. They are billed to the OpenAI account and are not counted in `BUDGET_USD`.
 
-The app computes the estimate from live prices before every run and sweep.
-
-> **Note (2026-10-29): these figures are first guesses, made before the dataset existed.** Measured on the real S0 set-up (51 chunks averaging 694 tokens, K=2), an answer request is about 1,600 input tokens, not 4,500, so most costs above are likely too high. Input grows with K (about 700 tokens per extra S0 chunk). The app's own estimate (T43) is what counts before a run. These tables, and the budget in 1.4, will be replaced with measured costs after the first real 10-question run (which is also the Step 6 check "estimate within 50% of the actual cost").
+The app's estimate (T43) is what counts before a run: checked on batch 2 (10 questions it was not fitted to), it was 12% below the real cost on Stack A and 1% below on Stack B, within the 50% the plan allows.
 
 ### 1.4 Budget for the experiments (production, cap $60)
 
+Projected from the measured costs above.
+
 | Item | Cost |
 |---|---|
-| Ladder S0-S7 on both stacks | about $12 |
-| One-variable sweeps on both stacks | about $21 |
-| Held-out confirmation (baseline + best, both stacks, 48 questions) | about $2 |
+| Ladder S0-S7 on both stacks (about 18 runs per stack, mostly `gpt-4.1-nano`, K up to 8; S7 with `gpt-6.1-sol`) | about $18 |
+| One-variable sweeps on both stacks (about 13-15 runs per stack) | about $10 |
+| Held-out confirmation (baseline + best, both stacks, 48 questions) | about $1 |
 | Enrichment + index builds | about $1 |
-| Spare for re-runs | about $24 |
+| Spare for re-runs and live-demo questions | about $30 |
 | **Total** | **about $60** |
 
-The CI gate runs in staging, which has its own $5 cap: 20 questions, about $0.05 per deploy.
+The CI gate runs in staging, which has its own $5 cap: 20 questions, about $0.03 per deploy (1.3).
 
 ---
 
@@ -193,7 +196,7 @@ At every ladder step, Stack A and Stack B run with identical settings. One chart
 After the ladder, S0 and the best eligible configuration are run on the **48 held-out** questions for each stack. The held-out numbers are the ones quoted as the final result. With only 48 questions their confidence intervals are wider, and the report says so.
 
 ### 3.4 Sweeps
-- One variable at a time, with the other variables at the S0 baseline. For each stack: 6 sizes + 2 overlaps (0% and 25% at S1's size; the 20% run is reused from the size sweep) + 4 K + 3 models, minus combinations already run. That is about 13-15 runs, roughly $10-11 per stack.
+- One variable at a time, with the other variables at the S0 baseline. For each stack: 6 sizes + 2 overlaps (0% and 25% at S1's size; the 20% run is reused from the size sweep) + 4 K + 3 models, minus combinations already run. That is about 13-15 runs, roughly $5 per stack (projected, 1.3).
 - There is no full-grid mode, because it would exceed the budget.
 - Guardrails:
   - The run count, cost and time are estimated first, and nothing starts until the user confirms.
@@ -515,20 +518,13 @@ Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Swe
   9. **Deployment:** architecture, CI/CD gate, staging to prod, rollback, observability.
   - **Embedding map (T38), placed in the method part:** the t-SNE images of both stacks (`scripts/embedding_map.py`, 200-token chunk set), with one question, its gold chunks and its retrieved chunks marked. The report states that t-SNE distances between clusters are not meaningful.
   - **Beyond the ladder:** hybrid search and prompt-version results from sweeps, marked as exploratory (dev only).
-  10. **Salesforce mapping:**
-      - Data Cloud vector and hybrid search ↔ the two stacks.
-      - Agentforce testing tools ↔ the evaluation runner.
-      - Einstein Trust Layer ↔ faithfulness and refusal.
-      - Sandbox → production ↔ staging → prod gate.
-      - Check the current product names before publishing.
-  11. **Limitations:**
+  10. **Limitations:**
       - T05 (keyword proxy kept as secondary).
       - T12 (OpenAI ranker).
       - T14 (temperature on reasoning models).
       - T15 (one variable at a time).
       - Synthetic data bias (T11).
       - Wider intervals on the 48 held-out questions.
-  12. **How I would roll this out at a customer.**
 - The **README "Findings"** section uses the same numbers.
 - **Backup:**
   - A recorded 3-minute screen video of the live demo.
