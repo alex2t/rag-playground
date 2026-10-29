@@ -1,12 +1,6 @@
-# Local planning and assistant notes, never committed
-CLAUDE.md
-decision.md
-fix.md
-plan.md
-implementation-issues.md
+# Local review notes, never committed
 gemReview.md
 review-queue.md
-agent.md
 
 # Secrets
 .env
