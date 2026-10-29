@@ -482,3 +482,10 @@ Status: `accepted` | `proposed` (default, needs review) | `open` | `superseded`.
 - **Why:** Stack A's store id is only known once OpenAI creates the store, so it must be stored to be found again; a failed Stack A upload deletes its store, so no half-filled paid store is left; a Qdrant collection missing chunks is refused.
 - **Limits:** no rebuild or delete yet (a changed chunk set needs a new id or a manual clean-up); the run does not store the Stack A store id itself, only its chunk set id. If the clean-up delete itself fails, or the process is killed during an upload, an unrecorded OpenAI store is left (never searched, but billed for storage until deleted by hand).
 - **Best practice:** yes; a registry of built indexes is the usual way to tie experiments to their index.
+
+### T46 - Small runs take questions round-robin by category - `accepted` 2026-10-29 (user decision; custom choice)
+- **Decision:** a run of fewer questions than the full dev set (such as the first real 10-question run) takes the first question of each category in turn, then the second of each, until it has enough (`datasets.splits.round_robin`), in the file's category order. With 10 questions every one of the 7 categories appears, 3 of them twice. Both stacks get the same questions.
+- **Why:** `tests.jsonl` is grouped by category, so the first 10 dev questions are all `direct_fact`; their cost and behaviour would not represent the set.
+- **Alternatives:** a seeded random sample (can miss a category with 10 of 192); the first 10 in the file.
+- **Limits:** with 10 questions the mix is not proportional to the category sizes; good enough for a cost check, not for scoring.
+- **Best practice:** stratified sampling is standard; this particular round-robin order is a custom choice.

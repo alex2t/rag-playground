@@ -3,6 +3,9 @@
 import math
 import random
 from collections import defaultdict
+from itertools import zip_longest
+
+from rag_playground.datasets.schema import TestCase
 
 SEED = 42
 HELDOUT_SHARE = 0.2
@@ -39,3 +42,13 @@ def group_by_category(tests: list[tuple[str, str]]) -> dict[str, list[str]]:
     for test_id, category in tests:
         groups[category].append(test_id)
     return dict(groups)
+
+
+def round_robin(tests: list[TestCase], n: int) -> list[TestCase]:
+    """The first test of each category in turn, then the second of each, until `n` (custom choice for small
+    runs, decision.md T46): every category is covered once n reaches the number of categories."""
+    by_category = defaultdict(list)
+    for test in tests:
+        by_category[test.category].append(test)
+    rounds = zip_longest(*by_category.values())
+    return [test for row in rounds for test in row if test is not None][:n]

@@ -1,6 +1,7 @@
 """Exact tests for the stratified dev / held-out split (T18, T30)."""
 
-from rag_playground.datasets.splits import assign_splits, heldout_quotas
+from rag_playground.datasets.schema import load_tests
+from rag_playground.datasets.splits import assign_splits, heldout_quotas, round_robin
 
 COUNTS = {
     "unanswerable": 25,
@@ -50,3 +51,29 @@ def test_split_is_identical_on_every_call_and_ignores_input_order():
 def test_split_depends_on_the_seed():
     ids = make_ids(COUNTS)
     assert assign_splits(ids, seed=42) != assign_splits(ids, seed=43)
+
+
+DEV = [t for t in load_tests() if t.split == "dev"]
+
+
+def test_round_robin_takes_each_category_in_turn_in_file_order():
+    """The file is grouped by category, so the first 10 dev questions are all one category (T46)."""
+    picked = round_robin(DEV, 10)
+    order = list(dict.fromkeys(t.category for t in DEV))
+    assert len(order) == 7
+    assert [t.category for t in picked] == order + order[:3]
+    firsts = [next(t for t in DEV if t.category == c) for c in order]
+    seconds = [[t for t in DEV if t.category == c][1] for c in order[:3]]
+    assert picked == firsts + seconds
+
+
+def test_round_robin_with_fewer_than_one_per_category_and_more_than_all():
+    assert [t.category for t in round_robin(DEV, 3)] == list(dict.fromkeys(t.category for t in DEV))[:3]
+    picked = round_robin(DEV, 1000)
+    assert sorted(t.id for t in picked) == sorted(t.id for t in DEV)
+
+
+def test_round_robin_keeps_going_after_a_category_runs_out():
+    a, b = DEV[0], next(t for t in DEV if t.category != DEV[0].category)
+    others = [t for t in DEV if t.category == b.category][:3]
+    assert round_robin([a] + others, 4) == [a, others[0], others[1], others[2]]
