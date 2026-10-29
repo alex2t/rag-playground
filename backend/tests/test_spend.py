@@ -8,13 +8,15 @@ from openai.types.chat import ParsedChatCompletion
 from pydantic import BaseModel
 
 from rag_playground import store
+from rag_playground.chunking.chunk_sets import Chunk
 from rag_playground.datasets.schema import load_tests
 from rag_playground.llm import openrouter
 from rag_playground.llm.models import ModelInfo
 from rag_playground.llm.openrouter import ChatResult, paid
-from rag_playground.rag import pipeline, prompts, runs, spend
+from rag_playground.rag import estimate, pipeline, prompts, runs, spend
 from rag_playground.rag.rerank import Reranked
 from rag_playground.scoring.judging import Judgement
+from rag_playground.settings import settings
 from rag_playground.stacks.hits import Hit
 
 DEV = [t for t in load_tests() if t.split == "dev"][:3]
@@ -97,8 +99,18 @@ def test_the_listener_is_removed_when_the_block_fails(conn):
     assert spend.total(conn) == 0
 
 
-def test_total_sums_one_run_or_everything(conn, monkeypatch):
+@pytest.fixture
+def offline_runs(monkeypatch):
+    """Runs can start with no network: model versions and prices are fake (prices 0, so every estimate is $0),
+    the chunk set is a single chunk, and the budget is $60."""
     monkeypatch.setattr(pipeline, "model_info", info)
+    monkeypatch.setattr(estimate, "model_info", info)
+    chunk = Chunk(chunk_id="d.md#0", source="d.md", doc_type="d", index=0, text="x", tokens=100, start=0, end=1)
+    monkeypatch.setattr(pipeline, "load_chunk_set", lambda set_id: [chunk])
+    monkeypatch.setattr(settings, "budget_usd", 60.0)
+
+
+def test_total_sums_one_run_or_everything(conn, offline_runs):
     first, second = (pipeline.start_run(conn, CHOICES, DEV) for _ in range(2))
     spend.record(conn, first, call(0.25))
     spend.record(conn, first, call(0.5))
@@ -123,10 +135,9 @@ def test_the_table_refuses_a_negative_cost_or_an_unknown_run(conn, row):
 
 
 @pytest.fixture
-def paying_fakes(monkeypatch):
+def paying_fakes(monkeypatch, offline_runs):
     """Reranker, answer model and judge that report their calls like the real ones; the judge's second call fails
     on the second question."""
-    monkeypatch.setattr(pipeline, "model_info", info)
     asked = []
 
     def rerank(question, hits, k):

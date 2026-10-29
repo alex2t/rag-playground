@@ -5,11 +5,13 @@ Retrieval is passed in as a function, so the pipeline is the same for both stack
 import sqlite3
 from collections.abc import Callable
 from dataclasses import dataclass
+from statistics import fmean
 from time import perf_counter
 
+from rag_playground.chunking.chunk_sets import load as load_chunk_set
 from rag_playground.datasets.schema import TestCase, dataset_sha256, load_tests
 from rag_playground.llm.models import model_info
-from rag_playground.rag import prompts, runs, spend
+from rag_playground.rag import estimate, prompts, runs, spend
 from rag_playground.rag.answer import answer
 from rag_playground.rag.rerank import rerank
 from rag_playground.scoring.judging import judge
@@ -17,6 +19,15 @@ from rag_playground.settings import JUDGE_MODEL, RERANK_CANDIDATES, RERANK_MODEL
 from rag_playground.stacks.hits import Hit
 
 Retrieve = Callable[[str, int], list[Hit]]
+
+
+class BudgetExceeded(Exception):
+    """Spending more would take all recorded spend past BUDGET_USD (D15)."""
+
+
+def remaining(conn: sqlite3.Connection) -> float:
+    """Dollars left of BUDGET_USD, after every recorded paid call (T44)."""
+    return settings.budget_usd - spend.total(conn)
 
 
 @dataclass(frozen=True)
@@ -79,25 +90,49 @@ def run_question(test: TestCase, meta: runs.RunMeta, prompt: prompts.PromptVersi
 
 
 def start_run(conn: sqlite3.Connection, choices: Choices, tests: list[TestCase]) -> int:
-    """Store a new run with its metadata and return its id, before any question is asked."""
-    return runs.create_run(conn, build_meta(choices, prompts.get(conn, choices.prompt_name), tests))
+    """Store a new run with its metadata and return its id, before any question is asked. A run whose
+    estimate (T43) exceeds what is left of BUDGET_USD is refused, and nothing is stored."""
+    prompt = prompts.get(conn, choices.prompt_name)
+    meta = build_meta(choices, prompt, tests)
+    cost = estimate.run_cost(tests, prompt, choices.answer_model, choices.top_k, choices.rerank,
+                             load_chunk_set(choices.chunk_set_id))
+    if cost > remaining(conn):
+        raise BudgetExceeded(f"The run is estimated at ${cost:.4f}, but only ${remaining(conn):.4f} of "
+                             f"BUDGET_USD ${settings.budget_usd:.2f} is left")
+    return runs.create_run(conn, meta)
+
+
+def check_budget(conn: sqlite3.Connection, next_cost: float) -> None:
+    """Raise BudgetExceeded if the next question could take spend past BUDGET_USD."""
+    if next_cost > remaining(conn):
+        raise BudgetExceeded(f"Budget reached: ${spend.total(conn):.4f} spent of BUDGET_USD "
+                             f"${settings.budget_usd:.2f}; the next question could cost ${next_cost:.4f}")
 
 
 def execute(conn: sqlite3.Connection, run_id: int, retrieve: Retrieve) -> None:
     """Answer the run's own questions with its stored settings, storing each result as soon as it is judged so
     progress can be read meanwhile; every paid call is recorded as it returns (T44). The questions are read from
-    the run, so they cannot differ from the ones it declared. A failure stops the run, marks it failed with the
-    error, and is raised again."""
+    the run, so they cannot differ from the ones it declared. Before each question the run stops if it could
+    take spend past BUDGET_USD; the next question is assumed to cost the larger of its estimate (T43) and the
+    run's most expensive question so far, since the estimate is low for reasoning models. A failure, or that
+    stop, marks the run failed with the error, which is raised again."""
     run = runs.get_run(conn, run_id)
     if run.status != "running":
         raise ValueError(f"Run {run_id} is {run.status}; a finished run is never run again")
     meta = run.meta
     prompt = prompts.get(conn, meta.prompt_name)
     by_id = {test.id: test for test in load_tests()}
+    largest = 0.0
     try:
+        chunk_tokens = fmean(chunk.tokens for chunk in load_chunk_set(meta.chunk_set_id))
         with spend.recording(conn, run_id):
             for test in (by_id[test_id] for test_id in meta.test_ids):
-                runs.add_result(conn, run_id, run_question(test, meta, prompt, retrieve))
+                guess = estimate.question_cost(test, prompt, meta.answer_model, meta.top_k,
+                                               meta.rerank_model is not None, chunk_tokens)
+                check_budget(conn, max(guess, largest))
+                result = run_question(test, meta, prompt, retrieve)
+                runs.add_result(conn, run_id, result)
+                largest = max(largest, result.cost_usd)
     except Exception as exc:
         runs.finish_run(conn, run_id, error=f"{type(exc).__name__}: {exc}")
         raise

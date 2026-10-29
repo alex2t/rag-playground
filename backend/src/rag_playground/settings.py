@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     var_dir: Path = REPO_ROOT / "var"
     openai_api_key: str = ""
     openrouter_api_key: str = ""
+    budget_usd: float = 0.0  # cap on all recorded evaluation spend (D15); unset means nothing paid can run
 
 
 settings = Settings()

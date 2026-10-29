@@ -76,8 +76,18 @@ def build_chunk_set(docs: dict[str, str], size: int, overlap: int) -> list[Chunk
     return [c for path, text in docs.items() for c in split_document(path, text, splitter)]
 
 
+def saved_path(set_id: str) -> Path:
+    return settings.var_dir / "chunk_sets" / f"{set_id}.jsonl"
+
+
 def chunk_set_path(size: int, overlap: int) -> Path:
-    return settings.var_dir / "chunk_sets" / f"{chunk_set_id(size, overlap)}.jsonl"
+    return saved_path(chunk_set_id(size, overlap))
+
+
+def load(set_id: str) -> list[Chunk]:
+    """A saved chunk set, by its id; FileNotFoundError if it was never built."""
+    lines = saved_path(set_id).read_text(encoding="utf-8").splitlines()
+    return [Chunk.model_validate_json(line) for line in lines if line.strip()]
 
 
 def load_or_build(size: int, overlap: int) -> list[Chunk]:
@@ -85,8 +95,7 @@ def load_or_build(size: int, overlap: int) -> list[Chunk]:
     check_params(size, overlap)
     path = chunk_set_path(size, overlap)
     if path.exists():
-        lines = path.read_text(encoding="utf-8").splitlines()
-        return [Chunk.model_validate_json(line) for line in lines if line.strip()]
+        return load(chunk_set_id(size, overlap))
     chunks = build_chunk_set(kb_documents(), size, overlap)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("".join(c.model_dump_json() + "\n" for c in chunks), encoding="utf-8")

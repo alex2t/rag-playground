@@ -5,13 +5,14 @@ from dataclasses import replace
 import pytest
 
 from rag_playground import store
+from rag_playground.chunking.chunk_sets import Chunk
 from rag_playground.datasets.schema import dataset_sha256, load_tests
 from rag_playground.llm.models import ModelInfo
 from rag_playground.llm.openrouter import ChatResult
-from rag_playground.rag import pipeline, prompts, runs
+from rag_playground.rag import estimate, pipeline, prompts, runs, spend
 from rag_playground.rag.rerank import Reranked
 from rag_playground.scoring.judging import Judgement
-from rag_playground.settings import JUDGE_MODEL, RERANK_CANDIDATES, RERANK_MODEL
+from rag_playground.settings import JUDGE_MODEL, RERANK_CANDIDATES, RERANK_MODEL, settings
 from rag_playground.stacks.hits import Hit
 
 DEV = [t for t in load_tests() if t.split == "dev"][:10]
@@ -23,6 +24,8 @@ VERDICT = Judgement(refused=False, accuracy=5, completeness=5, relevance=5, fait
 CHOICES = pipeline.Choices(stack="B", chunk_set_id="fixed__c1024__o200", top_k=3, hybrid=False,
                            openai_ranking=None, rerank=False, answer_model="openai/gpt-4.1-nano",
                            prompt_name="default")
+CHUNKS = [Chunk(chunk_id=f"d.md#{i}", source="d.md", doc_type="d", index=i, text="x", tokens=100, start=0, end=1)
+          for i in range(3)]
 
 
 def call(cost: float, text: str = "An answer.") -> ChatResult:
@@ -44,6 +47,9 @@ def fakes(monkeypatch):
     """Fake model metadata, reranker, answer model and judge; records what each received."""
     seen = {"retrieve": [], "rerank": [], "answer": [], "judge": []}
     monkeypatch.setattr(pipeline, "model_info", info)
+    monkeypatch.setattr(estimate, "model_info", info)  # prices 0, so the estimate is $0
+    monkeypatch.setattr(pipeline, "load_chunk_set", lambda set_id: CHUNKS)
+    monkeypatch.setattr(settings, "budget_usd", 60.0)
 
     def rerank(question, hits, k):
         seen["rerank"].append((question, len(hits), k))
