@@ -150,6 +150,48 @@ CREATE TABLE IF NOT EXISTS spend (
     reasoning_tokens INTEGER NOT NULL,
     cost_usd REAL NOT NULL CHECK (cost_usd >= 0)
 );
+-- Judge calibration (T48): the sample is fixed once drawn, and each human grade is given once, blind to the judge.
+CREATE TABLE IF NOT EXISTS calibrations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    run_a INTEGER NOT NULL REFERENCES runs (id),
+    run_b INTEGER NOT NULL REFERENCES runs (id),
+    per_score INTEGER NOT NULL,
+    seed INTEGER NOT NULL,
+    size INTEGER NOT NULL CHECK (size > 0),
+    UNIQUE (run_a, run_b)
+);
+CREATE TRIGGER IF NOT EXISTS calibrations_no_replace BEFORE INSERT ON calibrations
+WHEN EXISTS (SELECT 1 FROM calibrations WHERE id = NEW.id OR (run_a = NEW.run_a AND run_b = NEW.run_b))
+BEGIN SELECT RAISE(ABORT, 'calibrations are permanent'); END;
+CREATE TRIGGER IF NOT EXISTS calibrations_no_update BEFORE UPDATE ON calibrations
+BEGIN SELECT RAISE(ABORT, 'calibrations are permanent'); END;
+CREATE TRIGGER IF NOT EXISTS calibrations_no_delete BEFORE DELETE ON calibrations
+BEGIN SELECT RAISE(ABORT, 'calibrations are permanent'); END;
+CREATE TABLE IF NOT EXISTS calibration_items (
+    calibration_id INTEGER NOT NULL REFERENCES calibrations (id),
+    position INTEGER NOT NULL CHECK (position > 0),
+    run_id INTEGER NOT NULL,
+    test_id TEXT NOT NULL,
+    grade INTEGER CHECK (grade IN (1, 2, 3, 4, 5)),
+    PRIMARY KEY (calibration_id, position),
+    UNIQUE (calibration_id, run_id, test_id),
+    FOREIGN KEY (run_id, test_id) REFERENCES results (run_id, test_id)
+) WITHOUT ROWID;
+-- A sample stops growing at its size, which also blocks replacing an item, and every item starts ungraded.
+CREATE TRIGGER IF NOT EXISTS calibration_items_fixed_size BEFORE INSERT ON calibration_items
+WHEN NEW.grade IS NOT NULL
+  OR (SELECT count(*) FROM calibration_items WHERE calibration_id = NEW.calibration_id)
+     >= (SELECT size FROM calibrations WHERE id = NEW.calibration_id)
+BEGIN SELECT RAISE(ABORT, 'a calibration sample is fixed once drawn'); END;
+CREATE TRIGGER IF NOT EXISTS calibration_items_sample_fixed BEFORE UPDATE OF calibration_id, position, run_id, test_id
+ON calibration_items
+BEGIN SELECT RAISE(ABORT, 'a calibration sample is fixed once drawn'); END;
+CREATE TRIGGER IF NOT EXISTS calibration_items_grade_once BEFORE UPDATE OF grade ON calibration_items
+WHEN OLD.grade IS NOT NULL OR NEW.grade IS NULL
+BEGIN SELECT RAISE(ABORT, 'a grade is given once'); END;
+CREATE TRIGGER IF NOT EXISTS calibration_items_no_delete BEFORE DELETE ON calibration_items
+BEGIN SELECT RAISE(ABORT, 'a calibration sample is fixed once drawn'); END;
 """
 
 

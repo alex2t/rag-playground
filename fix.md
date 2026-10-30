@@ -4,6 +4,16 @@ Add new bugs at the top. Status: `open` | `investigating` | `fixed`.
 
 ---
 
+## [2026-10-30] Step 8: a calibration grade of 4.5 was accepted - `fixed`
+- **Symptom:** `UPDATE calibration_items SET grade = 4.5` succeeded, though the T41 scale has whole scores only. No real grade was affected: none exists yet.
+- **Reproduce:** Claude's script on a temporary database, written while checking Antigravity's review, which had listed its lock attempts as all refused.
+- **Root cause (evidence):** the check was `grade BETWEEN 1 AND 5`, and SQLite's INTEGER column keeps 4.5 as a real number, so it passed.
+- **Fix:** `CHECK (grade IN (1, 2, 3, 4, 5))`. Also from that review (partly right): the order test now counts stack changes over all 30 items, a new test redraws from the same runs, and the item test compares the exact stored answer. Its claim that reopening a calibration tests only a lookup is true, but that is the behaviour wanted, so that test stays.
+- **Verified:** 5 deliberate breaks caught, including putting the old check back. Full suite 534 passed.
+- **Status:** `fixed`
+
+---
+
 ## [2026-10-30] Step 7: a half-written saved line blocked every later enrichment build - `fixed` (confirmed by Antigravity, Gemini 3.8, 2026-10-30)
 - **Symptom:** after a stop during a save, every later `load_or_enrich` failed with `ValidationError: Invalid JSON: EOF while parsing an object`, until the file was edited by hand. No paid chunk was lost, but the "a stopped build resumes" promise was broken. No real build was affected: none had run.
 - **Reproduce:** a saved enriched set with its last 20 characters cut off, then `load_or_enrich` (Claude's script, fake LLM).
