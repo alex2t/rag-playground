@@ -251,6 +251,19 @@ Status: `accepted` | `proposed` (default, needs review) | `open` | `superseded`.
 - **Why (best practice):** an LLM judge is a measuring instrument and must be validated. "Who checks the judge?" is the first question an evaluation expert asks.
 - **Limitation:** one human grader and 30 items is a light check, not a full inter-annotator study.
 
+### T48 - How the judge calibration is run - `accepted` 2026-10-30 (user decisions; details T20 left open)
+- **Decision:**
+  - The user grades in a terminal script, one answer at a time, and can stop and resume. It saves through the same backend as `/api/calibration`, which the Step 9 page will use.
+  - The 30 answers come from the two baseline (S0) runs on all 192 dev questions, 15 from each stack.
+  - Sampling is equal per judge score: 3 answers per accuracy score in each run, with a fixed seed. A score with too few answers is filled from the nearest scores, the lower one first on a tie.
+  - The user grades accuracy only, seeing the question, the reference answer, the system's answer and the T41 score definitions, never the judge's score. The items come in shuffled order, so their order reveals neither the stack nor the score.
+- **Why a terminal script:** the judge must be validated before the paid ladder, and the dashboard comes later. Nothing is thrown away, because the page will reuse the backend.
+- **Why both stacks:** the stacks are compared with each other, so the judge should be checked on answers from both. Both S0 runs are needed for the ladder anyway.
+- **Why equal per score:** answers scoring 5 may dominate, and a random sample would barely test whether the judge spots weak answers.
+- **Limits:** the 80% target then describes this balanced mix, not all answers, and the report must say so. Faithfulness, a gate in T08, gets no human check here, and the report must state that too. One human and 30 items stay a light check (T20): at exactly 80% (24 of 30), the 95% Wilson interval is 63% to 91%, so reaching the target does not rule out a true agreement well below it, and the report must give the interval. The 80% target is a custom choice.
+- **Alternatives:** building the page first (delays calibration); a spreadsheet (an extra import step, and typos); one stack (cheaper, but Stack A's answers go unchecked); half pass, half fail, or the run's own mix (say less about weak answers); grading faithfulness too (about 45-60 minutes, with no target set).
+- **Best practice:** stratified sampling and blind grading are; the equal allocation and the fill rule are custom choices.
+
 ### T21 - Reranking as a ladder step - `accepted` (reranker model `gpt-4.1-nano` accepted 2026-10-28)
 - **Decision:** S5 retrieves 20 candidates, an LLM reranker (`gpt-4.1-nano`, temperature 0, structured output) reorders them, and the top K are kept. The reranker is applied the same way to both stacks.
 - **Why:** reranking is one of the most widely recommended RAG improvements.

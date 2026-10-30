@@ -435,7 +435,8 @@ Validate each step before starting the next one. Log bugs in `fix.md`. Record de
   - A second build does not call the LLM again.
 
 ### Step 8 - Judge calibration
-- Run one full dev evaluation, sample 30 answers, grade them blind in the UI, and compute agreement.
+- **Status (2026-10-30): in progress.** Design decided (T48).
+- Run the S0 baseline on all dev questions on both stacks, sample 15 answers from each, grade them blind in a terminal script (T48; the Step 9 page reuses its backend), and compute agreement.
 - **Check:** pass/fail agreement ≥ 80%. If not, change the judge and repeat this step. Record the result in `decision.md` (T07).
 
 ### Step 9 - Frontend (time-boxed)
