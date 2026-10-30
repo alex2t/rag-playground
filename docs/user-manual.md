@@ -25,7 +25,7 @@ Each stack runs independently: you set each one's search settings yourself. The 
 | **Chunk size** | How long a chunk is, in tokens (a token is about three quarters of a word). |
 | **Overlap** | How much each chunk repeats the end of the previous one, so a sentence cut in two is not lost. |
 | **Top-K** | How many chunks are sent to the answer model for each question (1 to 8). |
-| **Chunking method** | `fixed` (plain cuts) or `llm_enriched` (an LLM adds a headline and a summary to each chunk). |
+| **Chunking method** | `fixed` (plain cuts) or `llm_enriched` (an LLM writes a headline and a summary for each chunk, used for search only; answers read the original text). |
 | **Hybrid search** | Combines meaning-based search with keyword search. |
 | **Reranking** | Retrieves 20 chunks, lets an LLM reorder them, and keeps the best K. |
 | **Answer model** | The language model that writes the answer: `gpt-4.1-nano` (cheapest), `gpt-4.1-mini`, `gpt-6.1-sol` (strongest). |
@@ -94,7 +94,7 @@ Runs the fixed ladder on one or both stacks and draws one line per stack across 
 | S6 | System prompt: the best of at most 4 versions, written before the step runs |
 | S7 | A stronger answer model, shown as a cost trade-off |
 
-Each step keeps the winner of the step before. Choices are made on dev questions only; the **held-out** panel then confirms the baseline and the best configuration on the 48 held-out questions. The best eligible run is highlighted.
+Each step keeps the winner of the step before. The ladder decides this by itself, using a rule fixed in advance: enrichment (S4) and reranking (S5) carry on to the later steps only if their gain is real. If not, the later steps run without them, and the step still appears on the chart. You can still choose either setting yourself on **Evaluate** and **Ask**. Choices are made on dev questions only; the **held-out** panel then confirms the baseline and the best configuration on the 48 held-out questions. The best eligible run is highlighted.
 
 ### Prompt: edit the instructions
 Write your own system prompts: start from the default or any saved version, edit it, and save it under a new name. Save as many versions as you like; each can be picked in the settings panel on **Ask**, **Evaluate** and **Sweep**. A saved version never changes, and the page lists the runs that used each one.

@@ -174,7 +174,7 @@ Temperature is sent only if the model's OpenRouter `supported_parameters` includ
 ## 3. Story mode
 
 ### 3.1 The improvement ladder (run on each stack, on the 192 dev questions)
-Each step changes **one** thing compared with the step before.
+Each step changes **one** thing compared with the step before. S4 and S5 test one option each: it is kept for the later steps only if its gain is real, otherwise the ladder continues from the step before (T49).
 
 | Step | Change | Configuration |
 |---|---|---|

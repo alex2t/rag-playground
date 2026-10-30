@@ -535,6 +535,13 @@ Status: `accepted` | `proposed` (default, needs review) | `open` | `superseded`.
 - **Trade-off:** a hand-written API call with a loosely typed value gets a 422 instead of working.
 - **Best practice:** yes; an API that refuses ambiguous input is easier to trust.
 
+### T49 - A ladder step with one option is kept only if its gain is real - `accepted` 2026-10-30 (user decision)
+- **Decision:** S4 (enrichment) and S5 (reranking) each test one option against the step before, on each stack separately. The option is kept for the later steps only if the paired bootstrap (T09) finds accuracy or MRR really better on dev questions. Otherwise the ladder continues from the step before, and the step goes under "what did not work" (T26). `fixed` stays the default until then.
+- **Why:** the plan said each step "keeps the winner", which did not define a winner for a step with one option. Keeping an option with no shown benefit would add cost and complexity to every later step.
+- **Scope:** the stacks may end with different settings, since each runs independently (T40 revision). S1-S3 and S6 still pick the best of several values, and S7 stays a reported cost trade-off.
+- **Alternatives:** keep every option whatever the result (simple, but keeps what did not help).
+- **Best practice:** using a significance test to accept a change is common; applying it this way, per step and per stack, is a custom choice, and it has no correction for many comparisons (see T08).
+
 ### T47 - LLM enrichment of chunks (ladder step S4) - `accepted` 2026-10-30 (user decisions)
 - **Decision:**
   - The LLM reads the chunk and its whole document, and writes a headline and a summary.
