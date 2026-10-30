@@ -2,7 +2,9 @@
 
 import sqlite3
 from collections.abc import Callable
+from dataclasses import replace
 
+from rag_playground.chunking import enrichment
 from rag_playground.chunking.chunk_sets import Chunk, load as load_chunk_set
 from rag_playground.rag.runs import RunMeta, insert
 from rag_playground.settings import settings
@@ -35,7 +37,8 @@ def build(conn: sqlite3.Connection, stack: str, chunk_set_id: str) -> str:
     """Index a saved chunk set on one stack and record where; an index that already exists is refused."""
     if lookup(conn, stack, chunk_set_id):
         raise ValueError(f"{chunk_set_id} is already indexed on Stack {stack}")
-    chunks = load_chunk_set(chunk_set_id)
+    enriched = enrichment.is_enriched(chunk_set_id)
+    chunks = enrichment.load_complete(chunk_set_id) if enriched else load_chunk_set(chunk_set_id)
     ref = (build_stack_a if stack == "A" else build_stack_b)(chunk_set_id, chunks)
     insert(conn, "indexes", {"stack": stack, "chunk_set_id": chunk_set_id, "ref": ref, "chunk_count": len(chunks)})
     return ref
@@ -47,6 +50,12 @@ def lookup(conn: sqlite3.Connection, stack: str, chunk_set_id: str) -> str | Non
     return row[0] if row else None
 
 
+def with_original_text(search: Retrieve, chunk_set_id: str) -> Retrieve:
+    """Stack A returns the text it was given, so an enriched hit gets its original text back (T47)."""
+    originals = {chunk.chunk_id: chunk.text for chunk in load_chunk_set(chunk_set_id)}
+    return lambda question, k: [replace(hit, text=originals[hit.chunk_id]) for hit in search(question, k)]
+
+
 def retriever(conn: sqlite3.Connection, meta: RunMeta) -> Retrieve:
     """Search the run's own index with its stored settings; KeyError if its chunk set is not indexed."""
     ref = lookup(conn, meta.stack, meta.chunk_set_id)
@@ -54,5 +63,9 @@ def retriever(conn: sqlite3.Connection, meta: RunMeta) -> Retrieve:
         raise KeyError(f"{meta.chunk_set_id} is not indexed on Stack {meta.stack}")
     if meta.stack == "A":
         ranking = openai_vector_store.Ranking(**meta.openai_ranking)
-        return lambda question, k: openai_vector_store.search(ref, question, k, ranking)
+
+        def search(question: str, k: int) -> list[Hit]:
+            return openai_vector_store.search(ref, question, k, ranking)
+
+        return with_original_text(search, meta.chunk_set_id) if enrichment.is_enriched(meta.chunk_set_id) else search
     return lambda question, k: qdrant_store.search(qdrant_store.client(), ref, question, k, meta.hybrid)

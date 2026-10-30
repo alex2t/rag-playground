@@ -47,8 +47,8 @@ def file_name(chunk: Chunk) -> str:
 
 
 def upload_file(chunk: Chunk) -> str:
-    """Upload one chunk's text as its own file and return the file id."""
-    return client().files.create(file=(file_name(chunk), chunk.text.encode()), purpose="assistants").id
+    """Upload the text search should read as its own file and return the file id."""
+    return client().files.create(file=(file_name(chunk), chunk.indexed_text.encode()), purpose="assistants").id
 
 
 def chunk_attributes(chunk: Chunk) -> dict:

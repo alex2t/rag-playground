@@ -33,8 +33,12 @@ class EnrichedChunk(Chunk):
 
     @property
     def indexed_text(self) -> str:
-        """What search reads."""
+        """What search reads: the LLM's words plus the original text. Answers read `text` alone."""
         return f"{self.headline}\n{self.summary}\n\n{self.text}"
+
+
+def is_enriched(set_id: str) -> bool:
+    return set_id.startswith(f"{METHOD}__")
 
 
 def enriched_set_id(base_id: str) -> str:
@@ -70,6 +74,15 @@ def load_saved(set_id: str, base: list[Chunk]) -> list[EnrichedChunk]:
     for chunk, original in zip(saved, base):
         if chunk.model_dump(include=set(Chunk.model_fields)) != original.model_dump():
             raise ValueError(f"Saved chunk {chunk.chunk_id} of {set_id} differs from its base chunk")
+    return saved
+
+
+def load_complete(set_id: str) -> list[EnrichedChunk]:
+    """An enriched set with every chunk of its base set; a build still in progress is refused. Never calls the LLM."""
+    base = load(f"{FIXED_METHOD}__{set_id.removeprefix(f'{METHOD}__')}")
+    saved = load_saved(set_id, base)
+    if len(saved) != len(base):
+        raise ValueError(f"{set_id} is not finished: {len(saved)} of {len(base)} chunks are enriched")
     return saved
 
 

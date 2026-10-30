@@ -27,6 +27,11 @@ class Chunk(BaseModel):
     start: int
     end: int
 
+    @property
+    def indexed_text(self) -> str:
+        """What search reads."""
+        return self.text
+
 
 def check_params(size: int, overlap: int) -> None:
     """T35 ranges: size 64-2,048 tokens, overlap 0 to half the size."""

@@ -47,9 +47,10 @@ def create_collection(q: QdrantClient, name: str) -> None:
 
 
 def index_chunks(q: QdrantClient, name: str, chunks: list[Chunk]) -> int:
-    """(Re)create the collection, store every chunk with both vectors, and return the stored count."""
+    """(Re)create the collection, store every chunk with both vectors, and return the stored count. Vectors come from
+    `indexed_text`; the payload keeps the original `text`, which is what a hit returns (T47)."""
     create_collection(q, name)
-    texts = [c.text for c in chunks]
+    texts = [c.indexed_text for c in chunks]
     dense = nomic.embed_documents(texts)
     points = [models.PointStruct(id=point_id(c.chunk_id), vector={DENSE: d, SPARSE: sparse(s)}, payload=c.model_dump())
               for c, d, s in zip(chunks, dense, bm25().embed(texts))]

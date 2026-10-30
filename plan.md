@@ -429,7 +429,7 @@ Validate each step before starting the next one. Log bugs in `fix.md`. Record de
   - First real run (user decision 2026-10-29): 10 dev questions with the S0 set-up on both stacks, run by the user (Stack B on Qdrant in Docker, D23).
 
 ### Step 7 - LLM chunking and enrichment
-- **Status (2026-10-30): in progress.** Design decided (T47). Increment 1 built, waiting for review: writing and saving the enrichment. Still to build: indexing it on both stacks with answers reading the original text, spend and budget, and `llm_enriched` in `POST /api/runs`.
+- **Status (2026-10-30): in progress.** Design decided (T47). Committed: writing and saving the enrichment. Built, waiting for review: indexing it on both stacks, with answers reading the original text. Still to build: the enrichment script with spend and budget, and `llm_enriched` in `POST /api/runs`.
 - **Check:**
   - Every original text is found in its source document.
   - A second build does not call the LLM again.
