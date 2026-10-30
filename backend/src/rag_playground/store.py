@@ -6,6 +6,7 @@ from pathlib import Path
 from rag_playground.settings import MAX_TOP_K, settings
 
 SCHEMA = f"""
+PRAGMA journal_mode = WAL;
 PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS prompt_versions (
     name TEXT PRIMARY KEY CHECK (trim(name, char(9, 10, 13, 32)) <> ''),
