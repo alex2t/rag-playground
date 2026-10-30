@@ -17,7 +17,7 @@ SMOKE_QUESTIONS = 20
 class OpenAIRanking(BaseModel):
     """Stack A's search settings: OpenAI's own ranking options (T12)."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", strict=True)
     ranker: Literal["none", "auto"]
     embedding_weight: float = Field(ge=0)
     text_weight: float = Field(ge=0)
@@ -26,9 +26,9 @@ class OpenAIRanking(BaseModel):
 
 class RunRequest(BaseModel):
     """One evaluation run: the settings panel plus the question set. Stack A takes `openai_ranking`, Stack B
-    `hybrid`; the other stack's field must be left out."""
+    `hybrid`; the other stack's field must be left out. Types are strict: "3" is not 3 (D27)."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", strict=True)
     stack: Literal["A", "B"]
     chunk_size: int
     overlap: int

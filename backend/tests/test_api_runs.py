@@ -101,6 +101,33 @@ def test_a_stack_a_request_takes_its_own_ranking_only(world, stack_a, change):
     assert counts(world["conn"]) == (0, 0)
 
 
+@pytest.mark.parametrize("change", [
+    {"top_k": "2"}, {"top_k": 2.0}, {"top_k": True}, {"chunk_size": "1024"}, {"overlap": "200"},
+    {"rerank": "yes"}, {"rerank": 0}, {"hybrid": 0}, {"hybrid": "false"},
+], ids=["k-text", "k-float", "k-bool", "size-text", "overlap-text", "rerank-text", "rerank-int", "hybrid-int",
+        "hybrid-text"])
+def test_a_value_of_the_wrong_type_is_refused_not_converted(world, change):
+    """D27: the stored settings come from exact values only."""
+    assert client.post("/api/runs", json={**B, **change}).status_code == 422
+    assert counts(world["conn"]) == (0, 0)
+
+
+@pytest.mark.parametrize("field, value", [("embedding_weight", "1.0"), ("text_weight", True),
+                                          ("score_threshold", "0")])
+def test_a_ranking_value_of_the_wrong_type_is_refused_not_converted(world, stack_a, field, value):
+    body = {**A, "openai_ranking": {**AUTO, field: value}}
+    assert client.post("/api/runs", json=body).status_code == 422
+    assert counts(world["conn"]) == (0, 0)
+
+
+def test_whole_numbers_are_valid_weights(world, stack_a):
+    """JSON has one number type: a dashboard sending 1 for a weight means 1.0, so strict types must accept it."""
+    ranking = {**AUTO, "embedding_weight": 1, "text_weight": 0, "score_threshold": 0}
+    job = client.get(f"/api/jobs/{start({**A, 'openai_ranking': ranking}).json()['job_id']}").json()
+    assert runs.get_run(world["conn"], job["run_id"]).meta.openai_ranking == {
+        **AUTO, "embedding_weight": 1.0, "text_weight": 0.0, "score_threshold": 0.0}
+
+
 @pytest.mark.parametrize("change, status, detail", [
     ({"chunk_size": 512, "overlap": 0}, 404, "fixed__c512__o0 is not indexed on Stack B"),
     ({"prompt_name": "never-saved"}, 404, "Not found: never-saved"),
