@@ -521,6 +521,14 @@ Status: `accepted` | `proposed` (default, needs review) | `open` | `superseded`.
 - **Best practice:** yes; validation at the API boundary with the reason returned to the user.
 - **Revision 2026-10-30 (T47):** the request also takes `chunking_method`, `fixed` or `llm_enriched`, required like every other setting. `llm_enriched` needs that chunk set to be indexed; otherwise the run is refused with 404, which also covers a set still being enriched.
 
+### D28 - The app serves one dataset; a new one is a developer job - `accepted` 2026-10-30 (user decision)
+- **Decision:** there is no data import. The app serves the one committed dataset, and changing it stays out of scope for this study. The known risk below is recorded and must be fixed before anyone swaps the data.
+- **Known risk (not fixed):** chunk set ids (`fixed__c1024__o200`) and the `indexes` table name only the method, size and overlap, not the dataset. If the documents were replaced, `chunk_sets.load_or_build` would return the old saved chunks and `indexes.lookup` the old index, so a run could search the old documents while recording the new `dataset_sha256`. Enriched sets check their chunks against the documents, but fixed sets do not. This cannot happen with the current data.
+- **The fix, when needed:** include the dataset hash in the chunk set's identity, or give each dataset its own environment and database.
+- **What a new dataset needs:** Markdown documents in the KB folder; `tests.jsonl` with questions, reference answers and gold documents in the current seven categories (the current set cost about $27 to generate, plus human review); a judge calibration (T20); a review of the gates (T08), the default prompt (T36) and the top-K cap (T45, set for a small KB); and new runs, since best-run selection ignores other datasets. Without prepared questions, **Ask** still works, but no run can be scored.
+- **Why:** the study needs one fixed dataset, so that every result stays comparable.
+- **Not best practice:** a product would version its datasets and tie every index to a dataset version, and would have an import flow.
+
 ### D26 - SQLite WAL mode - `accepted` 2026-10-30 (user decision)
 - **Decision:** the database uses SQLite's write-ahead log (`PRAGMA journal_mode = WAL` in `store.SCHEMA`; the setting persists in the database file).
 - **Why:** with the background job writing results while the dashboard polls `/api/jobs/{id}` (D07), the default rollback journal locks readers out while a write commits; Python's driver gives up with "database is locked" after 5 s. Reproduced on 2026-10-30 with a writer holding the exclusive lock a commit takes: a new `store.connect` failed with exactly that error, and passes with WAL. Writes are single small rows (milliseconds), so the risk was low, not zero; no such error had been seen in a real run.

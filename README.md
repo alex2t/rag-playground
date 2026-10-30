@@ -13,6 +13,10 @@ A controlled study of which RAG techniques improve retrieval and answer quality,
 
 **[docs/user-manual.md](docs/user-manual.md)** explains how to use the dashboard.
 
+## Limitation: one dataset
+
+The app runs on the one dataset in this repository and has no data import. Using other documents is a developer job: they must be Markdown, scoring needs new prepared questions and reference answers, and the judge must be calibrated again. Chunk sets and indexes are not yet tied to a dataset, so the old ones must be cleared first, or a run could search the old documents. See D28 in [decision.md](decision.md).
+
 ## Run locally
 
 ```
