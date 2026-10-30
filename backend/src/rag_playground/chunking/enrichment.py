@@ -17,6 +17,7 @@ INSTRUCTIONS = """You describe one chunk of a document, so that a search can fin
 You receive the whole document and one chunk taken from it.
 headline: at most 12 words naming what the chunk is about, including the client, service, person or policy concerned.
 summary: at most 2 sentences stating what the chunk says, in its document's context.
+State the facts directly: never open with words such as "This chunk" or "This section".
 Use only facts stated in the document. Describe this chunk, not the rest of the document."""
 
 

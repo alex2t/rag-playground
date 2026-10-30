@@ -16,3 +16,4 @@ def test_the_real_model_writes_a_headline_and_summary_naming_the_subject():
     assert enriched.text == chunk.text
     assert len(enriched.headline.split()) <= 15
     assert len(enriched.summary) < 600
+    assert "this chunk" not in enriched.summary.lower()

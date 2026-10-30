@@ -506,6 +506,7 @@ Status: `accepted` | `proposed` (default, needs review) | `open` | `superseded`.
 - **Stack A's `hybrid` flag** (stored for every run) is derived, not sent: it records whether OpenAI's keyword list takes part, `text_weight > 0`. Custom rule; with ranker `auto` the weights have no measurable effect (T12), so it then records the setting sent, not a measured effect.
 - **Refusals, nothing stored:** 404 (chunk set not indexed on that stack, unknown prompt version), 409 (over the remaining `BUDGET_USD`), 422 (invalid settings, or a held-out run with a prompt version not evaluated on dev). The message says why.
 - **Best practice:** yes; validation at the API boundary with the reason returned to the user.
+- **Revision 2026-10-30 (T47):** the request also takes `chunking_method`, `fixed` or `llm_enriched`, required like every other setting. `llm_enriched` needs that chunk set to be indexed; otherwise the run is refused with 404, which also covers a set still being enriched.
 
 ### D26 - SQLite WAL mode - `accepted` 2026-10-30 (user decision)
 - **Decision:** the database uses SQLite's write-ahead log (`PRAGMA journal_mode = WAL` in `store.SCHEMA`; the setting persists in the database file).
@@ -531,7 +532,7 @@ Status: `accepted` | `proposed` (default, needs review) | `open` | `superseded`.
 - **Why search only:** S4 then measures one thing, better search. An LLM mistake in a summary cannot reach an answer, or be counted as supported by the judge's faithfulness check.
 - **Why every chunk:** "meaningful" had no definition, and a rule to define it would be invented and could hide a chunk a question needs. The cost saved would be pennies.
 - **Why mini:** the output is made once and reused by every later run, so quality matters more than a small one-time cost.
-- **Cost:** projected $0.04 to $0.27 per chunk set (48 to 469 chunks), assuming 150 tokens of instructions (the real text is 91, so this errs high) and 80 tokens of output per chunk (a guess), at the live prices of $0.40 / $1.60 per million tokens. Not measured yet. The plan's "about $1" was a first guess.
+- **Cost:** projected $0.04 to $0.27 per chunk set (48 to 469 chunks), assuming 150 tokens of instructions (the real text is 111, so this errs high) and 80 tokens of output per chunk (a guess), at the live prices of $0.40 / $1.60 per million tokens. Not measured yet. The plan's "about $1" was a first guess.
 - **Budget (built 2026-10-30):** enrichment counts toward `BUDGET_USD`, as plan.md 1.4 budgets it, with one `spend` row per call and no run id (T44). The estimate uses each chunk's real input tokens and the assumed output, for chunks not paid for yet (a custom formula, like T43). A build estimated over what is left is refused before any paid call, and each next chunk is sent only if its estimate fits. A chunk that costs more than estimated can pass the cap by that difference, a fraction of a cent. `scripts/enrich.py`, run by the user, does the build and the indexing.
 - **Alternatives:** the chunk alone (cheaper, but cannot add what the chunk leaves out); passing the summary to the answer model too (changes search and answers together); `gpt-4.1-nano` (about a quarter of the cost, weaker summaries).
 - **Best practice:** yes for the technique. Keeping the original text for answers is our own choice, to keep one variable per ladder step.

@@ -15,8 +15,8 @@ from rag_playground.stacks import openai_vector_store
 from rag_playground.stacks.hits import Hit
 
 DEV = [t for t in load_tests() if t.split == "dev"]
-B = {"stack": "B", "chunk_size": 1024, "overlap": 200, "top_k": 2, "hybrid": False, "rerank": False,
-     "answer_model": "openai/gpt-4.1-nano", "prompt_name": "default", "questions": "smoke"}
+B = {"stack": "B", "chunking_method": "fixed", "chunk_size": 1024, "overlap": 200, "top_k": 2, "hybrid": False,
+     "rerank": False, "answer_model": "openai/gpt-4.1-nano", "prompt_name": "default", "questions": "smoke"}
 AUTO = {"ranker": "auto", "embedding_weight": 1.0, "text_weight": 1.0, "score_threshold": 0.0}
 A = {**{k: v for k, v in B.items() if k != "hybrid"}, "stack": "A", "openai_ranking": AUTO}
 
@@ -78,13 +78,14 @@ def test_dev_and_heldout_runs_ask_every_question_of_their_split(world, monkeypat
 
 
 @pytest.mark.parametrize("change", [
-    {"rerank": None}, {"top_k": None}, {"questions": None},  # every setting is required (T40)
+    {"rerank": None}, {"top_k": None}, {"questions": None}, {"chunking_method": None},  # every setting is required (T40)
     {"top_k": 0}, {"top_k": 9}, {"chunk_size": 5000}, {"overlap": 600},  # T35, T45 ranges
     {"answer_model": "openai/gpt-5"}, {"questions": "all"}, {"temperature": 0.5},  # unknown values, extra fields
+    {"chunking_method": "semantic"}, {"chunking_method": 1},
     {"openai_ranking": AUTO},  # Stack B takes hybrid only
     {"hybrid": None},
-], ids=["no-rerank", "no-k", "no-questions", "k0", "k9", "size", "overlap", "model", "questions", "extra",
-        "b-ranking", "b-no-hybrid"])
+], ids=["no-rerank", "no-k", "no-questions", "no-method", "k0", "k9", "size", "overlap", "model", "questions", "extra",
+        "method", "method-int", "b-ranking", "b-no-hybrid"])
 def test_an_invalid_request_is_rejected_and_stores_nothing(world, change):
     body = {k: v for k, v in {**B, **change}.items() if v is not None}
     assert client.post("/api/runs", json=body).status_code == 422
@@ -138,6 +139,32 @@ def test_a_run_that_would_be_refused_is_refused_with_its_reason(world, change, s
     response = client.post("/api/runs", json={**B, **change})
     assert response.status_code == status
     assert detail in response.json()["detail"]
+    assert counts(world["conn"]) == (0, 0)
+
+
+ENRICHED = {**B, "chunking_method": "llm_enriched"}
+ENRICHED_ID = "llm_enriched__c1024__o200"
+
+
+def test_an_enriched_run_uses_the_enriched_chunk_set_with_every_other_setting_unchanged(world):
+    insert(world["conn"], "indexes", {"stack": "B", "chunk_set_id": ENRICHED_ID, "ref": ENRICHED_ID, "chunk_count": 1})
+    job = client.get(f"/api/jobs/{start(ENRICHED).json()['job_id']}").json()
+    assert job["status"] == "done"
+    meta = runs.get_run(world["conn"], job["run_id"]).meta
+    assert (meta.chunk_set_id, meta.top_k, meta.hybrid) == (ENRICHED_ID, 2, False)
+
+
+def test_a_fixed_run_never_uses_an_enriched_set(world):
+    insert(world["conn"], "indexes", {"stack": "B", "chunk_set_id": ENRICHED_ID, "ref": ENRICHED_ID, "chunk_count": 1})
+    job = client.get(f"/api/jobs/{start(B).json()['job_id']}").json()
+    assert runs.get_run(world["conn"], job["run_id"]).meta.chunk_set_id == "fixed__c1024__o200"
+
+
+def test_an_enriched_set_not_indexed_is_refused_with_its_name_even_if_the_fixed_set_is(world):
+    """A set still being enriched has no index, so it is refused here too."""
+    response = client.post("/api/runs", json=ENRICHED)
+    assert response.status_code == 404
+    assert f"{ENRICHED_ID} is not indexed on Stack B" in response.json()["detail"]
     assert counts(world["conn"]) == (0, 0)
 
 
