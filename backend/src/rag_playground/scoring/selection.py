@@ -1,6 +1,7 @@
-"""Selection gates (T08) and the paired bootstrap that decides whether a change is real (T09)."""
+"""Selection gates and best run (T08), and the paired bootstrap that decides whether a change is real (T09)."""
 
 import random
+from dataclasses import dataclass
 from statistics import mean, quantiles
 
 from rag_playground.settings import BOOTSTRAP_RESAMPLES, BOOTSTRAP_SEED, GATES
@@ -26,3 +27,29 @@ def paired_bootstrap(before: dict[str, float], after: dict[str, float]) -> tuple
 def is_real_improvement(before: dict[str, float], after: dict[str, float]) -> bool:
     """A change counts only if the whole interval is above 0."""
     return paired_bootstrap(before, after)[0] > 0
+
+
+@dataclass(frozen=True)
+class Candidate:
+    """What the best-run choice needs from one run: gate scores, accuracy per question, mean cost per question."""
+
+    run_id: int
+    scores: dict[str, float]
+    accuracy: dict[str, float]
+    cost_per_question: float
+
+    @property
+    def mean_accuracy(self) -> float:
+        return mean(self.accuracy.values())
+
+
+def pick_best(candidates: list[Candidate]) -> Candidate | None:
+    """T08: among runs passing every gate, the highest mean accuracy; runs whose gap to it is not real (T09) are tied
+    with it, and the cheapest of those wins. Higher accuracy, then the older run, settle an exact cost tie. None if
+    no run passes."""
+    eligible = [c for c in candidates if not failed_gates(c.scores)]
+    if not eligible:
+        return None
+    leader = max(eligible, key=lambda c: c.mean_accuracy)
+    tied = [c for c in eligible if not is_real_improvement(c.accuracy, leader.accuracy)]
+    return min(tied, key=lambda c: (c.cost_per_question, -c.mean_accuracy, c.run_id))

@@ -163,7 +163,13 @@ Status: `accepted` | `proposed` (default, needs review) | `open` | `superseded`.
   - Gates: MRR ≥ 0.75, Recall@K ≥ 0.80, faithfulness ≥ 4.0, correct refusal rate ≥ 0.80.
   - A gate passes when the score is equal to or above its value (`GATES` in `settings.py`, checked by `scoring/selection.failed_gates`).
   - The highest mean accuracy among eligible runs wins. Ties go to the cheaper run: "tie" means the paired bootstrap (T09) does not find the accuracy difference real.
-  - Picking the best run is built in Step 6, when runs are stored; Step 5 built the gates only.
+  - Picking the best run is built in Step 6 (`selection.pick_best`, `rag/best_run.py`); Step 5 built the gates only.
+- **Built 2026-10-30, details the rule above left open (custom choices):**
+  - **Which runs compete:** finished runs on every dev question, on the current dataset hash, graded by the current judge `canonical_slug`. Smoke runs, the 10-question first runs, held-out runs and failed runs never compete. Scores from another dataset or judge are not comparable, and held-out questions are never used to choose (T18).
+  - **Ties:** the leader is the eligible run with the highest mean accuracy. A run is tied with it if the paired bootstrap (T09) does not find the leader's accuracy really higher, and the cheapest tied run wins. Each run is compared with the leader only, so two tied runs may differ really from each other. An exact cost tie goes to higher accuracy, then to the older run.
+  - **Cost** is the mean recorded `cost_usd` per question, which includes the judge. OpenAI search fees on Stack A, if billed, are not recorded (open question under T44), so a Stack A vs Stack B tie-break could favour Stack A.
+  - **Faithfulness gate** uses the mean over all questions, refusals included (plan.md section 4).
+  - **No correction for many comparisons:** the leader is the top of many runs, so its lead is somewhat overstated, and each tie test stands alone at 95%. Not best practice; the production alternative is a multiple-comparison correction. The held-out run confirms the winner on questions it was not chosen on.
 - **Why:** an earlier weighted composite had invented weights. One primary metric plus explicit gates is transparent.
 - **Gate values:** these match the amber band of the UI colours. They are a custom choice, not a standard. Review them after the first real runs (Step 6), using scores from runs done anyway (no extra cost).
 
@@ -501,13 +507,16 @@ Status: `accepted` | `proposed` (default, needs review) | `open` | `superseded`.
 - **Refusals, nothing stored:** 404 (chunk set not indexed on that stack, unknown prompt version), 409 (over the remaining `BUDGET_USD`), 422 (invalid settings, or a held-out run with a prompt version not evaluated on dev). The message says why.
 - **Best practice:** yes; validation at the API boundary with the reason returned to the user.
 
-### D26 - SQLite WAL mode - `open` (asked 2026-10-29)
-- **Question for the user:** turn on SQLite's write-ahead log (`PRAGMA journal_mode = WAL`, one line in `store.connect`; the setting persists in the database file).
-- **Why it matters:** with the background job writing results while the dashboard polls `/api/jobs/{id}` (D07), the default rollback journal makes a reader wait while a write commits; Python's driver gives up with "database is locked" after 5 s. Writes are single small rows (milliseconds), so the risk is low, not zero.
-- **Trade-off:** two small extra files next to the database (`-wal`, `-shm`), inside the same Docker volume.
-- **Recommendation:** yes; WAL is the usual set-up for one writer with concurrent readers.
+### D26 - SQLite WAL mode - `accepted` 2026-10-30 (user decision)
+- **Decision:** the database uses SQLite's write-ahead log (`PRAGMA journal_mode = WAL` in `store.SCHEMA`; the setting persists in the database file).
+- **Why:** with the background job writing results while the dashboard polls `/api/jobs/{id}` (D07), the default rollback journal locks readers out while a write commits; Python's driver gives up with "database is locked" after 5 s. Reproduced on 2026-10-30 with a writer holding the exclusive lock a commit takes: a new `store.connect` failed with exactly that error, and passes with WAL. Writes are single small rows (milliseconds), so the risk was low, not zero; no such error had been seen in a real run.
+- **Alternatives:** keep the default journal and rely on the 5-second wait (simple, but a rare random failure during paid runs); a client-server database (far more than one writer needs).
+- **Trade-off:** two small extra files next to the database (`-wal`, `-shm`), inside the same Docker volume. Existing databases convert when next opened. A backup must use SQLite's backup command, not a copy of the `.db` file alone.
+- **Best practice:** yes; WAL is the usual set-up for one writer with concurrent readers.
 
-### D27 - Strict types in run requests - `open` (asked 2026-10-29)
-- **Question for the user:** make `RunRequest` (D25) strict, so `"3"` is not accepted as K=3, `"yes"` as reranking on, or `0` as hybrid off.
-- **Today:** Pydantic's default (lax) mode converts such values; the stored setting always matches what the value means, and the dashboard sends proper JSON types, so nothing goes wrong. Found by Claude when checking Antigravity's review of D25.
-- **Recommendation:** yes; an API that refuses ambiguous input is easier to trust.
+### D27 - Strict types in run requests - `accepted` 2026-10-30 (user decision)
+- **Decision:** `RunRequest` and `OpenAIRanking` (D25) use Pydantic's strict mode, so `"3"` is not accepted as K=3, `"yes"` as reranking on, or `0` as hybrid off. Whole numbers remain valid for the float fields (weights, threshold), because JSON has one number type.
+- **Why:** runs are paid and permanent (D21), so a stored setting must come from an exact value, with no conversion to reason about. Before this, Pydantic's default (lax) mode converted such values; the stored setting always matched their meaning, so no stored run is affected. Found by Claude when checking Antigravity's review of D25.
+- **Alternatives:** keep lax mode (accepts more input, but every caller must know the conversion rules).
+- **Trade-off:** a hand-written API call with a loosely typed value gets a 422 instead of working.
+- **Best practice:** yes; an API that refuses ambiguous input is easier to trust.

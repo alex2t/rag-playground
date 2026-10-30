@@ -81,3 +81,53 @@ def test_the_interval_is_reproducible_with_the_fixed_seed():
 def test_runs_on_different_questions_are_rejected():
     with pytest.raises(ValueError):
         selection.paired_bootstrap(BEFORE, {**BEFORE, "extra": 1.0})
+
+
+def candidate(run_id: int, accuracy: dict[str, float], cost: float, gate_scores: dict | None = None):
+    return selection.Candidate(run_id, gate_scores or PASSING, accuracy, cost)
+
+
+LOW = scores([3] * 200)
+HIGH = scores([5] * 200)
+SLIGHTLY_HIGHER = {q: v + (1 if i % 2 else -0.9) for i, (q, v) in enumerate(scores([3] * 200).items())}
+
+
+def test_no_run_means_no_best_run():
+    assert selection.pick_best([]) is None
+
+
+def test_no_best_run_when_every_run_fails_a_gate():
+    assert selection.pick_best([candidate(1, HIGH, 0.1, {**PASSING, "mrr": 0.1})]) is None
+
+
+def test_the_highest_accuracy_wins_when_the_difference_is_real_even_if_it_costs_more():
+    assert selection.pick_best([candidate(1, LOW, 0.01), candidate(2, HIGH, 0.09)]).run_id == 2
+
+
+def test_a_run_failing_a_gate_cannot_win_however_accurate_it_is():
+    failing = candidate(1, HIGH, 0.01, {**PASSING, "faithfulness": 3.9})
+    assert selection.pick_best([failing, candidate(2, LOW, 0.09)]).run_id == 2
+
+
+def test_the_cheaper_run_wins_when_the_accuracy_difference_is_not_real():
+    """Run 2 leads by 0.05 on average, but half its questions got worse: the difference is not real."""
+    assert selection.mean(SLIGHTLY_HIGHER.values()) > selection.mean(LOW.values())
+    assert not selection.is_real_improvement(LOW, SLIGHTLY_HIGHER)
+    assert selection.pick_best([candidate(1, LOW, 0.01), candidate(2, SLIGHTLY_HIGHER, 0.09)]).run_id == 1
+    assert selection.pick_best([candidate(1, LOW, 0.09), candidate(2, SLIGHTLY_HIGHER, 0.01)]).run_id == 2
+
+
+def test_a_cheap_run_really_worse_than_the_leader_does_not_win_on_price():
+    """Run 3 ties the leader on nothing; only runs tied with the leader compete on cost."""
+    picked = selection.pick_best([candidate(1, HIGH, 0.09), candidate(2, HIGH, 0.05), candidate(3, LOW, 0.01)])
+    assert picked.run_id == 2
+
+
+def test_tied_runs_at_the_same_cost_go_to_the_higher_accuracy():
+    assert selection.pick_best([candidate(1, LOW, 0.05), candidate(2, SLIGHTLY_HIGHER, 0.05)]).run_id == 2
+
+
+def test_same_accuracy_and_same_cost_pick_the_oldest_run_in_any_order():
+    first, second = candidate(1, HIGH, 0.05), candidate(2, HIGH, 0.05)
+    assert selection.pick_best([first, second]).run_id == 1
+    assert selection.pick_best([second, first]).run_id == 1
