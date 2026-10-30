@@ -2,6 +2,8 @@
 document. They are used for search only; answers read the original text. Each chunk is saved as soon as it is paid
 for, so a stopped build resumes and a finished one never calls the LLM again. The instructions are a custom choice."""
 
+from collections.abc import Callable
+
 from pydantic import BaseModel
 
 from rag_playground.chunking.chunk_sets import METHOD as FIXED_METHOD
@@ -94,15 +96,24 @@ def save(set_id: str, chunks: list[EnrichedChunk]) -> None:
     temporary.replace(path)
 
 
-def load_or_enrich(base_id: str) -> list[EnrichedChunk]:
-    """The enriched version of a saved fixed chunk set, calling the LLM only for chunks not saved yet."""
+def progress(base_id: str) -> tuple[list[EnrichedChunk], list[tuple[Chunk, str]]]:
+    """The chunks already saved, and each chunk still to do with its document."""
     set_id = enriched_set_id(base_id)
     base, documents = load(base_id), kb_documents()
     for chunk in base:
         if documents[chunk.source][chunk.start:chunk.end] != chunk.text:
             raise ValueError(f"Chunk {chunk.chunk_id} is no longer in {chunk.source}; rebuild {base_id}")
     enriched = load_saved(set_id, base)
-    for chunk in base[len(enriched):]:
-        enriched.append(enrich(chunk, documents[chunk.source]))
-        save(set_id, enriched)
+    return enriched, [(chunk, documents[chunk.source]) for chunk in base[len(enriched):]]
+
+
+def load_or_enrich(base_id: str, before_call: Callable[[Chunk, str], None] = lambda chunk, document: None
+                   ) -> list[EnrichedChunk]:
+    """The enriched version of a saved fixed chunk set, calling the LLM only for chunks not saved yet. `before_call`
+    runs before each paid call and can stop the build by raising."""
+    enriched, to_do = progress(base_id)
+    for chunk, document in to_do:
+        before_call(chunk, document)
+        enriched.append(enrich(chunk, document))
+        save(enriched_set_id(base_id), enriched)
     return enriched
