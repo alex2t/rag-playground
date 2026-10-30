@@ -13,6 +13,7 @@ ANSWER_MODELS = ["openai/gpt-4.1-nano", "openai/gpt-4.1-mini", "openai/gpt-6.1-s
 JUDGE_MODEL = "google/gemini-3.5-flash-lite"
 RERANK_MODEL = "openai/gpt-4.1-nano"
 RERANK_CANDIDATES = 20  # chunks retrieved for the reranker, which keeps the top K (T21)
+ENRICH_MODEL = "openai/gpt-4.1-mini"  # writes each chunk's headline and summary, once per chunk set (T47)
 MAX_TOP_K = 8  # the KB is small (48 documents), so more chunks would hand the model a large share of it (T45)
 # S0 baseline: LlamaIndex out-of-the-box defaults plus our cheapest answer model (T27 revision). Each stack
 # searches with its own out-of-the-box search (T40 revision 2026-10-29): Qdrant plain vector search; OpenAI's

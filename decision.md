@@ -520,3 +520,17 @@ Status: `accepted` | `proposed` (default, needs review) | `open` | `superseded`.
 - **Alternatives:** keep lax mode (accepts more input, but every caller must know the conversion rules).
 - **Trade-off:** a hand-written API call with a loosely typed value gets a 422 instead of working.
 - **Best practice:** yes; an API that refuses ambiguous input is easier to trust.
+
+### T47 - LLM enrichment of chunks (ladder step S4) - `accepted` 2026-10-30 (user decisions)
+- **Decision:**
+  - The LLM reads the chunk and its whole document, and writes a headline and a summary.
+  - Headline and summary are used for search only. The answer model and the judge read the original chunk text.
+  - Every chunk is enriched; there is no rule for "meaningful" chunks.
+  - The model is `openai/gpt-4.1-mini` (`ENRICH_MODEL`), at temperature 0, through OpenRouter.
+- **Why the whole document:** a chunk can lose its subject (a piece saying "the rollout took 6 weeks" may not name the client). Adding document context to each chunk before indexing is a published technique ("Contextual Retrieval", Anthropic, 2024). Our prompt and the headline-plus-summary format are a custom choice.
+- **Why search only:** S4 then measures one thing, better search. An LLM mistake in a summary cannot reach an answer, or be counted as supported by the judge's faithfulness check.
+- **Why every chunk:** "meaningful" had no definition, and a rule to define it would be invented and could hide a chunk a question needs. The cost saved would be pennies.
+- **Why mini:** the output is made once and reused by every later run, so quality matters more than a small one-time cost.
+- **Cost:** projected $0.04 to $0.27 per chunk set (48 to 469 chunks), assuming 150 tokens of instructions (the real text is 91, so this errs high) and 80 tokens of output per chunk (a guess), at the live prices of $0.40 / $1.60 per million tokens. Not measured yet. The plan's "about $1" was a first guess.
+- **Alternatives:** the chunk alone (cheaper, but cannot add what the chunk leaves out); passing the summary to the answer model too (changes search and answers together); `gpt-4.1-nano` (about a quarter of the cost, weaker summaries).
+- **Best practice:** yes for the technique. Keeping the original text for answers is our own choice, to keep one variable per ladder step.

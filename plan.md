@@ -146,7 +146,7 @@ The CI gate runs in staging, which has its own $5 cap: 20 questions, about $0.03
 | Stack | `A_openai`, `B_qdrant_nomic` |
 | Chunk size (tokens) | Ladder sweep: 100, 200, 400, 800, 1024, 1600. 1024 is the LlamaIndex default used by the S0 baseline. Dashboard: any value from 64 to 2,048 (T35). |
 | Overlap | S0: 200 tokens (the LlamaIndex default). In the chunk-size sweep the overlap keeps S0's share, 200/1024 (about 20%). S2 picks the best of {0%, about 20%, 25%} at S1's size (T24 revision). Dashboard: 0-50% (T35); the API takes overlap in tokens and the dashboard converts a percentage with `round(size * pct / 100)`. |
-| Chunking method | `fixed`, `llm_enriched` (an LLM adds a headline and summary to each meaningful chunk) |
+| Chunking method | `fixed`, `llm_enriched` (an LLM reads the chunk and its whole document and writes a headline and summary for every chunk; they are used for search only, and answers use the original text, T47) |
 | Top-K | Maximum 8 (T45): the KB is small (48 documents, about 730 tokens each). Ladder sweep: 2, 4, 6, 8. Dashboard: 1-8. Matters most for `multi_doc` questions and long documents, where one subject is spread across several chunks. |
 | Hybrid search | off / on (BM25 + vector, fused with RRF). Dashboard and sweeps only, not a ladder step (T37). |
 | System prompt | Named versions written by the user. Ladder: the default from S0 to S5, then S6 = best of at most 4 versions on dev questions. Dashboard and sweeps: any version (T36 revision 2026-10-29). |
@@ -429,6 +429,7 @@ Validate each step before starting the next one. Log bugs in `fix.md`. Record de
   - First real run (user decision 2026-10-29): 10 dev questions with the S0 set-up on both stacks, run by the user (Stack B on Qdrant in Docker, D23).
 
 ### Step 7 - LLM chunking and enrichment
+- **Status (2026-10-30): in progress.** Design decided (T47). Increment 1 built, waiting for review: writing and saving the enrichment. Still to build: indexing it on both stacks with answers reading the original text, spend and budget, and `llm_enriched` in `POST /api/runs`.
 - **Check:**
   - Every original text is found in its source document.
   - A second build does not call the LLM again.
