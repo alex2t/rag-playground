@@ -3,18 +3,23 @@ allocation per score and the fill rule are custom choices."""
 
 import random
 from dataclasses import dataclass
+from math import sqrt
 from statistics import mean
 
 from rag_playground.settings import CALIBRATION_TARGET, PASS_ACCURACY
 
 SCORES = (1, 2, 3, 4, 5)
+Z_95 = 1.96
 
 
 @dataclass(frozen=True)
 class Agreement:
-    """Agreement between judge and user over `graded` answers, as shares from 0 to 1."""
+    """Agreement between judge and user over `graded` answers, as shares from 0 to 1, with the 95% interval of the
+    pass/fail share."""
 
     pass_fail: float
+    pass_fail_low: float
+    pass_fail_high: float
     within_one: float
     graded: int
 
@@ -42,8 +47,17 @@ def sample(scores: dict[str, int], per_score: int, seed: int) -> list[str]:
     return picked
 
 
+def wilson(successes: int, total: int) -> tuple[float, float]:
+    """The 95% Wilson score interval of a share, which stays sensible on small samples and near 0 or 1."""
+    share, z2 = successes / total, Z_95 ** 2
+    centre = (share + z2 / (2 * total)) / (1 + z2 / total)
+    margin = Z_95 * sqrt(share * (1 - share) / total + z2 / (4 * total ** 2)) / (1 + z2 / total)
+    return centre - margin, centre + margin
+
+
 def agreement(pairs: list[tuple[int, int]]) -> Agreement:
     """Agreement over (judge score, user score) pairs: on pass or fail, and within 1 point on the 1-5 scale."""
     same_side = [(judge >= PASS_ACCURACY) == (human >= PASS_ACCURACY) for judge, human in pairs]
-    return Agreement(pass_fail=mean(same_side), within_one=mean(abs(judge - human) <= 1 for judge, human in pairs),
-                     graded=len(pairs))
+    low, high = wilson(sum(same_side), len(pairs))
+    return Agreement(pass_fail=mean(same_side), pass_fail_low=low, pass_fail_high=high,
+                     within_one=mean(abs(judge - human) <= 1 for judge, human in pairs), graded=len(pairs))

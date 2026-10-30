@@ -336,7 +336,9 @@ rag-playground/
 | GET | `/api/runs`, `/api/runs/{id}` | Summaries / per-question results (with reproducibility metadata) |
 | GET | `/api/runs/{id}/export` | CSV of per-question results |
 | GET | `/api/compare?a={run}&b={run}` | Paired bootstrap and per-question diff |
-| GET / POST | `/api/calibration` | Sample for human grading / submit grades and get agreement |
+| POST | `/api/calibration` | Open the calibration of two S0 runs (draws the fixed sample the first time) |
+| GET | `/api/calibration/{id}` | Progress, next answer to grade (blind), score definitions; agreement once all are graded |
+| POST | `/api/calibration/{id}/grades` | Save one grade (final, T48) |
 | GET | `/api/ops` | Spend against budget, error rate, latency |
 | GET | `/api/health` | Health check, including the app version (git SHA) |
 

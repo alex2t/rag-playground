@@ -19,6 +19,16 @@ def picked_scores(scores: dict[str, int], **kwargs) -> Counter:
     return Counter(scores[test_id] for test_id in calibration.sample(scores, 3, seed=7, **kwargs))
 
 
+@pytest.mark.parametrize("successes, total, low, high", [
+    (24, 30, 0.6269, 0.9050),  # centre 0.76595, margin 0.13900
+    (30, 30, 0.8865, 1.0),  # all agree: n / (n + z^2)
+    (0, 30, 0.0, 0.1135),
+    (1, 2, 0.0945, 0.9055),
+])
+def test_wilson_interval_matches_hand_computed_values(successes, total, low, high):
+    assert calibration.wilson(successes, total) == pytest.approx((low, high), abs=0.0001)
+
+
 def test_every_score_gets_its_equal_share():
     assert picked_scores(FULL) == {1: 3, 2: 3, 3: 3, 4: 3, 5: 3}
 

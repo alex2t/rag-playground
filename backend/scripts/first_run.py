@@ -1,10 +1,12 @@
-"""First real run (Step 6 check): 10 dev questions with the S0 set-up, on one or both stacks. Builds the S0 index
-on a stack if it is missing, runs the questions, and prints the estimate against the recorded spend.
+"""Real S0 runs: 10 dev questions (Step 6 check), or every dev question (Step 8, for the judge calibration), on one or
+both stacks. Builds the S0 index on a stack if it is missing, runs the questions, and prints the estimate against the
+recorded spend.
 
 Paid: OpenRouter (answers and judge), and on Stack A the OpenAI index build and searches. Run by the user.
-Usage: uv run python scripts/first_run.py A|B|both [batch]
+Usage: uv run python scripts/first_run.py A|B|both [batch|full]
 Batch 1 (default) is the first 10 questions in round-robin order (T46), batch 2 the next 10, and so on, so a later
-batch checks the estimate on questions it was not fitted to.
+batch checks the estimate on questions it was not fitted to. "full" asks all 192 dev questions, and with "both" ends
+by printing the command that grades them.
 """
 
 import sys
@@ -29,8 +31,11 @@ def s0_choices(stack: str) -> pipeline.Choices:
 
 def batch_questions(batch: int) -> list:
     """Questions (batch - 1) * 10 + 1 to batch * 10 of the dev set in round-robin order."""
-    dev = [t for t in load_tests() if t.split == "dev"]
-    return round_robin(dev, batch * QUESTIONS)[(batch - 1) * QUESTIONS:]
+    return round_robin(all_dev_questions(), batch * QUESTIONS)[(batch - 1) * QUESTIONS:]
+
+
+def all_dev_questions() -> list:
+    return [t for t in load_tests() if t.split == "dev"]
 
 
 def spend_by_model(conn, run_id: int) -> list[tuple]:
@@ -39,7 +44,7 @@ def spend_by_model(conn, run_id: int) -> list[tuple]:
         "FROM spend WHERE run_id = ? GROUP BY model ORDER BY model", (run_id,))]
 
 
-def run_stack(conn, stack: str, tests: list) -> None:
+def run_stack(conn, stack: str, tests: list) -> int:
     choices = s0_choices(stack)
     chunks = load_or_build(S0["chunk_size"], S0["overlap"])
     if indexes.lookup(conn, stack, choices.chunk_set_id) is None:
@@ -56,18 +61,20 @@ def run_stack(conn, stack: str, tests: list) -> None:
     for model, calls, prompt_tokens, completion_tokens, reasoning_tokens, cost in spend_by_model(conn, run_id):
         print(f"  {model}: {calls} calls, {prompt_tokens} in, {completion_tokens} out "
               f"({reasoning_tokens} reasoning), ${cost:.4f}")
+    return run_id
 
 
-def main(which: str, batch: int = 1) -> None:
+def main(which: str, batch: str = "1") -> None:
     stacks = {"A": ["A"], "B": ["B"], "both": ["A", "B"]}[which]
     conn = store.connect()
     prompts.ensure_default(conn)
-    tests = batch_questions(batch)
+    tests = all_dev_questions() if batch == "full" else batch_questions(int(batch))
     print(f"BUDGET_USD ${settings.budget_usd:.2f}, ${pipeline.remaining(conn):.4f} left; questions: "
           f"{', '.join(t.id for t in tests)}")
-    for stack in stacks:
-        run_stack(conn, stack, tests)
+    run_ids = [run_stack(conn, stack, tests) for stack in stacks]
+    if batch == "full" and which == "both":
+        print(f"Grade the sample with: uv run python scripts/grade.py {run_ids[0]} {run_ids[1]}")
 
 
 if __name__ == "__main__":
-    main(sys.argv[1], int(sys.argv[2]) if len(sys.argv) > 2 else 1)
+    main(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else "1")

@@ -1,7 +1,9 @@
 """Offline rehearsal of scripts/first_run.py, which the user runs for real: fake stacks, models and prices, a fresh
 database and chunk-set folder (no network, no cost)."""
 
+import builtins
 import importlib.util
+from types import SimpleNamespace
 
 import pytest
 
@@ -10,7 +12,7 @@ from rag_playground.datasets.schema import load_tests
 from rag_playground.datasets.splits import round_robin
 from rag_playground.llm.models import ModelInfo
 from rag_playground.llm.openrouter import ChatResult, paid
-from rag_playground.rag import estimate, pipeline, runs, spend
+from rag_playground.rag import estimate, grading, pipeline, runs, spend
 from rag_playground.scoring.judging import Judgement
 from rag_playground.settings import REPO_ROOT, S0, settings
 from rag_playground.stacks import openai_vector_store, qdrant_store
@@ -19,6 +21,9 @@ from rag_playground.stacks.hits import Hit
 spec = importlib.util.spec_from_file_location("first_run", REPO_ROOT / "backend" / "scripts" / "first_run.py")
 first_run = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(first_run)
+grade_spec = importlib.util.spec_from_file_location("grade", REPO_ROOT / "backend" / "scripts" / "grade.py")
+grade_script = importlib.util.module_from_spec(grade_spec)
+grade_spec.loader.exec_module(grade_script)
 
 VERDICT = Judgement(refused=False, accuracy=5, completeness=5, relevance=5, faithfulness=5, feedback="ok",
                     faithfulness_feedback="ok")
@@ -94,3 +99,24 @@ def test_a_second_run_reuses_the_recorded_indexes(world):
     first_run.main("B")
     assert world["created"] == ["rag-playground-dev-fixed__c1024__o200", "fixed__c1024__o200"]
     assert len(runs.get_results(store.connect(), 3)) == 10
+
+
+def test_two_full_runs_qualify_for_the_calibration_and_can_be_graded_to_the_end(world, monkeypatch, capsys):
+    """The whole of Step 8 offline: every dev question on both stacks, the printed command, then all 30 grades. The
+    fake judge gives every answer 5, so the fill rule supplies all 30; a user grading all 4 agrees on every pass."""
+    monkeypatch.setattr(grading, "model_info", lambda model: SimpleNamespace(canonical_slug=f"{model}-1"))
+    first_run.main("both", "full")
+    assert "scripts/grade.py 1 2" in capsys.readouterr().out
+    conn = store.connect()
+    dev_ids = [t.id for t in load_tests() if t.split == "dev"]
+    assert [runs.get_run(conn, run_id).meta.test_ids for run_id in (1, 2)] == [dev_ids, dev_ids]
+    answers = ["4", "y"] * 30
+    monkeypatch.setattr(builtins, "input", lambda prompt: answers.pop(0))
+    grade_script.main(1, 2)
+    assert "Pass/fail agreement: 100% of 30 answers" in capsys.readouterr().out
+    assert answers == []
+
+
+def test_a_full_run_on_one_stack_prints_no_grading_command(world, monkeypatch, capsys):
+    first_run.main("B", "full")
+    assert "grade.py" not in capsys.readouterr().out

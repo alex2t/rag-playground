@@ -4,6 +4,25 @@ Add new bugs at the top. Status: `open` | `investigating` | `fixed`.
 
 ---
 
+## [2026-10-30] Step 8: very large ids crashed the API (500) - `fixed`
+- **Symptom:** `GET /api/calibration/{2**70}`, `POST /api/calibration` and the grades route returned 500, and so did the older `GET /api/jobs/{id}`. Nothing was stored.
+- **Reproduce:** Claude's script on a temporary database; Antigravity (Gemini 3.8) found the same on the calibration routes.
+- **Root cause (evidence):** `OverflowError: Python int too large to convert to SQLite INTEGER`. SQLite binds at most 64 bits: at 2**63 - 1 the same call gives a normal `KeyError`.
+- **Fix:** `DbId` (1 to 2**63 - 1) on every id in a request or path, so they are refused with 422. Catching `OverflowError` on each route, its other suggestion, treats the symptom. Effect: position 0 or below now gives 422, not 404. Its Finding 2 (`grade.py` leaves its connection open) not applied: true, but no harm was shown: the connection holds no transaction, another connection wrote at once, and the process ends there; `enrich.py` and `first_run.py` do the same.
+- **Verified:** new tests at the limit and past it, on every route; deliberate breaks caught. Full suite passed.
+- **Status:** `fixed`
+
+---
+
+## [2026-10-30] Step 8: T48 stated a wrong interval, and `true` passed as a grade - `fixed`
+- **Symptom:** the first Wilson test failed: expected 0.9091, got 0.9050. A separate test showed `POST /api/calibration/{id}/grades` accepted `"grade": true`. No real grade or result was affected.
+- **Root cause (evidence):** the code was right and the expected value wrong: by hand, 24 of 30 gives centre 0.76595 and margin 0.13900, so 62.7% to 90.5%. `decision.md` T48 said 91%, and the test had copied it. The grade bug was in the request model: `Literal[1, ...]` matches `True` because `True == 1` in Python, even in strict mode.
+- **Fix:** T48 now says 63% to 90%; the test expects the hand-computed values (test expectation changed, for the reason above). `GradeRequest.grade` is a strict integer from 1 to 5.
+- **Verified:** tests for 0, 6, 4.5, "4", true and null; 21 real deliberate breaks caught. Full suite 559 passed.
+- **Status:** `fixed`
+
+---
+
 ## [2026-10-30] Step 8: a calibration grade of 4.5 was accepted - `fixed`
 - **Symptom:** `UPDATE calibration_items SET grade = 4.5` succeeded, though the T41 scale has whole scores only. No real grade was affected: none exists yet.
 - **Reproduce:** Claude's script on a temporary database, written while checking Antigravity's review, which had listed its lock attempts as all refused.

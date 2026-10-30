@@ -15,18 +15,20 @@ from rag_playground.settings import JUDGE_MODEL
 
 Score = Literal[1, 2, 3, 4, 5]
 
-ANSWER_INSTRUCTIONS = """You grade one answer from a question-answering system against a reference answer.
+ACCURACY_RUBRIC = """accuracy (answer vs reference answer): is what the answer states correct?
+- 5: every stated fact agrees with the reference answer.
+- 3: the main fact is correct but a secondary detail is wrong.
+- 1: the main fact is wrong or missing, or any stated fact contradicts the reference answer.
+- If the reference answer is "Not in the knowledge base.": a refusal scores 5; any answer that gives a substantive answer scores 1.
+- If the reference answer contains an answer and the system refused: 1."""
+
+ANSWER_INSTRUCTIONS = f"""You grade one answer from a question-answering system against a reference answer.
 You receive the question, the reference answer and the system's answer.
 First write a short feedback explaining your grades, then grade each criterion from 1 to 5.
 
 refused: true if the answer declines to answer or says the information is not available; otherwise false.
 
-accuracy (answer vs reference answer): is what the answer states correct?
-- 5: every stated fact agrees with the reference answer.
-- 3: the main fact is correct but a secondary detail is wrong.
-- 1: the main fact is wrong or missing, or any stated fact contradicts the reference answer.
-- If the reference answer is "Not in the knowledge base.": a refusal scores 5; any answer that gives a substantive answer scores 1.
-- If the reference answer contains an answer and the system refused: 1.
+{ACCURACY_RUBRIC}
 
 completeness (answer vs reference answer): does the answer give every part of what the question asks for, as the reference answer gives it?
 - 5: every part. 3: about half of the parts. 1: none of them.

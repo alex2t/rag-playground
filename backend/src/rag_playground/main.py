@@ -1,5 +1,6 @@
 """FastAPI app: API routes and the built React frontend."""
 
+import sqlite3
 from contextlib import asynccontextmanager
 from dataclasses import asdict
 
@@ -7,8 +8,11 @@ from fastapi import FastAPI, HTTPException, Response
 from fastapi.staticfiles import StaticFiles
 
 from rag_playground import jobs, store
+from rag_playground.calibration_requests import DbId, GradeRequest, OpenCalibration
+from rag_playground.rag import grading
 from rag_playground.rag.pipeline import BudgetExceeded
 from rag_playground.run_requests import RunRequest
+from rag_playground.scoring.judging import ACCURACY_RUBRIC
 from rag_playground.settings import settings
 from rag_playground.stacks import qdrant_store
 
@@ -62,13 +66,59 @@ def start_run(request: RunRequest) -> dict:
 
 
 @app.get("/api/jobs/{job_id}")
-def job_status(job_id: int) -> dict:
+def job_status(job_id: DbId) -> dict:
     """A background job's status, progress, message and error (D07); the UI polls it."""
     conn = store.connect()
     try:
         return asdict(jobs.get_job(conn, job_id))
     except KeyError:
         raise HTTPException(status_code=404, detail=f"No job {job_id}")
+    finally:
+        conn.close()
+
+
+@app.post("/api/calibration")
+def open_calibration(request: OpenCalibration) -> dict:
+    """Open the calibration of the two full S0 runs (T48), drawing its fixed sample the first time. 404 if a run does
+    not exist, 422 if it is not the full S0 run of its stack."""
+    conn = store.connect()
+    try:
+        return {"calibration_id": grading.open_calibration(conn, request.run_a, request.run_b)}
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=f"No run {exc.args[0]}")
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    finally:
+        conn.close()
+
+
+@app.get("/api/calibration/{calibration_id}")
+def calibration_state(calibration_id: DbId) -> dict:
+    """Progress, the next answer to grade (blind) and the score definitions; agreement only once all are graded."""
+    conn = store.connect()
+    try:
+        graded, size = grading.progress(conn, calibration_id)
+        item = grading.next_item(conn, calibration_id)
+        result = None if item else grading.agreement(conn, calibration_id)
+        return {"graded": graded, "size": size, "rubric": ACCURACY_RUBRIC, "item": item and asdict(item),
+                "agreement": result and asdict(result) | {"target_reached": result.target_reached}}
+    except KeyError:
+        raise HTTPException(status_code=404, detail=f"No calibration {calibration_id}")
+    finally:
+        conn.close()
+
+
+@app.post("/api/calibration/{calibration_id}/grades", status_code=204)
+def grade_answer(calibration_id: DbId, request: GradeRequest) -> None:
+    """Save the user's grade for one answer. 404 if there is no such answer, 409 if it is already graded: a grade is
+    final (T48)."""
+    conn = store.connect()
+    try:
+        grading.save_grade(conn, calibration_id, request.position, request.grade)
+    except KeyError:
+        raise HTTPException(status_code=404, detail=f"No answer {request.position} in calibration {calibration_id}")
+    except sqlite3.IntegrityError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
     finally:
         conn.close()
 
