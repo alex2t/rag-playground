@@ -2,7 +2,7 @@
 
 How to use the RAG Playground dashboard: ask questions, run evaluations, compare set-ups and prepare the live demo.
 
-> **Status (2026-10-29):** the dashboard pages are designed but not built yet (plan step 9). This manual follows the design in `plan.md` and will be updated when the pages exist. What is behind them is built and tested: the evaluation engine, background runs, the API that starts a run (`POST /api/runs`) and the progress API (`GET /api/jobs/{id}`).
+> **Status (2026-10-30):** the dashboard pages are designed but not built yet (plan step 9). This manual follows the design in `plan.md` and will be updated when the pages exist. What is behind them is built and tested: the evaluation engine, LLM enrichment, background runs, best-run selection, the API that starts a run (`POST /api/runs`) and the progress API (`GET /api/jobs/{id}`).
 
 ## 1. What the app does
 
@@ -58,6 +58,14 @@ The **Ask**, **Evaluate** and **Sweep** pages share one settings panel:
 If the chunks for your chunk size and overlap do not exist yet, the panel shows how long building them takes and what it costs, and builds them only after you confirm.
 
 ## 5. The pages
+
+### How an evaluation works
+Building and evaluating are two separate actions:
+
+1. **Build** prepares the chunks and stores them on a stack. It answers no questions and gives no scores.
+2. A **run** evaluates what was built. For each test question, the stack searches, the answer model answers, and the judge grades the answer against that question's reference answer. The scores also check whether the search found the documents that hold the answer.
+
+Both stacks are tested on the same 240 prepared questions, with the same reference answers, so their scores can be compared. A run uses one question set: **dev** (192), **held-out** (48), or the 20-question **smoke test**, never all 240 at once. The smoke test only checks that a configuration works, and it stays out of Compare, Story and the findings.
 
 ### Ask: try one question
 Use it to see how one configuration answers.
@@ -147,6 +155,7 @@ Spend against the budget, error rate, slowest-answer time (p95) and the app vers
 | The same at K=8 (projected from token counts) | $0.55 per stack |
 | A full dev run with `gpt-6.1-sol` | $2.50 or more per stack (not measured yet) |
 | One question typed on **Ask** (no grading) | $0.0002 to $0.0003 with `gpt-4.1-nano` |
+| Building an `llm_enriched` chunk set | $0.04 to $0.27, once per chunk set (projected, not measured yet) |
 
 Most of the cost of an evaluation is the judge. Stack A may add OpenAI's own search fees (being checked).
 
