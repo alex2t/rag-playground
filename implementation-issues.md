@@ -212,3 +212,20 @@ Antigravity's review confirmed 5 of 6 findings:
 **Lessons.**
 - A clean verdict is not evidence; the claims under it are. Check the facts a review rests on, not only its conclusion.
 - Names a reviewer cites (tests, settings, files) are the cheapest thing to verify, and the first thing to check.
+
+## 15. Steps 6-7: tests that passed for the wrong reason (2026-10-30)
+**Where we were.** Finishing Step 6 (database locking, best-run selection) and building Step 7 (LLM enrichment).
+
+**What happened.** Several new tests looked fine and proved nothing. The test for the database lock passed even without the fix, because it held a weaker lock than a real save does. In the best-run tests, the "never compete" checks passed only because a mislabelled test question had emptied the list of runs, so every run was being excluded. Later, three breaks looked caught, but one test was already failing on its own because a chunk in the test data was one character short.
+
+**First guess.** A green test means the behaviour works. It did not.
+
+**What was done.** Each test was first seen failing, and each rule was then broken on purpose to confirm a test notices. The breaks also found gaps: a sample that was not random at all, and an 80% target that could have used the wrong figure. Writing tests only after the code gave no such first failure, so those relied entirely on the deliberate breaks.
+
+**The half-written line.** Enrichment saves each chunk as soon as it is paid for, to make a stopped build safe. Nobody had tried a stop in the middle of a save: it left half a line, and every later build crashed until someone edited the file by hand. Saves now replace the whole file in one step, so half a line cannot appear. The reviewer's suggestion, skipping a damaged line, would have hidden real damage.
+
+**Lessons.**
+- Before trusting a test, watch it fail for the right reason.
+- A deliberate break only counts if the suite passes without it.
+- Test the stop in the middle of an action, not only between actions.
+- Fix what causes bad data, rather than teaching the code to step around it.

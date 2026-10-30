@@ -117,7 +117,7 @@ Fixed costs:
 - Qdrant + fastembed: $0.
 - OpenAI Vector Store storage: free under 1 GB.
 - Stack A embedding: under $0.05 per build.
-- Enrichment: about $1, once.
+- Enrichment: about $0.04 to $0.27 per chunk set, once (T47; projected at live prices, not measured).
 - Stack A searches: possibly billed by OpenAI (about $2.50 per 1,000 searches if so, about $0.48 per 192-question run); being checked. They are billed to the OpenAI account and are not counted in `BUDGET_USD`.
 
 The app's estimate (T43) is what counts before a run: checked on batch 2 (10 questions it was not fitted to), it was 12% below the real cost on Stack A and 1% below on Stack B, within the 50% the plan allows.

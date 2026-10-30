@@ -4,6 +4,15 @@ Add new bugs at the top. Status: `open` | `investigating` | `fixed`.
 
 ---
 
+## [2026-10-30] Step 7: a half-written saved line blocked every later enrichment build - `fixed` (confirmed by Antigravity, Gemini 3.8, 2026-10-30)
+- **Symptom:** after a stop during a save, every later `load_or_enrich` failed with `ValidationError: Invalid JSON: EOF while parsing an object`, until the file was edited by hand. No paid chunk was lost, but the "a stopped build resumes" promise was broken. No real build was affected: none had run.
+- **Reproduce:** a saved enriched set with its last 20 characters cut off, then `load_or_enrich` (Claude's script, fake LLM).
+- **Root cause (evidence):** each chunk was appended to the file, and an append is not atomic, so a stop mid-write leaves part of a JSON line. The tests stopped builds only between chunks.
+- **Fix:** `enrichment.save` writes the whole set to a temporary file and puts it in place with `Path.replace`. Antigravity found the same problem on the older code and suggested skipping a damaged last line on load; not applied, because that treats the symptom and would hide real damage.
+- **Limit:** safe against a process crash. Not guaranteed against a power cut (no fsync), and `os.replace` is not documented as atomic on Windows. The worst case is a loud error and pennies to redo, so nothing more was added.
+- **Verified:** the new test failed before the fix; 3 deliberate breaks of the save caught; Antigravity's re-review: 0 findings. Full suite 438 passed at the time.
+- **Status:** `fixed`
+
 ## [2026-10-29] Step 6 (first real run): Stack A retrieved almost nothing relevant; the estimate was 64% too high - `fixed` (confirmed by Antigravity, Gemini 3.8, and by the batch 2 re-run, 2026-10-29)
 - **Symptom:** runs 1 (Stack A) and 2 (Stack B), 10 dev questions round-robin (T46), S0, run by the user. Stack A refused 8 of 10 (mean accuracy 1.8); Stack B refused 2 (4.2). Only 1 of the 10 is unanswerable. The estimate was $0.0192 per stack against $0.0117 (A) and $0.0120 (B) recorded: 64% and 60% above, failing the plan check (within 50%).
 - **Reproduce:** `scripts/first_run.py both` at `ee55ede`; evidence in `var/rag_playground.db` (runs 1-2, their results and spend rows).

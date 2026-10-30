@@ -104,7 +104,7 @@ question -> retrieve the top-K chunks -> (optional) rerank -> answer LLM writes 
 | S1 | Chunk size | The best size from a sweep of 100, 200, 400, 800, 1,024 and 1,600 tokens |
 | S2 | Overlap | The best of 0%, about 20% (the baseline's share) and 25% of the chunk size |
 | S3 | Top-K | The best of 2, 4, 6 and 8 chunks |
-| S4 | Chunk enrichment | An LLM adds a headline and a summary to each chunk |
+| S4 | Chunk enrichment | An LLM reads each chunk and its whole document and writes a headline and a summary, used for search only; answers read the original text |
 | S5 | Reranking | Retrieve 20 chunks, an LLM reorders them, keep the top K (S3's value) |
 | S6 | System prompt | The best of at most 4 prompt versions, written before the step runs and compared on dev questions only |
 | S7 | Answer model | A stronger model, shown as a cost trade-off rather than a RAG technique |
