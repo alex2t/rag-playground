@@ -1,5 +1,6 @@
 """Step 6 checks of the evaluation pipeline, with fake models and a fake retriever (no network, no cost)."""
 
+import threading
 from dataclasses import replace
 
 import pytest
@@ -160,12 +161,13 @@ def test_latency_covers_retrieval_and_answer_but_not_the_judge(conn, fakes, monk
 
 
 def test_a_failure_marks_the_run_failed_keeps_earlier_results_and_is_raised(conn, fakes, monkeypatch):
-    answered = []
+    answered, lock = [], threading.Lock()
 
     def answer(model, prompt, question, hits):
-        if len(answered) == 3:
-            raise RuntimeError("rate limited")
-        answered.append(question)
+        with lock:
+            if len(answered) == 3:
+                raise RuntimeError("rate limited")
+            answered.append(question)
         return call(0.01)
 
     monkeypatch.setattr(pipeline, "answer", answer)

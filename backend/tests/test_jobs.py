@@ -127,7 +127,7 @@ def test_a_failing_question_fails_the_job_and_its_run_with_the_error(world):
     job_id = jobs.submit_evaluation(conn, CHOICES, DEV)
     wait_for_jobs()
     job = jobs.get_job(conn, job_id)
-    assert (job.status, job.error, job.message) == ("failed", "RuntimeError: rate limited", "1 of 3 questions")
+    assert (job.status, job.error, job.message) == ("failed", "RuntimeError: rate limited", "2 of 3 questions")
     assert runs.get_run(conn, job.run_id).error == "RuntimeError: rate limited"
 
 

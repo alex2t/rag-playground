@@ -37,6 +37,7 @@ BM25_MODEL = "Qdrant/bm25"
 
 # Minimum scores a run needs before it can be "best" (T08): custom values, confirmed 2026-10-27,
 # to be reviewed after the first real runs. Each gate passes when the score is >= its value.
+PARALLEL_QUESTIONS = 5  # questions of one run at a time (custom choice, T51)
 GATES = {"mrr": 0.75, "recall": 0.80, "faithfulness": 4.0, "correct_refusal_rate": 0.80}
 BOOTSTRAP_RESAMPLES = 1000
 BOOTSTRAP_SEED = 42

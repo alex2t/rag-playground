@@ -149,7 +149,7 @@ def paying_fakes(monkeypatch, offline_runs):
 
     def judge(test, context, text):
         first = paid(call(0.002))
-        if len(asked) == 2:
+        if test.id == DEV[1].id:
             raise RuntimeError("judge reply could not be read")
         return VERDICT, [first, paid(call(0.003))]
 
@@ -163,14 +163,14 @@ def retrieve(question, k):
 
 
 def test_a_run_records_the_calls_of_a_question_that_failed_halfway(conn, paying_fakes):
-    """Question 1 completes; question 2 pays for its rerank, answer and first judge call, then fails."""
+    """Questions 1 and 3 complete; question 2 pays for its rerank, answer and first judge call, then fails."""
     run_id = pipeline.start_run(conn, CHOICES, DEV)
     with pytest.raises(RuntimeError):
         pipeline.execute(conn, run_id, retrieve)
     stored = sum(r.cost_usd for r in runs.get_results(conn, run_id))
-    assert stored == pytest.approx(0.016)
-    assert spend.total(conn, run_id) == pytest.approx(0.016 + 0.001 + 0.01 + 0.002)
-    assert conn.execute("SELECT count(*) FROM spend WHERE run_id = ?", (run_id,)).fetchone()[0] == 4 + 3
+    assert stored == pytest.approx(2 * 0.016)
+    assert spend.total(conn, run_id) == pytest.approx(2 * 0.016 + 0.001 + 0.01 + 0.002)
+    assert conn.execute("SELECT count(*) FROM spend WHERE run_id = ?", (run_id,)).fetchone()[0] == 2 * 4 + 3
 
 
 def test_a_completed_run_records_the_same_spend_as_its_results(conn, paying_fakes, monkeypatch):

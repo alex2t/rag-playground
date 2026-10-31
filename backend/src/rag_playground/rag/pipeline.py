@@ -4,7 +4,10 @@ Retrieval is passed in as a function, so the pipeline is the same for both stack
 
 import sqlite3
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor, wait
+from contextvars import copy_context
 from dataclasses import dataclass
+from itertools import accumulate, takewhile
 from statistics import fmean
 from time import perf_counter
 
@@ -15,7 +18,7 @@ from rag_playground.rag import estimate, prompts, runs, spend
 from rag_playground.rag.answer import answer
 from rag_playground.rag.rerank import rerank
 from rag_playground.scoring.judging import judge
-from rag_playground.settings import JUDGE_MODEL, RERANK_CANDIDATES, RERANK_MODEL, settings
+from rag_playground.settings import JUDGE_MODEL, PARALLEL_QUESTIONS, RERANK_CANDIDATES, RERANK_MODEL, settings
 from rag_playground.stacks.hits import Hit
 
 Retrieve = Callable[[str, int], list[Hit]]
@@ -118,30 +121,56 @@ def check_budget(conn: sqlite3.Connection, next_cost: float) -> None:
                              f"${settings.budget_usd:.2f}; the next question could cost ${next_cost:.4f}")
 
 
+def fitting(conn: sqlite3.Connection, assumed: list[float]) -> int:
+    """How many of the next questions can run together: their assumed costs, all in flight at once, stay within
+    what is left of BUDGET_USD."""
+    left = remaining(conn)
+    return len(list(takewhile(lambda total: total <= left, accumulate(assumed))))
+
+
+def ask_together(conn: sqlite3.Connection, run_id: int, pool: ThreadPoolExecutor, tests: list[TestCase],
+                 meta: runs.RunMeta, prompt: prompts.PromptVersion, retrieve: Retrieve) -> float:
+    """Ask the questions at once and store their results in question order; return the most expensive one's cost. Each
+    gets its own copy of the context, or its paid calls would not reach the spend listener. Every question ends before
+    anything is stored, so no other thread is writing. A question that failed does not cost the others their paid
+    results: those are stored first, then the first failure is raised."""
+    asked = [pool.submit(copy_context().run, run_question, test, meta, prompt, retrieve) for test in tests]
+    wait(asked)
+    for future in asked:
+        if not future.exception():
+            runs.add_result(conn, run_id, future.result())
+    return max(future.result().cost_usd for future in asked)
+
+
 def execute(conn: sqlite3.Connection, run_id: int, retrieve: Retrieve) -> None:
-    """Answer the run's own questions with its stored settings, storing each result as soon as it is judged so
-    progress can be read meanwhile; every paid call is recorded as it returns (T44). The questions are read from
-    the run, so they cannot differ from the ones it declared. Before each question the run stops if it could
-    take spend past BUDGET_USD; the next question is assumed to cost the larger of its estimate (T43) and the
-    run's most expensive question so far, since the estimate is low for reasoning models. A failure, or that
-    stop, marks the run failed with the error, which is raised again."""
+    """Answer the run's own questions with its stored settings, up to PARALLEL_QUESTIONS at once, storing each batch
+    as soon as it is judged so progress can be read meanwhile; every paid call is recorded as it returns (T44). The
+    questions are read from the run, so they cannot differ from the ones it declared. The first question runs alone:
+    it shows a dead service for one question's cost, loads the embedding model once, and gives the guard a real cost.
+    Before each batch the guard keeps only the questions that fit in the budget together, each assumed to cost the
+    larger of its estimate (T43) and the run's most expensive question so far, since the estimate is low for reasoning
+    models; if not even one fits, the run stops. A failure, or that stop, marks the run failed with the error, which is
+    raised again."""
     run = runs.get_run(conn, run_id)
     if run.status != "running":
         raise ValueError(f"Run {run_id} is {run.status}; a finished run is never run again")
     meta = run.meta
     prompt = prompts.get(conn, meta.prompt_name)
     by_id = {test.id: test for test in load_tests()}
-    largest = 0.0
+    tests = [by_id[test_id] for test_id in meta.test_ids]
+    largest, done = 0.0, 0
     try:
         chunk_tokens = fmean(chunk.tokens for chunk in load_chunk_set(meta.chunk_set_id))
-        with spend.recording(conn, run_id):
-            for test in (by_id[test_id] for test_id in meta.test_ids):
-                guess = estimate.question_cost(test, prompt, meta.answer_model, meta.top_k,
-                                               meta.rerank_model is not None, chunk_tokens)
-                check_budget(conn, max(guess, largest))
-                result = run_question(test, meta, prompt, retrieve)
-                runs.add_result(conn, run_id, result)
-                largest = max(largest, result.cost_usd)
+        with spend.recording(conn, run_id), ThreadPoolExecutor(PARALLEL_QUESTIONS, "job-question") as pool:
+            while done < len(tests):
+                size = PARALLEL_QUESTIONS if done else 1
+                assumed = [max(largest, estimate.question_cost(test, prompt, meta.answer_model, meta.top_k,
+                                                               meta.rerank_model is not None, chunk_tokens))
+                           for test in tests[done:done + size]]
+                check_budget(conn, assumed[0])
+                count = fitting(conn, assumed)
+                cost = ask_together(conn, run_id, pool, tests[done:done + count], meta, prompt, retrieve)
+                largest, done = max(largest, cost), done + count
     except Exception as exc:
         runs.finish_run(conn, run_id, error=f"{type(exc).__name__}: {exc}")
         raise

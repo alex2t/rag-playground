@@ -223,10 +223,11 @@ def db_path() -> Path:
 
 
 def connect(path: Path | None = None) -> sqlite3.Connection:
-    """Open the database (creating it and its tables if needed); rows behave like dicts."""
+    """Open the database (creating it and its tables if needed); rows behave like dicts. A run's parallel questions
+    write spend through their job's connection (`spend.recording` keeps those writes one at a time)."""
     path = path or db_path()
     path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(path)
+    conn = sqlite3.connect(path, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.executescript(SCHEMA)
     return conn

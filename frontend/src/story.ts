@@ -1,11 +1,17 @@
 /** Pure logic of the Story page: what the charts and tables show from the API's ladder state. */
 
-import type { Config, Heldout, LadderState, Option, Step } from './api/types.ts'
+import type { Config, Heldout, Job, LadderState, Option, Step } from './api/types.ts'
 
 export type Metric = 'accuracy' | 'mrr'
 export type ChartRow = { step: string; A: number | null; B: number | null }
 
 export const STEPS = ['S0', 'S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7']
+
+/** What a job is doing now. One job runs at a time, so a queued one is waiting, not preparing. */
+export function jobLine(job: Job): string {
+  if (job.status === 'queued') return 'Waiting for the step already running to finish'
+  return `${job.message} (${Math.round(job.progress * 100)}%)`
+}
 
 export function keptOption(step: Step): Option | undefined {
   return step.tried.find((option) => option.kept)

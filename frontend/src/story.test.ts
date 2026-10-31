@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import type { Config, LadderState, Option, Step } from './api/types.ts'
-import { chartRows, choosingPrompts, estimateIsStale, finalStep, heldoutLabel, keptOption, money, promptList, tradeOff } from './story.ts'
+import { chartRows, choosingPrompts, estimateIsStale, finalStep, heldoutLabel, jobLine, keptOption, money, promptList, tradeOff } from './story.ts'
+
+test('a queued job says it is waiting, a running one says how far it is', () => {
+  const job = { id: 1, kind: 'ladder_step', run_id: null, error: null, message: 'S1 on Stack B: preparing', progress: 0 }
+  assert.equal(jobLine({ ...job, status: 'queued' }), 'Waiting for the step already running to finish')
+  assert.equal(jobLine({ ...job, status: 'running', message: 'S1: run 2 of 5', progress: 0.284 }), 'S1: run 2 of 5 (28%)')
+})
 
 const config: Config = { chunk_size: 1024, overlap: 200, top_k: 2, answer_model: 'm', prompt_name: 'default',
   method: 'fixed', rerank: false }

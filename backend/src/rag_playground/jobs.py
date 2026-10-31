@@ -1,6 +1,6 @@
 """Background jobs in the API process (D07): one worker thread runs one job at a time, the UI polls its status.
 
-One worker keeps runs in sequence, which the budget guard assumes (T44). Jobs do not survive a restart: at startup,
+One worker keeps runs in sequence, which the budget guard assumes (T44); inside a run, questions go in parallel. Jobs do not survive a restart: at startup,
 jobs and runs left unfinished are marked failed."""
 
 import json

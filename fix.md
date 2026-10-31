@@ -4,6 +4,14 @@ Add new bugs at the top. Status: `open` | `investigating` | `fixed`.
 
 ---
 
+## [2026-10-31] Step 9: one ladder step took over an hour - `fixed`
+- **Symptom:** Stack A's S1 took 82 minutes.
+- **Reproduce:** run any ladder step with 192 questions.
+- **Root cause (evidence):** `pipeline.execute` asked questions one at a time, at about 5 s each (14 questions in 68 s on run 8).
+- **Fix:** 5 questions at a time within a run (T51), with the budget guard counting spend in flight.
+- **Verified by:** `tests/test_parallel.py`, 12 deliberate breaks, full suite 729 passed; Stack B's S1 took 43 minutes with no failed question.
+- **Status:** fixed.
+
 ## [2026-10-31] Step 9: Story page could run S6 on a stale estimate, and froze if the server stopped - `fixed`
 - **Symptom:** found by Antigravity. After Estimate on one prompt, adding more kept Run enabled with the old cost; polling had no error handling, so a lost server left the page on its last progress line; a saved S6 choice still showed the input box.
 - **Root cause (evidence):** `estimateIsStale` only tested `missing.length === 0`; the `setInterval` callback in `useLadder.ts` had no try/catch; the page could not tell a preview from a saved choice, since both fill `missing`.

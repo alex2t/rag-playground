@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { getLadder, startHeldout, startStep } from '../api/client.ts'
 import type { StackId } from '../api/types.ts'
 import type { useLadder } from '../api/useLadder.ts'
-import { choosingPrompts, describe, estimateIsStale, finalStep, money, promptList } from '../story.ts'
+import { choosingPrompts, describe, estimateIsStale, finalStep, jobLine, money, promptList } from '../story.ts'
 import HeldoutPanel from './HeldoutPanel.tsx'
 import StepsTable from './StepsTable.tsx'
 
@@ -83,9 +83,11 @@ export default function StackPanel({ stack, ladder }: { stack: StackId; ladder: 
               </div>
             )}
           {running && (
-            <p role="status" className="mt-2 text-sm">
-              {job ? `${job.message} (${Math.round(job.progress * 100)}%)` : 'Starting...'}
-            </p>
+            <div role="status" className="mt-2 text-sm">
+              <p>{job ? jobLine(job) : 'Starting...'}</p>
+              <progress className="mt-1 w-full accent-accent" aria-label="Step progress" max={1}
+                value={job && job.status !== 'queued' && job.progress > 0 ? job.progress : undefined} />
+            </div>
           )}
           {state.last_error && !running && <p role="alert" className="mt-2 text-sm text-danger">Last step failed: {state.last_error}</p>}
           {final && (

@@ -111,7 +111,7 @@ Measured on runs 2-4 (10 dev questions each, S0: 1,024-token chunks, K=2, no rer
 | Reranking on | about +$0.27 | projected: the reranker reads 20 candidates (about 14,000 tokens) per question |
 | 48 held-out questions, `gpt-4.1-nano`, K=2 | about $0.06 | measured per question × 48 |
 
-Time: questions run one at a time; retrieval and answer take about 2-3.5 s per question, the judge comes on top. A full run's time is not measured yet.
+Time: measured on Stack A's S1 (one question at a time): 5 runs and 5 index builds took 82 minutes, about 5 s per question. Since T51, questions of a run go 5 at a time (`PARALLEL_QUESTIONS`); runs still go one at a time.
 
 Fixed costs:
 - Qdrant + fastembed: $0.

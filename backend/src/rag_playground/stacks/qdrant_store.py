@@ -2,6 +2,7 @@
 
 import uuid
 from functools import cache
+from threading import Lock
 
 from fastembed import SparseTextEmbedding
 from qdrant_client import QdrantClient, models
@@ -14,6 +15,8 @@ from rag_playground.stacks.hits import Hit
 DENSE, SPARSE = "dense", "bm25"
 # Candidates each list contributes to RRF in hybrid search (custom choice, see decision.md T37).
 HYBRID_PREFETCH = 50
+# Parallel questions embed one at a time: embedding is local CPU work on an 8 GB PC, so waiting costs little.
+EMBEDDING = Lock()
 
 
 @cache
@@ -64,10 +67,12 @@ def to_hit(point: models.ScoredPoint) -> Hit:
 
 def search(q: QdrantClient, name: str, query: str, k: int, hybrid: bool = False) -> list[Hit]:
     """Top-k chunks by cosine similarity, or by RRF over the dense and BM25 rankings when `hybrid` is on."""
-    dense = nomic.embed_query(query)
+    with EMBEDDING:
+        dense = nomic.embed_query(query)
+        words = sparse(next(iter(bm25().query_embed(query)))) if hybrid else None
     if not hybrid:
         return [to_hit(p) for p in q.query_points(name, query=dense, using=DENSE, limit=k).points]
     prefetch = [models.Prefetch(query=dense, using=DENSE, limit=HYBRID_PREFETCH),
-                models.Prefetch(query=sparse(next(iter(bm25().query_embed(query)))), using=SPARSE, limit=HYBRID_PREFETCH)]
+                models.Prefetch(query=words, using=SPARSE, limit=HYBRID_PREFETCH)]
     points = q.query_points(name, prefetch=prefetch, query=models.FusionQuery(fusion=models.Fusion.RRF), limit=k).points
     return [to_hit(p) for p in points]

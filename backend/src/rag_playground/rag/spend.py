@@ -3,6 +3,7 @@
 import sqlite3
 from collections.abc import Iterator
 from contextlib import contextmanager
+from threading import Lock
 
 from rag_playground.llm.openrouter import ChatResult, cost_listener
 from rag_playground.rag.runs import insert
@@ -17,8 +18,15 @@ def record(conn: sqlite3.Connection, run_id: int | None, result: ChatResult) -> 
 
 @contextmanager
 def recording(conn: sqlite3.Connection, run_id: int | None) -> Iterator[None]:
-    """Record every paid call made inside the block, each as soon as it returns."""
-    token = cost_listener.set(lambda result: record(conn, run_id, result))
+    """Record every paid call made inside the block, each as soon as it returns. Questions in parallel share the
+    connection, so one write at a time."""
+    lock = Lock()
+
+    def listen(result: ChatResult) -> None:
+        with lock:
+            record(conn, run_id, result)
+
+    token = cost_listener.set(listen)
     try:
         yield
     finally:
