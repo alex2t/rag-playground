@@ -77,6 +77,11 @@ def test_a_run_stopped_partway_shows_what_it_answered(conn):
     assert [a["test_id"] for a in answers(run_id).json()] == [DEV[0].id]
 
 
+def test_a_run_with_no_answer_yet_is_an_empty_list(conn):
+    response = answers(stored_run(conn))
+    assert (response.status_code, response.json()) == (200, [])
+
+
 def test_held_out_answers_are_refused(conn):
     run_id = runs.create_run(conn, meta(conn, split="heldout", test_ids=[t.id for t in HELDOUT]))
     runs.add_result(conn, run_id, result(HELDOUT[0], 5))
