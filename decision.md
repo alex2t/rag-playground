@@ -563,6 +563,7 @@ Status: `accepted` | `proposed` (default, needs review) | `open` | `superseded`.
 - **Running:** one step per click: the page shows the step's estimate, then runs it. Nothing else is needed to stop at S4 (cost shown first, T49) or S6 (prompts written first).
 - **State:** none of its own. `rag/ladder.walk` replays the steps over the stored runs, which are permanent (D21), so a stored run is reused, runs 5 and 7 count as S0, and a restart loses only the unfinished work.
 - **Alternatives:** highest accuracy alone (can pay more for a gap that is only noise); keep the old value unless the gain is real (strict, but would not adopt a cheaper equal value); one click with pauses (less clicking, less seen before spending, more code).
+- **Limit:** a run is matched by model name, not by the provider's dated model version (`answer_slug`). If OpenRouter moved `gpt-4.1-nano` to a new version in the middle of the ladder, earlier runs would still count, and two steps would differ in a second variable. A changed judge version does stop the ladder (T08 filter). Runs 5 and 7 store `openai/gpt-4.1-nano-2025-04-14`.
 - **Trade-off:** a tie can move to a cheaper value with slightly lower accuracy, so a stack's line can dip a little. About 7 clicks per stack.
 - **Best practice:** choosing values on dev data and confirming on held-out is standard; the per-step rule is a custom choice, with no correction for many comparisons (T08).
 
