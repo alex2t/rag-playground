@@ -31,12 +31,14 @@ def is_real_improvement(before: dict[str, float], after: dict[str, float]) -> bo
 
 @dataclass(frozen=True)
 class Candidate:
-    """What the best-run choice needs from one run: gate scores, accuracy per question, mean cost per question."""
+    """What choosing between runs needs from one run: gate scores, accuracy per question, mean cost per question,
+    and MRR per answerable question."""
 
     run_id: int
     scores: dict[str, float]
     accuracy: dict[str, float]
     cost_per_question: float
+    mrr: dict[str, float]
 
     @property
     def mean_accuracy(self) -> float:

@@ -22,8 +22,10 @@ def candidate(conn: sqlite3.Connection, run: runs.Run, by_id: dict) -> selection
     scores = {"mrr": found["mrr"], "recall": found["recall"],
               "faithfulness": fmean(r.judgement.faithfulness for r in results),
               "correct_refusal_rate": trust.correct_refusal_rate(tests, refused)}
+    mrr = {r.test_id: retrieval.reciprocal_rank([h.source for h in r.hits], by_id[r.test_id].source_docs)
+           for r in results if by_id[r.test_id].source_docs}
     return selection.Candidate(run.id, scores, {r.test_id: r.judgement.accuracy for r in results},
-                               fmean(r.cost_usd for r in results))
+                               fmean(r.cost_usd for r in results), mrr)
 
 
 def candidates(conn: sqlite3.Connection) -> list[selection.Candidate]:

@@ -4,6 +4,13 @@ Add new bugs at the top. Status: `open` | `investigating` | `fixed`.
 
 ---
 
+## [2026-10-31] Step 9: ladder tests missed three breaks - `fixed`
+- **Symptom:** Antigravity reported 15 breaks caught. Re-running its doubtful ones, 3 passed all 29 tests in `tests/test_ladder.py`.
+- **Reproduce:** in `rag/ladder.py`, change the prompt limit to `>=`, or S4's method to `"enriched"`, or S2's `round` to `int`, then run the file's tests.
+- **Root cause:** the limit test sent only 5 prompts, so `>` and `>=` behave alike; the S4 tests took their expected value from `options()` itself; the S2 test used a size where rounding and truncating give the same number. Claude's own 15 breaks did not include these.
+- **Fix:** tests for exactly 4 prompts, S4's and S5's exact configurations, and S2 containing S1's run at every size. No code bug. Separately, `choose` looked each result up twice (Antigravity's finding, confirmed); now once.
+- **Verified:** the 3 breaks are caught, as are the 15 earlier ones and one more on S5; full suite 611 passed.
+
 ## [2026-10-30] Step 8: very large ids crashed the API (500) - `fixed`
 - **Symptom:** `GET /api/calibration/{2**70}`, `POST /api/calibration` and the grades route returned 500, and so did the older `GET /api/jobs/{id}`. Nothing was stored.
 - **Reproduce:** Claude's script on a temporary database; Antigravity (Gemini 3.8) found the same on the calibration routes.

@@ -84,6 +84,7 @@ def test_a_candidate_holds_the_exact_scores_of_its_run(conn):
         {"mrr": 3 / 4, "recall": 5 / 8, "faithfulness": 41 / 9, "correct_refusal_rate": 4 / 5})
     assert candidate.accuracy == {"a1": 2, **{test_id: 5 for test_id in DEV_IDS[1:]}}
     assert candidate.cost_per_question == pytest.approx(0.13 / 9)
+    assert candidate.mrr == {"a1": 0, "a2": 1, "a3": 1, "a4": 1}, "answerable questions only (T49 compares these)"
 
 
 def test_the_best_run_is_chosen_from_stored_scores(conn):

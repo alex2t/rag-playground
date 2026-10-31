@@ -174,7 +174,7 @@ Temperature is sent only if the model's OpenRouter `supported_parameters` includ
 ## 3. Story mode
 
 ### 3.1 The improvement ladder (run on each stack, on the 192 dev questions)
-Each step changes **one** thing compared with the step before. S4 and S5 test one option each: it is kept for the later steps only if its gain is real, otherwise the ladder continues from the step before (T49).
+Each step changes **one** thing compared with the step before. S4 and S5 test one option each: it is kept for the later steps only if its gain is real, otherwise the ladder continues from the step before (T49). S1, S2, S3 and S6 pick their winner by the T08 rule. The ladder runs one step per click and works out its state from the stored runs (T50).
 
 | Step | Change | Configuration |
 |---|---|---|
@@ -190,7 +190,7 @@ Each step changes **one** thing compared with the step before. S4 and S5 test on
 The ladder is stored as data in config.
 
 ### 3.2 Head-to-head
-At every ladder step, Stack A and Stack B run with identical settings. One chart shows both stacks across S0 to S7: the climb within each stack, and the gap between them.
+Each stack runs the ladder independently with its own default search, and picks its own winners (T40 revision, T49). One chart shows both stacks across S0 to S7: the climb within each stack, and the gap between them.
 
 ### 3.3 Held-out confirmation
 After the ladder, S0 and the best eligible configuration are run on the **48 held-out** questions for each stack. The held-out numbers are the ones quoted as the final result. With only 48 questions their confidence intervals are wider, and the report says so.

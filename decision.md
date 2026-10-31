@@ -555,6 +555,17 @@ Status: `accepted` | `proposed` (default, needs review) | `open` | `superseded`.
 - **Alternatives:** keep every option whatever the result (simple, but keeps what did not help).
 - **Best practice:** using a significance test to accept a change is common; applying it this way, per step and per stack, is a custom choice, and it has no correction for many comparisons (see T08).
 
+### T50 - How the ladder picks winners and how it runs - `accepted` 2026-10-31 (user decisions)
+- **Winner at S1, S2, S3 and S6:** the T08 rule at each step: pass the gates, highest mean accuracy, and a gap that is not real (T09) is a tie that goes to the cheapest run. If no option passes the gates, the step keeps the setting it started from. Full S0 runs 5 and 7 pass every gate, and each step's options include the setting it started from at S2, S3 and S6, and at S1 the 1,024-token run, so a valid winner normally exists.
+- **S4 and S5:** T49, and the kept option must also pass the gates, since a run failing one can never be best (T08). Claude's reading, not a separate user decision.
+- **S6:** the user's at most 4 versions, plus the prompt already in use, whose run exists from S5 and costs nothing. Skipping S6 (no version chosen) moves on to S7.
+- **S7:** reported only. The stronger model is never kept, so the final configuration is S6's.
+- **Running:** one step per click: the page shows the step's estimate, then runs it. Nothing else is needed to stop at S4 (cost shown first, T49) or S6 (prompts written first).
+- **State:** none of its own. `rag/ladder.walk` replays the steps over the stored runs, which are permanent (D21), so a stored run is reused, runs 5 and 7 count as S0, and a restart loses only the unfinished work.
+- **Alternatives:** highest accuracy alone (can pay more for a gap that is only noise); keep the old value unless the gain is real (strict, but would not adopt a cheaper equal value); one click with pauses (less clicking, less seen before spending, more code).
+- **Trade-off:** a tie can move to a cheaper value with slightly lower accuracy, so a stack's line can dip a little. About 7 clicks per stack.
+- **Best practice:** choosing values on dev data and confirming on held-out is standard; the per-step rule is a custom choice, with no correction for many comparisons (T08).
+
 ### T47 - LLM enrichment of chunks (ladder step S4) - `accepted` 2026-10-30 (user decisions)
 - **Decision:**
   - The LLM reads the chunk and its whole document, and writes a headline and a summary.

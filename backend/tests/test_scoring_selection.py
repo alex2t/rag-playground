@@ -84,7 +84,7 @@ def test_runs_on_different_questions_are_rejected():
 
 
 def candidate(run_id: int, accuracy: dict[str, float], cost: float, gate_scores: dict | None = None):
-    return selection.Candidate(run_id, gate_scores or PASSING, accuracy, cost)
+    return selection.Candidate(run_id, gate_scores or PASSING, accuracy, cost, {})
 
 
 LOW = scores([3] * 200)

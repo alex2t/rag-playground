@@ -1,4 +1,4 @@
-"""Environment settings, the model catalogue and the selection gates. Sizes and ladder are added later."""
+"""Environment settings, the model catalogue, the ladder's values and the selection gates."""
 
 from pathlib import Path
 
@@ -22,6 +22,12 @@ S0 = {"chunk_size": 1024, "overlap": 200, "top_k": 2, "rerank": False, "answer_m
       "search": {"A": {"hybrid": True, "openai_ranking": {"ranker": "auto", "embedding_weight": 1.0,
                                                           "text_weight": 1.0, "score_threshold": 0.0}},
                  "B": {"hybrid": False, "openai_ranking": None}}}
+# The ladder's values (plan.md 3.1, T24, T45, T50). The size sweep keeps S0's overlap share.
+LADDER_SIZES = (100, 200, 400, 800, 1024, 1600)
+LADDER_OVERLAP_SHARES = (0.0, S0["overlap"] / S0["chunk_size"], 0.25)
+LADDER_TOP_KS = (2, 4, 6, 8)
+LADDER_MAX_PROMPTS = 4  # versions the user may add at S6, besides the one the ladder already uses (T36)
+LADDER_STRONG_MODEL = "openai/gpt-6.1-sol"  # S7, reported as a cost trade-off and never kept
 GENERATOR_MODEL = "anthropic/claude-sonnet-5.5"
 AUDIT_MODEL = "openai/gpt-6.1-sol"
 
