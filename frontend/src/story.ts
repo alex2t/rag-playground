@@ -1,9 +1,10 @@
 /** Pure logic of the Story page: what the charts and tables show from the API's ladder state. */
 
-import type { Config, Heldout, Job, LadderState, Option, Step } from './api/types.ts'
+import type { Change, Config, Heldout, Job, LadderState, Option, Step } from './api/types.ts'
 
 export type Metric = 'accuracy' | 'mrr'
-export type ChartRow = { step: string; A: number | null; B: number | null }
+type Bar = [number, number] | null
+export type ChartRow = { step: string; A: number | null; B: number | null; A_bar: Bar; B_bar: Bar; A_mark: string; B_mark: string }
 
 export const STEPS = ['S0', 'S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7']
 
@@ -17,15 +18,29 @@ export function keptOption(step: Step): Option | undefined {
   return step.tried.find((option) => option.kept)
 }
 
-function scoreAt(state: LadderState | null, name: string, metric: Metric): number | null {
-  const step = state?.steps.find((s) => s.step === name)
-  const option = step && keptOption(step)
-  return option ? option[metric] : null
+/** '+' for a real rise from the step before, '-' for a real fall, nothing when the interval contains 0 (T52). */
+export function changeMark(change: Change | undefined): string {
+  if (!change) return ''
+  if (change.low > 0) return '+'
+  return change.high < 0 ? '-' : ''
 }
 
-/** One row per ladder step, with each stack's kept score; a step not reached yet is null, so the line stops there. */
+function pointAt(state: LadderState | null, name: string, metric: Metric) {
+  const step = state?.steps.find((s) => s.step === name)
+  const option = step && keptOption(step)
+  if (!option) return { score: null, bar: null, mark: '' }
+  const [low, high] = option[`${metric}_ci`]
+  const score = option[metric]
+  return { score, bar: [score - low, high - score] as Bar, mark: changeMark(step.change?.[metric]) }
+}
+
+/** One row per ladder step, with each stack's kept score, the distance to its interval's ends for the error bar, and
+ * its change mark; a step not reached yet is null, so the line stops there. */
 export function chartRows(a: LadderState | null, b: LadderState | null, metric: Metric): ChartRow[] {
-  return STEPS.map((step) => ({ step, A: scoreAt(a, step, metric), B: scoreAt(b, step, metric) }))
+  return STEPS.map((step) => {
+    const [pa, pb] = [pointAt(a, step, metric), pointAt(b, step, metric)]
+    return { step, A: pa.score, B: pb.score, A_bar: pa.bar, B_bar: pb.bar, A_mark: pa.mark, B_mark: pb.mark }
+  })
 }
 
 /** S7 is only reported (T50): the stronger model against the configuration kept, as a cost trade-off. */
@@ -53,14 +68,14 @@ function csvCell(value: string | number | boolean): string {
 }
 
 const CSV_HEADER = ['stack', 'step', 'chunk_size', 'overlap', 'top_k', 'method', 'rerank', 'answer_model', 'prompt', 'run',
-  'accuracy', 'mrr', 'cost_per_question', 'kept', 'failed_gates']
+  'accuracy', 'accuracy_low', 'accuracy_high', 'mrr', 'mrr_low', 'mrr_high', 'cost_per_question', 'kept', 'failed_gates']
 
 /** Every option tried, one row each, as the table shows it but with full precision. The byte order mark tells Excel
  * the file is UTF-8, so a prompt name with accents stays readable. */
 export function stepsCsv(state: LadderState): string {
   const rows = state.steps.flatMap((step) => step.tried.map(({ config, ...option }) => [state.stack, step.step, config.chunk_size,
     config.overlap, config.top_k, config.method, config.rerank, config.answer_model, config.prompt_name, option.run_id,
-    option.accuracy, option.mrr, option.cost_per_question, option.kept, option.failed_gates.join(' ')]))
+    option.accuracy, ...option.accuracy_ci, option.mrr, ...option.mrr_ci, option.cost_per_question, option.kept, option.failed_gates.join(' ')]))
   return '\uFEFF' + [CSV_HEADER, ...rows].map((row) => row.map(csvCell).join(',')).join('\r\n') + '\r\n'
 }
 

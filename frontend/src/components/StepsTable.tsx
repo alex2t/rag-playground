@@ -3,6 +3,10 @@ import type { Step } from '../api/types.ts'
 import { describe, tradeOff } from '../story.ts'
 import AnswersPanel from './AnswersPanel.tsx'
 
+function Interval({ range }: { range: [number, number] }) {
+  return <span className="block whitespace-nowrap text-xs font-normal text-muted">{range[0].toFixed(2)} to {range[1].toFixed(2)}</span>
+}
+
 /** Every option each step tried: the table view of the chart. The kept option is marked in words. A run's answers open
  * directly under its row; a run reused by two steps has two rows, so a row is its step and its run. */
 export default function StepsTable({ steps }: { steps: Step[] }) {
@@ -30,8 +34,8 @@ export default function StepsTable({ steps }: { steps: Step[] }) {
                     {open ? 'Hide answers' : 'View answers'}
                   </button>
                 </td>
-                <td className="pr-3">{option.accuracy.toFixed(3)}</td>
-                <td className="pr-3">{option.mrr.toFixed(3)}</td>
+                <td className="pr-3">{option.accuracy.toFixed(3)} <Interval range={option.accuracy_ci} /></td>
+                <td className="pr-3">{option.mrr.toFixed(3)} <Interval range={option.mrr_ci} /></td>
                 <td className="pr-3">${option.cost_per_question.toFixed(5)}</td>
                 <td>{option.kept ? 'Kept' : ''}{option.failed_gates.length > 0 && ` Failed: ${option.failed_gates.join(', ')}`}</td>
               </tr>

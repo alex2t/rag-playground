@@ -104,6 +104,8 @@ Runs the fixed ladder one step per click, on each stack separately, and draws on
 
 Each step keeps the winner of the step before. The ladder decides this by itself, using a rule fixed in advance: enrichment (S4) and reranking (S5) carry on to the later steps only if their gain is real. If not, the later steps run without them, and the step still appears on the chart. You can still choose either setting yourself on **Evaluate** and **Ask**. Choices are made on dev questions only; the **held-out** panel then confirms the baseline and the best configuration on the 48 held-out questions. The best eligible run is highlighted.
 
+**Read the chart.** The bar on each point shows the range the true score is likely to fall in. A **+** or **-** above a point means a real rise or fall from the step before. No mark means the change is too small to be sure of. Two bars can overlap and the change can still be real, so go by the mark.
+
 **See the best configuration.** Once a step has finished, a highlighted box shows the best configuration so far, with its scores and cost. When the ladder is finished, the box shows the final choice.
 
 **Download the results.** Under **Every option tried**, **Download CSV** saves every option as a spreadsheet file, one row per option.

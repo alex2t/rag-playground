@@ -2,6 +2,7 @@
 
 import random
 from dataclasses import dataclass
+from functools import cache
 from statistics import mean, quantiles
 
 from rag_playground.settings import BOOTSTRAP_RESAMPLES, BOOTSTRAP_SEED, GATES
@@ -17,11 +18,23 @@ def paired_bootstrap(before: dict[str, float], after: dict[str, float]) -> tuple
     1993). Both runs must score the same questions; resampling keeps each question's pair together."""
     if before.keys() != after.keys():
         raise ValueError("a paired bootstrap needs both runs on the same questions")
-    diffs = [after[q] - before[q] for q in sorted(before)]
+    return percentile_interval(tuple(after[q] - before[q] for q in sorted(before)))
+
+
+@cache
+def percentile_interval(values: tuple[float, ...]) -> tuple[float, float]:
+    """95% percentile interval of the mean of `values`, resampled with the fixed seed (T09). The result depends only on
+    the values, and stored runs never change, so it is worked out once per process."""
     rng = random.Random(BOOTSTRAP_SEED)
-    means = [mean(rng.choices(diffs, k=len(diffs))) for _ in range(BOOTSTRAP_RESAMPLES)]
+    means = [mean(rng.choices(values, k=len(values))) for _ in range(BOOTSTRAP_RESAMPLES)]
     cuts = quantiles(means, n=40, method="inclusive")
     return cuts[0], cuts[-1]
+
+
+def score_interval(scores: dict[str, float]) -> tuple[float, float]:
+    """95% interval of one run's mean score, resampling its questions (T52). It shows uncertainty on the chart; whether
+    a change is real is decided by the paired test, which is narrower because both runs answer the same questions."""
+    return percentile_interval(tuple(scores[q] for q in sorted(scores)))
 
 
 def is_real_improvement(before: dict[str, float], after: dict[str, float]) -> bool:

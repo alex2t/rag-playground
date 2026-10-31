@@ -273,3 +273,35 @@ def test_an_invalid_request_is_refused_with_nothing_stored(world, body):
 
 def test_an_unknown_stack_is_refused_when_reading(world):
     assert client.get("/api/story/C").status_code == 422
+
+
+def steps_of(world, monkeypatch, by_size):
+    """The ladder read over stored runs chosen by chunk size; every other setting finds the same run."""
+    monkeypatch.setattr(ladder_step.ladder_runs, "finder", lambda conn, stack: lambda config: by_size(config.chunk_size))
+    return client.get("/api/story/B").json()["steps"]
+
+
+def run(run_id, accuracy, mrr):
+    return Candidate(run_id, GOOD, {"a": accuracy, "b": accuracy}, 0.001, {"a": mrr, "b": mrr})
+
+
+def test_each_option_shows_the_interval_of_its_own_metric(world, monkeypatch):
+    spread = Candidate(7, GOOD, {f"q{i}": float(i % 5 + 1) for i in range(50)}, 0.001, {"a": 0.5, "b": 0.5})
+    tried = steps_of(world, monkeypatch, lambda size: spread)[0]["tried"][0]
+    assert tried["accuracy_ci"][0] < 3 < tried["accuracy_ci"][1]
+    assert tried["mrr_ci"] == [0.5, 0.5]
+
+
+def test_a_step_reports_its_kept_run_against_the_step_before_on_each_metric(world, monkeypatch):
+    """S1 keeps 400 tokens: accuracy rises by exactly 2 from S0's run and MRR falls by exactly 0.25. S0 has no change."""
+    steps = steps_of(world, monkeypatch, lambda size: run(2, 4.0, 0.25) if size == 400 else run(1, 2.0, 0.5))
+    assert steps[0]["change"] is None
+    assert steps[1]["step"] == "S1" and steps[1]["kept"]["chunk_size"] == 400
+    assert steps[1]["change"] == {"accuracy": {"low": 2.0, "high": 2.0, "real": True},
+                                  "mrr": {"low": -0.25, "high": -0.25, "real": False}}
+
+
+def test_a_step_that_keeps_the_same_settings_reports_no_change(world, monkeypatch):
+    steps = steps_of(world, monkeypatch, lambda size: run(2, 4.0, 0.25) if size == 400 else run(1, 2.0, 0.5))
+    assert steps[2]["step"] == "S2"
+    assert steps[2]["change"]["accuracy"] == {"low": 0, "high": 0, "real": False}

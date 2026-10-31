@@ -1,9 +1,13 @@
 """Step 5 checks for refusal rates, gates and the paired bootstrap, with hand-built inputs."""
 
+import random
+from statistics import mean, quantiles
+
 import pytest
 
 from rag_playground.datasets import schema
 from rag_playground.scoring import selection, trust
+from rag_playground.settings import BOOTSTRAP_RESAMPLES, BOOTSTRAP_SEED
 
 PASSING = {"mrr": 0.75, "recall": 0.80, "faithfulness": 4.0, "correct_refusal_rate": 0.80}
 
@@ -131,3 +135,36 @@ def test_same_accuracy_and_same_cost_pick_the_oldest_run_in_any_order():
     first, second = candidate(1, HIGH, 0.05), candidate(2, HIGH, 0.05)
     assert selection.pick_best([first, second]).run_id == 1
     assert selection.pick_best([second, first]).run_id == 1
+
+
+def test_the_paired_interval_is_still_the_t09_formula():
+    """The seeded resamples of T09, written out, so sharing and caching the interval cannot change a decision."""
+    after = scores([2, 1, 3, 5, 4] * 40)
+    diffs = [after[q] - BEFORE[q] for q in sorted(BEFORE)]
+    rng = random.Random(BOOTSTRAP_SEED)
+    means = [mean(rng.choices(diffs, k=len(diffs))) for _ in range(BOOTSTRAP_RESAMPLES)]
+    cuts = quantiles(means, n=40, method="inclusive")
+    assert selection.paired_bootstrap(BEFORE, after) == (cuts[0], cuts[-1])
+
+
+def test_a_score_interval_is_the_resampled_mean_of_that_run():
+    values = [BEFORE[q] for q in sorted(BEFORE)]
+    rng = random.Random(BOOTSTRAP_SEED)
+    means = [mean(rng.choices(values, k=len(values))) for _ in range(BOOTSTRAP_RESAMPLES)]
+    cuts = quantiles(means, n=40, method="inclusive")
+    assert selection.score_interval(BEFORE) == (cuts[0], cuts[-1])
+
+
+def test_a_score_interval_surrounds_the_mean_and_narrows_with_more_questions():
+    low, high = selection.score_interval(BEFORE)
+    assert low < 3 < high
+    wide_low, wide_high = selection.score_interval(scores([1, 2, 3, 4, 5] * 4))
+    assert wide_high - wide_low > high - low
+
+
+def test_a_score_all_alike_has_no_width():
+    assert selection.score_interval(scores([4] * 10)) == (4, 4)
+
+
+def test_a_score_interval_does_not_depend_on_the_order_of_the_questions():
+    assert selection.score_interval(dict(reversed(list(BEFORE.items())))) == selection.score_interval(BEFORE)

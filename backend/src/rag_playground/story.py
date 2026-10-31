@@ -7,13 +7,14 @@ from rag_playground import jobs
 from rag_playground.datasets.schema import load_tests
 from rag_playground.rag import heldout, ladder_runs, ladder_step, pipeline, runs
 from rag_playground.rag.ladder import Decision, Progress
-from rag_playground.scoring.selection import Candidate, failed_gates
+from rag_playground.scoring.selection import Candidate, failed_gates, score_interval
 
 
 def option(candidate: Candidate, config, kept: bool) -> dict:
-    """One configuration a step tried, with the scores of its stored run."""
+    """One configuration a step tried, with the scores of its stored run and their 95% intervals (T52)."""
     return {"config": asdict(config), "kept": kept, "run_id": candidate.run_id, "accuracy": candidate.mean_accuracy,
-            "mrr": candidate.scores["mrr"], "cost_per_question": candidate.cost_per_question,
+            "mrr": candidate.scores["mrr"], "accuracy_ci": score_interval(candidate.accuracy),
+            "mrr_ci": score_interval(candidate.mrr), "cost_per_question": candidate.cost_per_question,
             "failed_gates": failed_gates(candidate.scores)}
 
 
@@ -31,8 +32,11 @@ def answers(conn: sqlite3.Connection, run_id: int) -> list[dict]:
             for result in sorted(runs.get_results(conn, run_id), key=lambda r: r.judgement.accuracy)]
 
 
-def finished_step(decision: Decision, result) -> dict:
+def finished_step(decision: Decision, before: Decision | None, result) -> dict:
+    """One step. `change` is its kept configuration against the step before's, the paired test of T09 on the same
+    questions (T52); None at S0."""
     return {"step": decision.step, "kept": asdict(decision.kept),
+            "change": heldout.gain(result(before.kept), result(decision.kept)) if before else None,
             "tried": [option(result(c), c, c == decision.kept) for c in decision.tried]}
 
 
@@ -58,7 +62,8 @@ def state(conn: sqlite3.Connection, stack: str, proposed: tuple[str, ...] | None
     `saved_prompts` is the final S6 choice, None until made. `last_error` survives a page refresh."""
     result = ladder_runs.finder(conn, stack)
     now = ladder_step.replay(conn, stack, result, proposed)
-    return {"stack": stack, "steps": [finished_step(d, result) for d in now.decisions], "next_step": now.next_step,
+    steps = [finished_step(d, before, result) for d, before in zip(now.decisions, [None, *now.decisions])]
+    return {"stack": stack, "steps": steps, "next_step": now.next_step,
             "needs_prompts": now.next_step == "S6" and not now.missing, "missing": [asdict(c) for c in now.missing],
             "estimate_usd": ladder_step.step_cost(conn, now.missing),
             "enrichment_usd": sum(ladder_step.enrichment_cost(c) for c in now.missing),

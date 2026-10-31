@@ -18,13 +18,15 @@ export type Option = {
   run_id: number
   accuracy: number
   mrr: number
+  accuracy_ci: [number, number]
+  mrr_ci: [number, number]
   cost_per_question: number
   failed_gates: string[]
 }
 
-export type Step = { step: string; kept: Config; tried: Option[] }
-
 export type Change = { low: number; high: number; real: boolean }
+
+export type Step = { step: string; kept: Config; change: { accuracy: Change; mrr: Change } | null; tried: Option[] }
 
 export type Heldout = {
   runs: Option[]

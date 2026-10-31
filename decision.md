@@ -486,6 +486,14 @@ Status: `accepted` | `proposed` (default, needs review) | `open` | `superseded`.
 - **Limits:** per-question `latency_s` of a parallel run is not comparable with a one-at-a-time run. On Stack B it includes waiting for the embedding lock, so do not report latency across S0, S1 on Stack A and later runs; a latency comparison needs its own one-at-a-time measurement. A rate-limit failure fails the run, and running the step again pays for that run again. Measured on Stack B's S1: 43 minutes against 82 for Stack A's, about 1.75 s per question, no rate-limit failure.
 - **Best practice:** yes for bounded parallelism; the batch size is a custom choice.
 
+### T52 - Intervals and change marks on the ladder chart - `accepted` 2026-10-31 (plan.md Step 9 asks for them; the method is a custom choice)
+- **Decision:** each kept point on the Story chart shows a 95% percentile bootstrap interval of that run's mean, resampling its questions (same 1,000 resamples and seed as T09). A `+` or `-` beside a point means the paired test of T09 finds a real rise or fall from the step before, on that metric. The table and the CSV show each option's interval.
+- **Why two intervals:** the bars show how uncertain one score is. The paired test decides whether a change is real, and it is narrower because both runs answer the same questions, so two bars can overlap while a change is still real. Reading overlap as "no difference" would be wrong; the mark is the answer.
+- **Alternatives:** Wilson or normal-theory intervals (do not fit means of 1 to 5 scores as simply); marking against S0 instead of the step before (hides which step caused the change).
+- **Limits:** a kept run can sit below the step before without a mark, because the tie rule (T08) compares with the leader. There is no correction for many comparisons (T08). Intervals are on dev questions; the quoted result stays the held-out one.
+- **Not a change to decisions:** the shared `percentile_interval` keeps T09's exact seeded calculation, pinned by a test, and is cached per process since stored runs never change.
+- **Best practice:** percentile bootstrap is standard; the display rule is a custom choice.
+
 ### T45 - Top-K at most 8; S3 = best K of {2, 4, 6, 8} - `accepted` 2026-10-29 (user decision; custom choice)
 - **Decision:** top-K is 1-8 everywhere (dashboard, sweeps, ladder) and enforced in code (`MAX_TOP_K` in `settings.py`; runs with a larger K are refused). The top-K sweep uses K = 2, 4, 6, 8 (2 is the S0 baseline). Ladder step S3 picks the best K of {2, 4, 6, 8} at S2's chunk set, on dev questions only, the same way S1 and S2 pick their values (T24). S5 keeps S3's K after reranking.
 - **Why:** the KB is small: 48 documents, mean 730 tokens (150-1,550). At S0's 1,024-token chunks most documents are one chunk, so K=20 would hand the model 20 of 51 chunks (about 40% of the KB), not a realistic retrieval. Supersedes the 1-20 range (T35), the sweep 2, 5, 10, 20 and the fixed S3 K=10.
