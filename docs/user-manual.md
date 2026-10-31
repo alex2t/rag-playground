@@ -106,6 +106,8 @@ Each step keeps the winner of the step before. The ladder decides this by itself
 
 **Read the chart.** The bar on each point shows the range the true score is likely to fall in. A **+** or **-** above a point means a real rise or fall from the step before. No mark means the change is too small to be sure of. Two bars can overlap and the change can still be real, so go by the mark.
 
+**Save a chart.** **Download PNG**, at the top of each chart, saves it as an image file, in the colours you see on the page.
+
 **See the best configuration.** Once a step has finished, a highlighted box shows the best configuration so far, with its scores and cost. When the ladder is finished, the box shows the final choice.
 
 **Download the results.** Under **Every option tried**, **Download CSV** saves every option as a spreadsheet file, one row per option.

@@ -1,4 +1,6 @@
+import { useRef, useState } from 'react'
 import { CartesianGrid, ErrorBar, LabelList, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { downloadChart, pngName } from '../chartImage.ts'
 import type { ChartRow } from '../story.ts'
 
 type Props = { title: string; rows: ChartRow[]; domain: [number, number]; ticks: number[] }
@@ -19,9 +21,21 @@ function series(stack: 'A' | 'B', color: string, filled: boolean) {
 /** One line per stack across the steps, with 95% intervals. Filled and hollow markers keep the stacks apart without
  * colour; + or - beside a point marks a real change from the step before (T52). */
 export default function LadderChart({ title, rows, domain, ticks }: Props) {
+  const figure = useRef<HTMLElement>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  function savePng() {
+    setError(null)
+    downloadChart(figure.current!, title).catch((e: Error) => setError(e.message))
+  }
+
   return (
-    <figure className="min-w-0 rounded-lg border border-line bg-panel p-4">
-      <figcaption className="mb-2 text-sm font-medium">{title}</figcaption>
+    <figure ref={figure} className="min-w-0 rounded-lg border border-line bg-panel p-4">
+      <figcaption className="mb-2 flex items-start justify-between gap-2 text-sm font-medium">
+        <span>{title}</span>
+        <button type="button" className="shrink-0 rounded border border-line px-2 py-0.5 text-xs font-normal"
+          aria-label={`Download ${pngName(title)}`} onClick={savePng}>Download PNG</button>
+      </figcaption>
       <ResponsiveContainer width="100%" height={260}>
         <LineChart data={rows} margin={{ top: 8, right: 16, bottom: 0, left: -16 }}>
           <CartesianGrid stroke="var(--color-line)" vertical={false} />
@@ -35,6 +49,7 @@ export default function LadderChart({ title, rows, domain, ticks }: Props) {
         </LineChart>
       </ResponsiveContainer>
       <p className="mt-1 text-xs text-muted">Bars show the 95% interval. + or - marks a real change from the step before.</p>
+      {error && <p role="alert" className="mt-1 text-sm text-danger">{error}</p>}
     </figure>
   )
 }

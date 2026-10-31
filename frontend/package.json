@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "test": "node --test src/story.test.ts",
+    "test": "node --test src/story.test.ts src/chartImage.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {
