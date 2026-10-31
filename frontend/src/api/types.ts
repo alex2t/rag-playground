@@ -48,6 +48,22 @@ export type LadderState = {
   heldout: Heldout | null
 }
 
+export type Answer = {
+  test_id: string
+  category: string
+  question: string
+  reference_answer: string
+  answer: string
+  refused: boolean
+  accuracy: number
+  completeness: number
+  relevance: number
+  faithfulness: number
+  feedback: string
+  faithfulness_feedback: string
+  chunks: { source: string; text: string }[]
+}
+
 export type Job = {
   id: number
   kind: string

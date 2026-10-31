@@ -13,6 +13,19 @@ A controlled study of which RAG techniques improve retrieval and answer quality,
 
 **[docs/user-manual.md](docs/user-manual.md)** explains how to use the dashboard.
 
+## The two stacks
+
+A stack is the part that stores the documents and finds the chunks for a question. Both stacks index the same chunks, and both answer with the same model and the same judge, so a difference in score comes from the search.
+
+| | Stack A: OpenAI Vector Store | Stack B: Qdrant + nomic |
+| --- | --- | --- |
+| What it is | A managed service: OpenAI stores the chunks, embeds them and runs the search | Self-hosted: Qdrant is an open-source vector database, and `nomic-embed-text-v1.5` is an open-source embedding model running on our own machine |
+| Default search | OpenAI's default, measured as hybrid search (meaning plus keywords) with its "auto" ranker | Plain vector search (meaning only); hybrid can be switched on |
+| Advantages | Nothing to run or maintain; no local memory or processor needed; quick to start | Full control and visibility of the embedding model and search; data stays on our server; no per-search fee |
+| Disadvantages | The embedding model cannot be chosen or seen, and the ranking is partly hidden; depends on one vendor; embedding and any search fees are outside the recorded spend | We run and maintain it; embedding uses local processor and memory (about 2 GB at peak on this PC) and is slower on a small server |
+
+Each stack keeps its own search settings and picks its own winners on the ladder. See D01, T12 and T40 in [decision.md](decision.md).
+
 ## The ladder
 
 The ladder is a fixed sequence of tests, run on each stack separately on the 192 dev questions. Each step changes one setting, keeps the best value, and the next step starts from there.

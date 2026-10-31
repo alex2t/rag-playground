@@ -126,6 +126,20 @@ def story_state(stack: Stack, prompts: Annotated[list[str] | None, Query()] = No
         conn.close()
 
 
+@app.get("/api/runs/{run_id}/answers")
+def run_answers(run_id: DbId) -> list[dict]:
+    """What a finished or failed dev run answered, question by question, lowest accuracy first."""
+    conn = store.connect()
+    try:
+        return story.answers(conn, run_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail=f"No run {run_id}")
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    finally:
+        conn.close()
+
+
 @app.post("/api/calibration")
 def open_calibration(request: OpenCalibration) -> dict:
     """Open the calibration of the two full S0 runs (T48), drawing its fixed sample the first time. 404 if a run does

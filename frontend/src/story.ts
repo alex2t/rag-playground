@@ -40,6 +40,30 @@ export function finalStep(state: LadderState): Step | undefined {
   return state.next_step === null ? state.steps.at(-1) : undefined
 }
 
+/** The configuration the ladder holds now: what the latest step kept, with its scores. */
+export function bestSoFar(state: LadderState): { step: string; option: Option } | null {
+  const step = state.steps.at(-1)
+  const option = step && keptOption(step)
+  return step && option ? { step: step.step, option } : null
+}
+
+function csvCell(value: string | number | boolean): string {
+  const text = String(value)
+  return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text
+}
+
+const CSV_HEADER = ['stack', 'step', 'chunk_size', 'overlap', 'top_k', 'method', 'rerank', 'answer_model', 'prompt', 'run',
+  'accuracy', 'mrr', 'cost_per_question', 'kept', 'failed_gates']
+
+/** Every option tried, one row each, as the table shows it but with full precision. The byte order mark tells Excel
+ * the file is UTF-8, so a prompt name with accents stays readable. */
+export function stepsCsv(state: LadderState): string {
+  const rows = state.steps.flatMap((step) => step.tried.map(({ config, ...option }) => [state.stack, step.step, config.chunk_size,
+    config.overlap, config.top_k, config.method, config.rerank, config.answer_model, config.prompt_name, option.run_id,
+    option.accuracy, option.mrr, option.cost_per_question, option.kept, option.failed_gates.join(' ')]))
+  return '\uFEFF' + [CSV_HEADER, ...rows].map((row) => row.map(csvCell).join(',')).join('\r\n') + '\r\n'
+}
+
 export function describe(config: Config): string {
   return [`${config.chunk_size} tokens`, `overlap ${config.overlap}`, `K=${config.top_k}`, config.method,
     config.rerank ? 'reranked' : 'no rerank', config.answer_model, `prompt ${config.prompt_name}`].join(', ')

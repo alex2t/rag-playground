@@ -4,7 +4,8 @@ import sqlite3
 from dataclasses import asdict
 
 from rag_playground import jobs
-from rag_playground.rag import heldout, ladder_runs, ladder_step, pipeline
+from rag_playground.datasets.schema import load_tests
+from rag_playground.rag import heldout, ladder_runs, ladder_step, pipeline, runs
 from rag_playground.rag.ladder import Decision, Progress
 from rag_playground.scoring.selection import Candidate, failed_gates
 
@@ -14,6 +15,20 @@ def option(candidate: Candidate, config, kept: bool) -> dict:
     return {"config": asdict(config), "kept": kept, "run_id": candidate.run_id, "accuracy": candidate.mean_accuracy,
             "mrr": candidate.scores["mrr"], "cost_per_question": candidate.cost_per_question,
             "failed_gates": failed_gates(candidate.scores)}
+
+
+def answers(conn: sqlite3.Connection, run_id: int) -> list[dict]:
+    """A dev run's questions with their answers, verdicts and chunks, lowest accuracy first. Held-out runs are refused:
+    reading their answers could steer later choices, and those questions are never used to tune (T18). KeyError if the
+    run does not exist."""
+    if runs.get_run(conn, run_id).meta.split != "dev":
+        raise ValueError("Held-out answers are not shown: those questions stay out of tuning")
+    tests = {test.id: test for test in load_tests()}
+    return [{"test_id": result.test_id, "category": tests[result.test_id].category,
+             "question": tests[result.test_id].question, "reference_answer": tests[result.test_id].reference_answer,
+             "answer": result.answer, **asdict(result.judgement),
+             "chunks": [{"source": hit.source, "text": hit.text} for hit in result.hits]}
+            for result in sorted(runs.get_results(conn, run_id), key=lambda r: r.judgement.accuracy)]
 
 
 def finished_step(decision: Decision, result) -> dict:

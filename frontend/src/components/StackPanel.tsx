@@ -2,13 +2,21 @@ import { useState } from 'react'
 import { getLadder, startHeldout, startStep } from '../api/client.ts'
 import type { StackId } from '../api/types.ts'
 import type { useLadder } from '../api/useLadder.ts'
-import { choosingPrompts, describe, estimateIsStale, finalStep, jobLine, money, promptList } from '../story.ts'
+import { bestSoFar, choosingPrompts, describe, estimateIsStale, finalStep, jobLine, money, promptList, stepsCsv } from '../story.ts'
 import HeldoutPanel from './HeldoutPanel.tsx'
 import StepsTable from './StepsTable.tsx'
 
 const SEARCH: Record<StackId, string> = {
   A: 'OpenAI default search (ranker auto)',
   B: 'plain vector search',
+}
+
+function downloadCsv(stack: StackId, text: string) {
+  const link = document.createElement('a')
+  link.href = URL.createObjectURL(new Blob([text], { type: 'text/csv' }))
+  link.download = `stack-${stack}-options.csv`
+  link.click()
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000)
 }
 
 /** One stack: its next step with the estimate, the running job, its results and its held-out panel. */
@@ -49,6 +57,7 @@ export default function StackPanel({ stack, ladder }: { stack: StackId; ladder: 
   }
 
   const final = state && finalStep(state)
+  const best = state && bestSoFar(state)
   return (
     <section aria-label={`Stack ${stack}`} className="min-w-0 rounded-lg border border-line bg-panel p-4">
       <h2 className="font-semibold">Stack {stack}</h2>
@@ -90,14 +99,18 @@ export default function StackPanel({ stack, ladder }: { stack: StackId; ladder: 
             </div>
           )}
           {state.last_error && !running && <p role="alert" className="mt-2 text-sm text-danger">Last step failed: {state.last_error}</p>}
-          {final && (
+          {best && (
             <p className="mt-3 rounded border-2 border-accent p-2 text-sm">
-              <span className="font-medium">Best eligible configuration:</span> {describe(final.kept)}
+              <span className="font-medium">{final ? 'Best eligible configuration:' : `Best so far (after ${best.step}):`}</span>{' '}
+              {describe(best.option.config)}. Accuracy {best.option.accuracy.toFixed(3)}, MRR {best.option.mrr.toFixed(3)},
+              {' '}${best.option.cost_per_question.toFixed(5)} per question, run {best.option.run_id}.
             </p>
           )}
           {state.steps.length > 0 && (
             <details className="mt-3">
               <summary className="cursor-pointer text-sm">Every option tried</summary>
+              <button type="button" className="mt-2 rounded border border-line px-3 py-1 text-sm"
+                onClick={() => downloadCsv(stack, stepsCsv(state))}>Download CSV</button>
               <div className="mt-2 overflow-x-auto"><StepsTable steps={state.steps} /></div>
             </details>
           )}

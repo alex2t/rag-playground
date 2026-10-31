@@ -104,6 +104,14 @@ Runs the fixed ladder one step per click, on each stack separately, and draws on
 
 Each step keeps the winner of the step before. The ladder decides this by itself, using a rule fixed in advance: enrichment (S4) and reranking (S5) carry on to the later steps only if their gain is real. If not, the later steps run without them, and the step still appears on the chart. You can still choose either setting yourself on **Evaluate** and **Ask**. Choices are made on dev questions only; the **held-out** panel then confirms the baseline and the best configuration on the 48 held-out questions. The best eligible run is highlighted.
 
+**See the best configuration.** Once a step has finished, a highlighted box shows the best configuration so far, with its scores and cost. When the ladder is finished, the box shows the final choice.
+
+**Download the results.** Under **Every option tried**, **Download CSV** saves every option as a spreadsheet file, one row per option.
+
+**See what a run actually answered.** Open **Every option tried** and click **View answers** next to a run. You get all of that run's questions, with the worst-scored ones at the top. Click a question to see what the system answered, what the correct answer was, how the judge scored it and why, and which chunks of text the system read.
+
+This doesn't work for held-out runs, because those questions are kept separate from tuning.
+
 The held-out confirmation opens when a stack's ladder is finished, and each configuration is confirmed once. At S6, type at most 4 prompt versions and press **Estimate**, and press it again if you change them; leaving the box empty skips S6. The choice is final for that stack.
 
 ### Prompt: edit the instructions

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import type { Config, LadderState, Option, Step } from './api/types.ts'
-import { chartRows, choosingPrompts, estimateIsStale, finalStep, heldoutLabel, jobLine, keptOption, money, promptList, tradeOff } from './story.ts'
+import { bestSoFar, chartRows, choosingPrompts, estimateIsStale, finalStep, heldoutLabel, jobLine, keptOption, money, promptList, stepsCsv, tradeOff } from './story.ts'
 
 test('a queued job says it is waiting, a running one says how far it is', () => {
   const job = { id: 1, kind: 'ladder_step', run_id: null, error: null, message: 'S1 on Stack B: preparing', progress: 0 }
@@ -84,6 +84,25 @@ test('the held-out label says when one run is both S0 and final', () => {
   assert.equal(heldoutLabel(final, panel), 'Final')
   assert.equal(heldoutLabel(final, { ...panel, runs: [final] }), 'S0 and final')
   assert.equal(heldoutLabel(final, { ...panel, runs: [final], missing: [config] }), 'Final')
+})
+
+test('the best so far is what the latest step kept, not its best score or its last row', () => {
+  const state = ladder([step('S0', option(4, 0.9, true)), step('S1', option(4.5, 0.8, false), option(4.2, 0.7, true), option(3, 0.6, false))])
+  const best = bestSoFar(state)
+  assert.equal(best?.step, 'S1')
+  assert.equal(best?.option.accuracy, 4.2)
+  assert.equal(bestSoFar(ladder([])), null)
+})
+
+test('the CSV has one row per option, full precision, and quotes what would break a cell', () => {
+  const failed = { ...option(3.123456, 0.75, false, 0.000712), failed_gates: ['mrr', 'recall'],
+    config: { ...config, prompt_name: 'a, "b"' } }
+  const lines = stepsCsv(ladder([step('S1', option(4, 0.9, true), failed)])).split('\r\n')
+  assert.equal(lines[0], '\uFEFFstack,step,chunk_size,overlap,top_k,method,rerank,answer_model,prompt,run,accuracy,mrr,cost_per_question,kept,failed_gates')
+  assert.equal(lines[1], 'A,S1,1024,200,2,fixed,false,m,default,1,4,0.9,0.001,true,')
+  assert.equal(lines[2], 'A,S1,1024,200,2,fixed,false,m,"a, ""b""",1,3.123456,0.75,0.000712,false,mrr recall')
+  assert.equal(lines[3], '')
+  assert.equal(lines.length, 4)
 })
 
 test('money keeps small estimates readable', () => {
