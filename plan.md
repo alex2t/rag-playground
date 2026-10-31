@@ -444,7 +444,7 @@ Validate each step before starting the next one. Log bugs in `fix.md`. Record de
 - **Check:** pass/fail agreement ≥ 80%. If not, change the judge and repeat this step. Record the result in `decision.md` (T07).
 
 ### Step 9 - Frontend (time-boxed)
-- **Status (2026-10-31): in progress.** Ladder backend done (T50): decisions, stored-run lookup, the job that runs one step, the Story routes, the held-out confirmation. Next: the shared layout and the Story page.
+- **Status (2026-10-31): in progress.** Ladder backend done (T50): decisions, stored-run lookup, the job that runs one step, the Story routes, the held-out confirmation. Shared layout and Story page built (Tailwind, Recharts). Next on Story: confidence intervals, significance markers and PNG export. Then the Prompt page, before the ladder reaches S6.
 Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Sweep and Ops. Use one shared layout. Get it working before polishing.
 - **Story page:**
   - Run the ladder on one or both stacks.

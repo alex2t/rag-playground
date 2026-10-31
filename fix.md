@@ -4,6 +4,14 @@ Add new bugs at the top. Status: `open` | `investigating` | `fixed`.
 
 ---
 
+## [2026-10-31] Step 9: Story page could run S6 on a stale estimate, and froze if the server stopped - `fixed`
+- **Symptom:** found by Antigravity. After Estimate on one prompt, adding more kept Run enabled with the old cost; polling had no error handling, so a lost server left the page on its last progress line; a saved S6 choice still showed the input box.
+- **Root cause (evidence):** `estimateIsStale` only tested `missing.length === 0`; the `setInterval` callback in `useLadder.ts` had no try/catch; the page could not tell a preview from a saved choice, since both fill `missing`.
+- **Fix:** compare the typed text with the text last estimated; on a poll error show it and keep polling, since the job is still running; add `saved_prompts` and `last_error` to the Story state; a `starting` flag stops a double click's false 409; `heldoutLabel` says 'S0 and final' when one run is both.
+- **Not applied as suggested:** hiding the input with `needs_prompts` (a preview sets it false too, so the box would vanish after Estimate); clearing the job on a poll error (the job is still running); comparing names with `missing` (the prompt in use is never in it). `tradeOff` reading `tried[0]` left as is: `ladder.options` fixes that order, and `kept` at S7 is always the first.
+- **Verified by:** new tests, `npm test`, build, full backend suite.
+- **Status:** fixed.
+
 ## [2026-10-31] Step 9: a ladder step could leave a run `running` forever - `fixed`
 - **Symptom:** if `indexes.retriever` raised in `jobs.run_step`, the job failed but its run stayed `running`.
 - **Reproduce:** make `indexes.retriever` raise; the new test failed on the old code.

@@ -39,7 +39,8 @@ def confirmation(conn: sqlite3.Connection, stack: str, now: Progress) -> dict | 
 
 def state(conn: sqlite3.Connection, stack: str, proposed: tuple[str, ...] | None = None) -> dict:
     """A stack's ladder. `enrichment_usd` is the part of `estimate_usd` that pays for S4's enrichment, shown before the
-    user confirms it (T49). At S6 nothing is missing until prompts are `proposed` or saved: `needs_prompts`."""
+    user confirms it (T49). At S6 nothing is missing until prompts are `proposed` or saved: `needs_prompts`.
+    `saved_prompts` is the final S6 choice, None until made. `last_error` survives a page refresh."""
     result = ladder_runs.finder(conn, stack)
     now = ladder_step.replay(conn, stack, result, proposed)
     return {"stack": stack, "steps": [finished_step(d, result) for d in now.decisions], "next_step": now.next_step,
@@ -47,4 +48,5 @@ def state(conn: sqlite3.Connection, stack: str, proposed: tuple[str, ...] | None
             "estimate_usd": ladder_step.step_cost(conn, now.missing),
             "enrichment_usd": sum(ladder_step.enrichment_cost(c) for c in now.missing),
             "budget_left_usd": pipeline.remaining(conn), "job_id": jobs.active_step(conn, stack),
+            "last_error": jobs.last_failure(conn, stack), "saved_prompts": ladder_step.chosen_prompts(conn, stack),
             "heldout": confirmation(conn, stack, now)}

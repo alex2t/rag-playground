@@ -87,6 +87,13 @@ def active_step(conn: sqlite3.Connection, stack: str) -> int | None:
 Work = tuple[str, list[Config], list[TestCase]]
 
 
+def last_failure(conn: sqlite3.Connection, stack: str) -> str | None:
+    """The error of a stack's latest step, if it failed; the next step's start clears it."""
+    row = conn.execute("SELECT error FROM jobs WHERE kind = 'ladder_step' AND stack = ? ORDER BY id DESC LIMIT 1",
+                       (stack,)).fetchone()
+    return row and row["error"]
+
+
 def queue_step(conn: sqlite3.Connection, stack: str, plan: Callable[[], Work]) -> int:
     """Queue what `plan` returns (a step's name, its runs, their questions); return the job id. Refused before anything
     is stored if a step of that stack is already waiting or running: a second click would pay twice. Two at the same

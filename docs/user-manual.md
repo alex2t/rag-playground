@@ -89,7 +89,7 @@ Any saved prompt version can be used, yours or the default. For a **held-out** r
 Pick two finished runs. You see the metrics side by side, whether the difference is real (see section 7), which questions one run fixed or broke, and cost against accuracy.
 
 ### Story: the ladder
-Runs the fixed ladder on one or both stacks and draws one line per stack across the steps:
+Runs the fixed ladder one step per click, on each stack separately, and draws one line per stack across the steps. Each stack's button shows the step's estimated cost before you click, covering OpenRouter costs only; OpenAI's costs are not included. A step that pays for enrichment (S4) asks you to confirm. If a step fails, the finished runs are kept, and the next click pays only for the rest.
 
 | Step | What changes |
 |---|---|
@@ -103,6 +103,8 @@ Runs the fixed ladder on one or both stacks and draws one line per stack across 
 | S7 | A stronger answer model, shown as a cost trade-off |
 
 Each step keeps the winner of the step before. The ladder decides this by itself, using a rule fixed in advance: enrichment (S4) and reranking (S5) carry on to the later steps only if their gain is real. If not, the later steps run without them, and the step still appears on the chart. You can still choose either setting yourself on **Evaluate** and **Ask**. Choices are made on dev questions only; the **held-out** panel then confirms the baseline and the best configuration on the 48 held-out questions. The best eligible run is highlighted.
+
+The held-out confirmation opens when a stack's ladder is finished, and each configuration is confirmed once. At S6, type at most 4 prompt versions and press **Estimate**, and press it again if you change them; leaving the box empty skips S6. The choice is final for that stack.
 
 ### Prompt: edit the instructions
 Write your own system prompts: start from the default or any saved version, edit it, and save it under a new name. Save as many versions as you like; each can be picked in the settings panel on **Ask**, **Evaluate** and **Sweep**. A saved version never changes, and the page lists the runs that used each one.

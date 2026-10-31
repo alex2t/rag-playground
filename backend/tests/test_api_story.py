@@ -174,6 +174,28 @@ def test_over_the_budget_gets_409_with_nothing_stored(world, monkeypatch):
     assert (job_count(world), run_ids(world)) == (0, [])
 
 
+def test_a_failed_step_keeps_its_error_until_the_next_step_starts(world):
+    """A refresh must not hide why a step stopped."""
+    assert client.get("/api/story/B").json()["last_error"] is None
+    world.fail_at = 1
+    click(world)
+    assert "rate limited" in client.get("/api/story/B").json()["last_error"]
+    assert client.get("/api/story/A").json()["last_error"] is None
+    world.fail_at = None
+    click(world)
+    assert client.get("/api/story/B").json()["last_error"] is None
+
+
+def test_the_state_says_whether_the_s6_choice_is_saved(world, monkeypatch):
+    """A preview also fills `missing`, so only this tells the page that the choice can no longer change."""
+    at_s6(world, monkeypatch)
+    versions(world, "v2")
+    preview = client.get("/api/story/B", params={"prompts": ["v2"]}).json()
+    assert preview["saved_prompts"] is None and preview["needs_prompts"] is False
+    jobs.insert(world.conn, "ladder_prompts", {"stack": "B", "names": '["v2"]'})
+    assert client.get("/api/story/B").json()["saved_prompts"] == ["v2"]
+
+
 def test_s6_without_prompts_asks_for_them(world, monkeypatch):
     at_s6(world, monkeypatch)
     state = client.get("/api/story/B").json()
