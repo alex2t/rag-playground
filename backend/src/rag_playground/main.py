@@ -3,11 +3,12 @@
 import sqlite3
 from contextlib import asynccontextmanager
 from dataclasses import asdict
+from typing import Annotated
 
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Query, Response
 from fastapi.staticfiles import StaticFiles
 
-from rag_playground import jobs, store
+from rag_playground import jobs, store, story
 from rag_playground.calibration_requests import DbId, GradeRequest, OpenCalibration
 from rag_playground.rag import grading
 from rag_playground.rag.pipeline import BudgetExceeded
@@ -15,6 +16,7 @@ from rag_playground.run_requests import RunRequest
 from rag_playground.scoring.judging import ACCURACY_RUBRIC
 from rag_playground.settings import settings
 from rag_playground.stacks import qdrant_store
+from rag_playground.story_requests import Stack, StoryRequest
 
 
 @asynccontextmanager
@@ -73,6 +75,38 @@ def job_status(job_id: DbId) -> dict:
         return asdict(jobs.get_job(conn, job_id))
     except KeyError:
         raise HTTPException(status_code=404, detail=f"No job {job_id}")
+    finally:
+        conn.close()
+
+
+@app.post("/api/story", status_code=202)
+def start_step(request: StoryRequest) -> dict:
+    """Start the ladder's next step on one stack (T50) and return its job id. Refused with nothing stored: 404 (unknown
+    prompt version), 409 (a step is already running, or over budget), 422 (prompts not chosen, ladder finished)."""
+    conn = store.connect()
+    try:
+        return {"job_id": jobs.submit_step(conn, request.stack, request.prompt_names())}
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=f"Not found: {exc.args[0]}")
+    except (jobs.StepBusy, BudgetExceeded) as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    finally:
+        conn.close()
+
+
+@app.get("/api/story/{stack}")
+def story_state(stack: Stack, prompts: Annotated[list[str] | None, Query()] = None) -> dict:
+    """A stack's ladder: finished steps with their scores, the next step and its estimate, and the job running now.
+    `prompts` previews S6's estimate before the choice is saved; nothing is stored, and chunk sets are free to build."""
+    conn = store.connect()
+    try:
+        return story.state(conn, stack, tuple(prompts) if prompts else None)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=f"Not found: {exc.args[0]}")
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
     finally:
         conn.close()
 

@@ -2,6 +2,7 @@
 
 import json
 import sqlite3
+from collections.abc import Callable
 
 from rag_playground.chunking.chunk_sets import METHOD as FIXED_METHOD
 from rag_playground.chunking.chunk_sets import chunk_set_id, load_or_build
@@ -9,6 +10,7 @@ from rag_playground.datasets.schema import TestCase, load_tests
 from rag_playground.rag import enrich_run, estimate, ladder, ladder_runs, pipeline, prompts
 from rag_playground.rag.ladder import Config, Progress
 from rag_playground.rag.runs import insert
+from rag_playground.scoring.selection import Candidate
 from rag_playground.settings import settings
 from rag_playground.stacks import indexes
 
@@ -24,11 +26,17 @@ def chosen_prompts(conn: sqlite3.Connection, stack: str) -> tuple[str, ...] | No
     return tuple(json.loads(row["names"])) if row else None
 
 
-def progress(conn: sqlite3.Connection, stack: str, proposed: tuple[str, ...] | None = None) -> Progress:
-    """Where the ladder stands on a stack; a choice already saved for S6 outranks a `proposed` one."""
+def replay(conn: sqlite3.Connection, stack: str, result: Callable[[Config], Candidate | None],
+           proposed: tuple[str, ...] | None) -> Progress:
+    """Walk the ladder over `result`; a choice already saved for S6 outranks a `proposed` one."""
     prompts.ensure_default(conn)
     chosen = chosen_prompts(conn, stack)
-    return ladder.walk(ladder_runs.finder(conn, stack), prompts.DEFAULT_NAME, proposed if chosen is None else chosen)
+    return ladder.walk(result, prompts.DEFAULT_NAME, proposed if chosen is None else chosen)
+
+
+def progress(conn: sqlite3.Connection, stack: str, proposed: tuple[str, ...] | None = None) -> Progress:
+    """Where the ladder stands on a stack."""
+    return replay(conn, stack, ladder_runs.finder(conn, stack), proposed)
 
 
 def next_step(conn: sqlite3.Connection, stack: str, prompt_names: tuple[str, ...] | None) -> Progress:

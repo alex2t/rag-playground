@@ -331,7 +331,8 @@ rag-playground/
 | POST | `/api/estimate` | Run count, cost and time |
 | POST | `/api/runs` | Start an evaluation job: every setting plus `questions` = `dev`, `heldout` or `smoke` (20, round-robin, T46), all required (T40); refusals return 404, 409 or 422 with the reason (D25) |
 | POST | `/api/sweeps` | Start a confirmed sweep |
-| POST | `/api/story` | Run the ladder on one or both stacks |
+| POST | `/api/story` | Start the ladder's next step on one stack; for both stacks the page sends one request each (T50). Refusals return 404, 409 or 422 with the reason |
+| GET | `/api/story/{stack}` | A stack's ladder: finished steps with scores, next step, estimate, enrichment part, budget left, running job; `prompts` previews S6's estimate |
 | GET | `/api/jobs/{id}` | Status, progress, message, error |
 | GET | `/api/runs`, `/api/runs/{id}` | Summaries / per-question results (with reproducibility metadata) |
 | GET | `/api/runs/{id}/export` | CSV of per-question results |
@@ -442,7 +443,7 @@ Validate each step before starting the next one. Log bugs in `fix.md`. Record de
 - **Check:** pass/fail agreement ≥ 80%. If not, change the judge and repeat this step. Record the result in `decision.md` (T07).
 
 ### Step 9 - Frontend (time-boxed)
-- **Status (2026-10-31): in progress.** Ladder backend done (T50): decisions, stored-run lookup, the job that runs one step. Next: the Story routes, then the page.
+- **Status (2026-10-31): in progress.** Ladder backend done (T50): decisions, stored-run lookup, the job that runs one step, the Story routes. Next: the held-out confirmation backend, then the shared layout and the Story page.
 Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Sweep and Ops. Use one shared layout. Get it working before polishing.
 - **Story page:**
   - Run the ladder on one or both stacks.

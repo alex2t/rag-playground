@@ -26,6 +26,10 @@ def new_executor() -> ThreadPoolExecutor:
 executor = new_executor()
 
 
+class StepBusy(ValueError):
+    """A ladder step is already waiting or running on this stack."""
+
+
 @dataclass(frozen=True)
 class Job:
     id: int
@@ -72,17 +76,27 @@ def evaluate(job_id: int, run_id: int) -> None:
         conn.close()
 
 
+def active_step(conn: sqlite3.Connection, stack: str) -> int | None:
+    """The id of the ladder step waiting or running on a stack, if any."""
+    row = conn.execute("SELECT id FROM jobs WHERE kind = 'ladder_step' AND stack = ? AND status IN "
+                       "('queued', 'running')", (stack,)).fetchone()
+    return row and row["id"]
+
+
 def submit_step(conn: sqlite3.Connection, stack: str, prompt_names: tuple[str, ...] | None = None) -> int:
     """Queue the ladder's next step on a stack; return the job id. Refused before anything is stored if a step of that
-    stack is already waiting or running (a second click would pay twice; two at the same moment are stopped by the
-    database), if the ladder is finished, if S6 has no prompts chosen, or if the step's estimate is over the budget."""
-    active = conn.execute("SELECT 1 FROM jobs WHERE kind = 'ladder_step' AND stack = ? AND status IN "
-                          "('queued', 'running')", (stack,)).fetchone()
-    if active:
-        raise ValueError(f"A ladder step is already running on Stack {stack}")
-    progress = ladder_step.next_step(conn, stack, prompt_names)
-    job_id = insert(conn, "jobs", {"kind": "ladder_step", "stack": stack, "step": progress.next_step,
-                                   "runs_total": len(progress.missing)})
+    stack is already waiting or running (a second click would pay twice; two at the same moment pass this check, and
+    the database stops the second), if the ladder is finished, if S6 has no prompts chosen, or if the step's estimate
+    is over the budget."""
+    busy = StepBusy(f"A ladder step is already running on Stack {stack}")
+    if active_step(conn, stack):
+        raise busy
+    try:
+        progress = ladder_step.next_step(conn, stack, prompt_names)
+        job_id = insert(conn, "jobs", {"kind": "ladder_step", "stack": stack, "step": progress.next_step,
+                                       "runs_total": len(progress.missing)})
+    except sqlite3.IntegrityError as exc:
+        raise busy from exc
     executor.submit(run_step, job_id, stack, progress.missing)
     return job_id
 
