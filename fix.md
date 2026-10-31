@@ -4,6 +4,14 @@ Add new bugs at the top. Status: `open` | `investigating` | `fixed`.
 
 ---
 
+## [2026-10-31] Step 9: a ladder step could leave a run `running` forever - `fixed`
+- **Symptom:** if `indexes.retriever` raised in `jobs.run_step`, the job failed but its run stayed `running`.
+- **Reproduce:** make `indexes.retriever` raise; the new test failed on the old code.
+- **Root cause (evidence):** `retriever` is called after `start_run` and outside `pipeline.execute`, which closes runs only for its own failures. `recover_interrupted` looks only at unfinished jobs, so nothing closed the run. `jobs.evaluate` had this guard; `run_step` did not. Antigravity answered the question as safe.
+- **Fix:** `run_step` closes a run left `running`, as `evaluate` does.
+- **Also fixed (Antigravity, confirmed by failing tests):** a step refused by the budget kept its locked S6 choice, so the budget check now comes first; two clicks at the same moment could both pass the check, so a partial unique index `jobs_one_active_step` was added.
+- **Verified:** 3 tests failed before the fixes and pass after; 26 deliberate breaks caught from a clean baseline, one only after a new resume test.
+
 ## [2026-10-31] Step 9: ladder tests missed three breaks - `fixed`
 - **Symptom:** Antigravity reported 15 breaks caught. Re-running its doubtful ones, 3 passed all 29 tests in `tests/test_ladder.py`.
 - **Reproduce:** in `rag/ladder.py`, change the prompt limit to `>=`, or S4's method to `"enriched"`, or S2's `round` to `int`, then run the file's tests.

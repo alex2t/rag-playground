@@ -122,15 +122,24 @@ CREATE TABLE IF NOT EXISTS indexes (
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     PRIMARY KEY (stack, chunk_set_id)
 );
--- Background jobs (D07): one evaluation run per job, run one at a time; the UI polls a job's status.
+-- Background jobs (D07), run one at a time; the UI polls a job's status. An evaluate job is one run. A ladder step
+-- job (T50) runs several, and run_id holds its current run, empty until the first one starts.
 CREATE TABLE IF NOT EXISTS jobs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    kind TEXT NOT NULL CHECK (kind IN ('evaluate')),
+    kind TEXT NOT NULL CHECK (kind IN ('evaluate', 'ladder_step')),
     status TEXT NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'running', 'done', 'failed')),
-    run_id INTEGER NOT NULL REFERENCES runs (id),
+    run_id INTEGER REFERENCES runs (id),
+    stack TEXT CHECK (stack IN ('A', 'B')),
+    step TEXT,
+    runs_total INTEGER CHECK (runs_total > 0),
+    runs_done INTEGER NOT NULL DEFAULT 0 CHECK (runs_done <= runs_total),
     error TEXT,
     finished_at TEXT,
+    CHECK ((kind = 'evaluate') = (stack IS NULL)),
+    CHECK ((kind = 'evaluate') = (step IS NULL)),
+    CHECK ((kind = 'evaluate') = (runs_total IS NULL)),
+    CHECK (kind = 'ladder_step' OR run_id IS NOT NULL),
     CHECK ((status = 'failed') = (error IS NOT NULL)),
     CHECK ((status IN ('done', 'failed')) = (finished_at IS NOT NULL))
 );
@@ -139,6 +148,20 @@ CREATE TRIGGER IF NOT EXISTS jobs_forward_only BEFORE UPDATE OF status ON jobs
 WHEN NOT ((OLD.status = 'queued' AND NEW.status IN ('running', 'failed'))
           OR (OLD.status = 'running' AND NEW.status IN ('done', 'failed')))
 BEGIN SELECT RAISE(ABORT, 'a job moves forward only'); END;
+CREATE UNIQUE INDEX IF NOT EXISTS jobs_one_active_step ON jobs (stack)
+WHERE kind = 'ladder_step' AND status IN ('queued', 'running');
+-- The prompt versions chosen for ladder step S6 (T50), once per stack: a later change would rewrite the ladder's past.
+CREATE TABLE IF NOT EXISTS ladder_prompts (
+    stack TEXT PRIMARY KEY CHECK (stack IN ('A', 'B')),
+    names TEXT NOT NULL
+);
+CREATE TRIGGER IF NOT EXISTS ladder_prompts_no_replace BEFORE INSERT ON ladder_prompts
+WHEN EXISTS (SELECT 1 FROM ladder_prompts WHERE stack = NEW.stack)
+BEGIN SELECT RAISE(ABORT, 'ladder prompts are chosen once per stack'); END;
+CREATE TRIGGER IF NOT EXISTS ladder_prompts_no_update BEFORE UPDATE ON ladder_prompts
+BEGIN SELECT RAISE(ABORT, 'ladder prompts are chosen once per stack'); END;
+CREATE TRIGGER IF NOT EXISTS ladder_prompts_no_delete BEFORE DELETE ON ladder_prompts
+BEGIN SELECT RAISE(ABORT, 'ladder prompts are chosen once per stack'); END;
 -- One row per paid OpenRouter call, written as soon as it returns (T44). run_id is NULL outside runs.
 CREATE TABLE IF NOT EXISTS spend (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

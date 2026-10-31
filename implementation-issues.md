@@ -246,3 +246,19 @@ Antigravity's review confirmed 5 of 6 findings:
 **Lesson:** when work depends on someone not seeing something, the checks need the same care as the work: a reviewer's report is also something the grader reads.
 
 **The result (2026-10-31):** the user graded all 30 answers blind and agreed with the judge on 24, exactly the 80% target. It passes with no margin: the true figure could be anywhere from 63% to 90%. Reading the 6 disagreements taught more than the number. The judge can give a half answer full marks for accuracy, while its completeness score notices, and it scored the same kind of slip differently on different answers. So accuracy is not read alone on multi-part questions.
+
+## 17. Step 9: the review said safe, and it was not (2026-10-31)
+
+**Where:** Step 9, building the job that runs one ladder step in the background, before any page exists.
+
+**What went wrong:** a ladder step opens a run, then gets its search ready, then asks the questions. If the search setup failed, the job was marked failed, but the run stayed marked as running forever. Nothing would ever have closed it, because the restart clean-up only looks at unfinished jobs.
+
+**First guess:** the review was asked this exact question and answered that no path could leave a run open. It was reading the part of the code that closes runs, and did not notice that the search setup happens just outside it.
+
+**Proven cause:** the older evaluation job had a guard for this case, and the new step job did not. A test that made the search setup fail reproduced it.
+
+**The fix:** the step job now closes a run it left open, as the evaluation job does. The review's own two findings were real and also fixed: a step refused by the budget used to lock the user's prompt choice for good, and two clicks at the same moment could both start the same paid step.
+
+**Also found:** the same review claimed 15 deliberate breaks were caught, but 3 of those passed every test on the earlier increment, and it named classes and tables that do not exist. Its verdicts were mostly right; its evidence was not. The prompts now ask for the file, the line and a quote for every claim.
+
+**Lesson:** a reviewer's "safe" is a claim like any other. Check the reasoning, not only the verdict, and count a test as proof only after seeing it fail without the fix. A check run on already failing tests proves nothing, which happened here too: one "12 of 12 caught" was meaningless, because a new test was failing before any break was applied.
