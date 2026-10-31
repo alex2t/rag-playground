@@ -28,11 +28,11 @@ def settings_key(stack: str, set_id: str, top_k: int, hybrid: bool, ranking: dic
     return stack, set_id, top_k, hybrid, json.dumps(ranking, sort_keys=True), rerank, model, prompt_name
 
 
-def finder(conn: sqlite3.Connection, stack: str) -> Callable[[Config], Candidate | None]:
-    """A lookup from configuration to its stored run, for `ladder.walk`. Only runs that may compete count (T08). The
-    oldest match wins, so a later run with the same settings cannot change a past ladder decision."""
+def lookup(conn: sqlite3.Connection, stack: str, split: str) -> Callable[[Config], Candidate | None]:
+    """From configuration to its stored run on a split. The oldest match wins, so a later run with the same settings
+    cannot change a past result."""
     stored = {}
-    for candidate in best_run.candidates(conn):
+    for candidate in best_run.candidates(conn, split):
         meta = runs.get_run(conn, candidate.run_id).meta
         stored.setdefault(settings_key(meta.stack, meta.chunk_set_id, meta.top_k, meta.hybrid, meta.openai_ranking,
                                        meta.rerank_model is not None, meta.answer_model, meta.prompt_name), candidate)
@@ -43,3 +43,13 @@ def finder(conn: sqlite3.Connection, stack: str) -> Callable[[Config], Candidate
                                        c.answer_model, c.prompt_name))
 
     return result
+
+
+def finder(conn: sqlite3.Connection, stack: str) -> Callable[[Config], Candidate | None]:
+    """The dev runs, for `ladder.walk`. Only runs that may compete count (T08)."""
+    return lookup(conn, stack, "dev")
+
+
+def heldout_finder(conn: sqlite3.Connection, stack: str) -> Callable[[Config], Candidate | None]:
+    """The held-out runs, which confirm a choice and never make one (T18)."""
+    return lookup(conn, stack, "heldout")

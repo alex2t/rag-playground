@@ -4,8 +4,8 @@ import sqlite3
 from dataclasses import asdict
 
 from rag_playground import jobs
-from rag_playground.rag import ladder_runs, ladder_step, pipeline
-from rag_playground.rag.ladder import Decision
+from rag_playground.rag import heldout, ladder_runs, ladder_step, pipeline
+from rag_playground.rag.ladder import Decision, Progress
 from rag_playground.scoring.selection import Candidate, failed_gates
 
 
@@ -21,6 +21,22 @@ def finished_step(decision: Decision, result) -> dict:
             "tried": [option(result(c), c, c == decision.kept) for c in decision.tried]}
 
 
+def confirmation(conn: sqlite3.Connection, stack: str, now: Progress) -> dict | None:
+    """The held-out panel, None until the ladder is finished. `gain` is the final configuration against S0, the number
+    quoted as the result; it exists once both runs do, and not when the ladder kept S0's settings."""
+    if now.next_step is not None:
+        return None
+    result = ladder_runs.heldout_finder(conn, stack)
+    configs = heldout.configurations(now)
+    found = [(config, result(config)) for config in configs]
+    left = [config for config, run in found if run is None]
+    done = [run for _, run in found if run]
+    return {"runs": [option(run, config, config == configs[-1]) for config, run in found if run],
+            "missing": [asdict(config) for config in left],
+            "estimate_usd": ladder_step.step_cost(conn, left, heldout.tests()),
+            "gain": heldout.gain(*done) if len(done) == 2 else None}
+
+
 def state(conn: sqlite3.Connection, stack: str, proposed: tuple[str, ...] | None = None) -> dict:
     """A stack's ladder. `enrichment_usd` is the part of `estimate_usd` that pays for S4's enrichment, shown before the
     user confirms it (T49). At S6 nothing is missing until prompts are `proposed` or saved: `needs_prompts`."""
@@ -30,4 +46,5 @@ def state(conn: sqlite3.Connection, stack: str, proposed: tuple[str, ...] | None
             "needs_prompts": now.next_step == "S6" and not now.missing, "missing": [asdict(c) for c in now.missing],
             "estimate_usd": ladder_step.step_cost(conn, now.missing),
             "enrichment_usd": sum(ladder_step.enrichment_cost(c) for c in now.missing),
-            "budget_left_usd": pipeline.remaining(conn), "job_id": jobs.active_step(conn, stack)}
+            "budget_left_usd": pipeline.remaining(conn), "job_id": jobs.active_step(conn, stack),
+            "heldout": confirmation(conn, stack, now)}

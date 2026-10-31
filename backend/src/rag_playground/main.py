@@ -96,6 +96,21 @@ def start_step(request: StoryRequest) -> dict:
         conn.close()
 
 
+@app.post("/api/story/{stack}/heldout", status_code=202)
+def start_heldout(stack: Stack) -> dict:
+    """Confirm a stack's finished ladder on the held-out questions (T18). Refused with nothing stored: 409 (a step is
+    already running, or over budget), 422 (ladder not finished, or already confirmed)."""
+    conn = store.connect()
+    try:
+        return {"job_id": jobs.submit_heldout(conn, stack)}
+    except (jobs.StepBusy, BudgetExceeded) as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    finally:
+        conn.close()
+
+
 @app.get("/api/story/{stack}")
 def story_state(stack: Stack, prompts: Annotated[list[str] | None, Query()] = None) -> dict:
     """A stack's ladder: finished steps with their scores, the next step and its estimate, and the job running now.

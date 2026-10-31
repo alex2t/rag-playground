@@ -5,12 +5,13 @@ jobs and runs left unfinished are marked failed."""
 
 import json
 import sqlite3
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 
 from rag_playground import store
 from rag_playground.datasets.schema import TestCase
-from rag_playground.rag import ladder_runs, ladder_step, pipeline, runs
+from rag_playground.rag import heldout, ladder_runs, ladder_step, pipeline, runs
 from rag_playground.rag.ladder import Config
 from rag_playground.rag.runs import insert
 from rag_playground.stacks import indexes
@@ -83,25 +84,43 @@ def active_step(conn: sqlite3.Connection, stack: str) -> int | None:
     return row and row["id"]
 
 
-def submit_step(conn: sqlite3.Connection, stack: str, prompt_names: tuple[str, ...] | None = None) -> int:
-    """Queue the ladder's next step on a stack; return the job id. Refused before anything is stored if a step of that
-    stack is already waiting or running (a second click would pay twice; two at the same moment pass this check, and
-    the database stops the second), if the ladder is finished, if S6 has no prompts chosen, or if the step's estimate
-    is over the budget."""
+Work = tuple[str, list[Config], list[TestCase]]
+
+
+def queue_step(conn: sqlite3.Connection, stack: str, plan: Callable[[], Work]) -> int:
+    """Queue what `plan` returns (a step's name, its runs, their questions); return the job id. Refused before anything
+    is stored if a step of that stack is already waiting or running: a second click would pay twice. Two at the same
+    moment pass this check, and the database stops the second."""
     busy = StepBusy(f"A ladder step is already running on Stack {stack}")
     if active_step(conn, stack):
         raise busy
     try:
-        progress = ladder_step.next_step(conn, stack, prompt_names)
-        job_id = insert(conn, "jobs", {"kind": "ladder_step", "stack": stack, "step": progress.next_step,
-                                       "runs_total": len(progress.missing)})
+        step, missing, tests = plan()
+        job_id = insert(conn, "jobs", {"kind": "ladder_step", "stack": stack, "step": step,
+                                       "runs_total": len(missing)})
     except sqlite3.IntegrityError as exc:
         raise busy from exc
-    executor.submit(run_step, job_id, stack, progress.missing)
+    executor.submit(run_step, job_id, stack, missing, tests)
     return job_id
 
 
-def run_step(job_id: int, stack: str, missing: list[Config]) -> None:
+def submit_step(conn: sqlite3.Connection, stack: str, prompt_names: tuple[str, ...] | None = None) -> int:
+    """Queue the ladder's next step on a stack. Refused if the ladder is finished, if S6 has no prompts chosen, or if
+    the step's estimate is over the budget."""
+    def plan() -> Work:
+        progress = ladder_step.next_step(conn, stack, prompt_names)
+        return progress.next_step, progress.missing, ladder_step.dev_tests()
+
+    return queue_step(conn, stack, plan)
+
+
+def submit_heldout(conn: sqlite3.Connection, stack: str) -> int:
+    """Queue a stack's held-out confirmation. Refused if its ladder is not finished, if it is already confirmed, or if
+    its estimate is over the budget."""
+    return queue_step(conn, stack, lambda: (heldout.STEP, heldout.next_runs(conn, stack), heldout.tests()))
+
+
+def run_step(job_id: int, stack: str, missing: list[Config], tests: list[TestCase]) -> None:
     """Run a step's missing configurations in the worker thread. Finished runs stay, so running the step again pays
     only for what is left."""
     conn = store.connect()
@@ -110,7 +129,7 @@ def run_step(job_id: int, stack: str, missing: list[Config]) -> None:
         set_status(conn, job_id, "running")
         for config in missing:
             ladder_step.prepare(conn, stack, config)
-            run_id = pipeline.start_run(conn, ladder_runs.choices(stack, config), ladder_step.dev_tests())
+            run_id = pipeline.start_run(conn, ladder_runs.choices(stack, config), tests)
             with conn:
                 conn.execute("UPDATE jobs SET run_id = ? WHERE id = ?", (run_id, job_id))
             pipeline.execute(conn, run_id, indexes.retriever(conn, runs.get_run(conn, run_id).meta))

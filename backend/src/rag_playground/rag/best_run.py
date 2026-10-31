@@ -28,16 +28,17 @@ def candidate(conn: sqlite3.Connection, run: runs.Run, by_id: dict) -> selection
                                fmean(r.cost_usd for r in results), mrr)
 
 
-def candidates(conn: sqlite3.Connection) -> list[selection.Candidate]:
-    """Every stored run that may compete, oldest first."""
+def candidates(conn: sqlite3.Connection, split: str = "dev") -> list[selection.Candidate]:
+    """Every comparable stored run on all the questions of a split, oldest first. Only dev runs may compete; held-out
+    ones are read to report the confirmation."""
     tests = load_tests()
-    dev_ids = sorted(t.id for t in tests if t.split == "dev")
-    rows = conn.execute("SELECT id FROM runs WHERE status = 'done' AND split = 'dev' AND dataset_sha256 = ? "
+    split_ids = sorted(t.id for t in tests if t.split == split)
+    rows = conn.execute("SELECT id FROM runs WHERE status = 'done' AND split = ? AND dataset_sha256 = ? "
                         "AND judge_slug = ? ORDER BY id",
-                        (dataset_sha256(), model_info(JUDGE_MODEL).canonical_slug)).fetchall()
+                        (split, dataset_sha256(), model_info(JUDGE_MODEL).canonical_slug)).fetchall()
     stored = [runs.get_run(conn, row["id"]) for row in rows]
     by_id = {t.id: t for t in tests}
-    return [candidate(conn, run, by_id) for run in stored if sorted(run.meta.test_ids) == dev_ids]
+    return [candidate(conn, run, by_id) for run in stored if sorted(run.meta.test_ids) == split_ids]
 
 
 def best_run(conn: sqlite3.Connection) -> selection.Candidate | None:
