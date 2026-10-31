@@ -35,9 +35,9 @@ GATES = {"mrr": 0.75, "recall": 0.80, "faithfulness": 4.0, "correct_refusal_rate
 BOOTSTRAP_RESAMPLES = 1000
 BOOTSTRAP_SEED = 42
 
-# Judge calibration (T20, T48): answers sampled per score from each S0 run, and the agreement target.
-CALIBRATION_PER_SCORE = 3
-CALIBRATION_SEED = 42
+# Judge calibration (T20, T48): answers sampled from each S0 run, and the agreement target.
+CALIBRATION_PER_RUN = 15
+CALIBRATION_SEED = 44
 CALIBRATION_TARGET = 0.80
 PASS_ACCURACY = 4  # an answer passes at this accuracy score or above
 

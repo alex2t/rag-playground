@@ -73,7 +73,7 @@ def grade_all(conn, calibration_id: int, grade_for) -> None:
         grading.save_grade(conn, calibration_id, row["position"], grade_for(score_of(row["test_id"])))
 
 
-def test_the_sample_has_three_per_score_from_each_stack(conn, calibration_id):
+def test_the_sample_splits_equally_over_the_scores_of_each_stack(conn, calibration_id):
     rows = items(conn, calibration_id)
     assert [row["position"] for row in rows] == list(range(1, 31))
     for run_id in {row["run_id"] for row in rows}:
@@ -217,7 +217,7 @@ def test_a_calibration_cannot_be_deleted_even_without_foreign_keys(conn, calibra
 
 @pytest.mark.parametrize("sql", [
     "UPDATE calibrations SET seed = 1",
-    "INSERT OR REPLACE INTO calibrations (id, run_a, run_b, per_score, seed, size) SELECT id, run_a, run_b, 1, 1, 1 "
+    "INSERT OR REPLACE INTO calibrations (id, run_a, run_b, per_run, seed, size) SELECT id, run_a, run_b, 1, 1, 1 "
     "FROM calibrations",
     "DELETE FROM calibration_items",
     "UPDATE calibration_items SET test_id = 'q0'",
@@ -237,14 +237,14 @@ def test_the_sample_is_fixed_in_the_database(conn, calibration_id, sql):
 
 def test_an_item_must_be_a_stored_answer(conn, calibration_id):
     with pytest.raises(sqlite3.IntegrityError, match="FOREIGN KEY"):
-        conn.execute("INSERT INTO calibrations (run_a, run_b, per_score, seed, size) VALUES (1, 1, 3, 42, 1)")
+        conn.execute("INSERT INTO calibrations (run_a, run_b, per_run, seed, size) VALUES (1, 1, 15, 42, 1)")
         conn.execute("INSERT INTO calibration_items (calibration_id, position, run_id, test_id) VALUES (2, 1, 1, 'nope')")
     conn.rollback()
 
 
 def test_an_item_cannot_arrive_already_graded(conn, calibration_id):
     with pytest.raises(sqlite3.IntegrityError, match="fixed once drawn"):
-        conn.execute("INSERT INTO calibrations (run_a, run_b, per_score, seed, size) VALUES (1, 1, 3, 42, 1)")
+        conn.execute("INSERT INTO calibrations (run_a, run_b, per_run, seed, size) VALUES (1, 1, 15, 42, 1)")
         conn.execute("INSERT INTO calibration_items (calibration_id, position, run_id, test_id, grade) "
                      "VALUES (2, 1, 1, 'q0', 5)")
     conn.rollback()

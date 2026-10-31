@@ -229,3 +229,18 @@ Antigravity's review confirmed 5 of 6 findings:
 - A deliberate break only counts if the suite passes without it.
 - Test the stop in the middle of an action, not only between actions.
 - Fix what causes bad data, rather than teaching the code to step around it.
+
+## 16. Step 8: a fair-looking sample that would have missed the point (2026-10-30)
+**What we were doing:** before trusting the LLM judge, the user grades 30 of its answers. The rule, chosen before any full run, was 3 answers for each score from 1 to 5, so the many good answers would not drown out the weak ones.
+
+**What went wrong:** the first two full runs showed the judge uses only 1, 3 and 5, and about 82% of answers get a 5. The rule filled the empty scores from their neighbours, which pushed the sample towards weak answers: only 7 of the 30 would have been 5s. The check would have said little about the score nearly every answer receives. Nothing failed, and every test passed, because the rule did exactly what it said.
+
+**How it was caught:** by reading the real score counts before the sample was drawn, because the sample locks the first time grading opens.
+
+**The fix (user decision):** split the 15 answers per stack equally over the scores the judge really used, giving 5, 5 and 5 on both stacks. No grade existed yet, so the change cannot favour the result, and the report will say that it happened.
+
+**Lesson:** a rule designed before seeing the data is a guess about the data. Look at the real distribution before locking anything that depends on it. A judge that never uses two of its five scores is also a finding in its own right.
+
+**A second catch (2026-10-31):** the review of the new rule was asked which questions fell in both samples, and its report printed one, with the judge's scores. Grading is blind, and that question would have been the only one shown twice, so the grader would have known the judge's verdict on two answers. The request itself caused the leak. The seed was changed before any grade, without looking at the new picks, and later checks print only counts. The same review pointed out that one overall figure can hide a judge that is right on one side only, so the report now also shows agreement separately for the judge's passes and fails.
+
+**Lesson:** when work depends on someone not seeing something, the checks need the same care as the work: a reviewer's report is also something the grader reads.

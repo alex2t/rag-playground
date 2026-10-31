@@ -10,7 +10,7 @@ import sys
 
 from rag_playground import store
 from rag_playground.rag import grading
-from rag_playground.scoring.calibration import Agreement
+from rag_playground.scoring.calibration import Agreement, wilson
 from rag_playground.scoring.judging import ACCURACY_RUBRIC
 from rag_playground.settings import CALIBRATION_TARGET, PASS_ACCURACY
 
@@ -32,13 +32,24 @@ def ask_grade() -> int | None:
             return int(typed)
 
 
+def side(label: str, confirmed: int, total: int) -> str:
+    """How many of the judge's verdicts on one side the user confirmed, with the 95% interval. A judge can give every
+    answer the same verdict, which leaves the other side empty."""
+    if not total:
+        return f"{label}: no answers\n"
+    low, high = wilson(confirmed, total)
+    return f"{label}: you agreed on {confirmed} of {total} (95% Wilson interval {low:.0%} to {high:.0%})\n"
+
+
 def report(result: Agreement) -> None:
     print(f"\nPass/fail agreement: {result.pass_fail:.0%} of {result.graded} answers "
           f"(95% Wilson interval {result.pass_fail_low:.0%} to {result.pass_fail_high:.0%})\n"
           f"Within 1 point: {result.within_one:.0%}\n"
+          + side("Judge passed", result.passes_confirmed, result.judge_passed)
+          + side("Judge failed", result.fails_confirmed, result.judge_failed) +
           f"Target of {CALIBRATION_TARGET:.0%} pass/fail agreement: "
           f"{'reached' if result.target_reached else 'NOT reached, change the judge and repeat (plan.md 4.8)'}\n"
-          "This describes the sample, equal per judge score, not all answers (T48).")
+          "This describes the sample, equal per score the judge used, not all answers (T48).")
 
 
 def main(run_a: int, run_b: int) -> None:

@@ -103,7 +103,7 @@ def test_a_second_run_reuses_the_recorded_indexes(world):
 
 def test_two_full_runs_qualify_for_the_calibration_and_can_be_graded_to_the_end(world, monkeypatch, capsys):
     """The whole of Step 8 offline: every dev question on both stacks, the printed command, then all 30 grades. The
-    fake judge gives every answer 5, so the fill rule supplies all 30; a user grading all 4 agrees on every pass."""
+    fake judge gives every answer 5, so all 30 come from that one score; a user grading all 4 agrees on every pass."""
     monkeypatch.setattr(grading, "model_info", lambda model: SimpleNamespace(canonical_slug=f"{model}-1"))
     first_run.main("both", "full")
     assert "scripts/grade.py 1 2" in capsys.readouterr().out
@@ -113,7 +113,8 @@ def test_two_full_runs_qualify_for_the_calibration_and_can_be_graded_to_the_end(
     answers = ["4", "y"] * 30
     monkeypatch.setattr(builtins, "input", lambda prompt: answers.pop(0))
     grade_script.main(1, 2)
-    assert "Pass/fail agreement: 100% of 30 answers" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "Pass/fail agreement: 100% of 30 answers" in out and "Judge failed: no answers" in out
     assert answers == []
 
 

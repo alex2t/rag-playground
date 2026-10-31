@@ -10,7 +10,7 @@ from rag_playground.datasets.schema import dataset_sha256, load_tests
 from rag_playground.llm.models import model_info
 from rag_playground.rag import prompts, runs
 from rag_playground.scoring import calibration
-from rag_playground.settings import CALIBRATION_PER_SCORE, CALIBRATION_SEED, JUDGE_MODEL, S0
+from rag_playground.settings import CALIBRATION_PER_RUN, CALIBRATION_SEED, JUDGE_MODEL, S0
 
 
 @dataclass(frozen=True)
@@ -44,7 +44,7 @@ def draw_items(conn: sqlite3.Connection, run_a: int, run_b: int) -> list[tuple[i
     for offset, run_id in enumerate((run_a, run_b)):
         scores = {r.test_id: r.judgement.accuracy for r in runs.get_results(conn, run_id)}
         items += [(run_id, test_id)
-                  for test_id in calibration.sample(scores, CALIBRATION_PER_SCORE, CALIBRATION_SEED + offset)]
+                  for test_id in calibration.sample(scores, CALIBRATION_PER_RUN, CALIBRATION_SEED + offset)]
     random.Random(CALIBRATION_SEED).shuffle(items)
     return items
 
@@ -62,8 +62,8 @@ def open_calibration(conn: sqlite3.Connection, run_a: int, run_b: int) -> int:
     items = draw_items(conn, run_a, run_b)
     with conn:
         calibration_id = conn.execute(
-            "INSERT INTO calibrations (run_a, run_b, per_score, seed, size) VALUES (?, ?, ?, ?, ?)",
-            (run_a, run_b, CALIBRATION_PER_SCORE, CALIBRATION_SEED, len(items))).lastrowid
+            "INSERT INTO calibrations (run_a, run_b, per_run, seed, size) VALUES (?, ?, ?, ?, ?)",
+            (run_a, run_b, CALIBRATION_PER_RUN, CALIBRATION_SEED, len(items))).lastrowid
         conn.executemany("INSERT INTO calibration_items (calibration_id, position, run_id, test_id) VALUES (?, ?, ?, ?)",
                          [(calibration_id, position, *item) for position, item in enumerate(items, start=1)])
     return calibration_id

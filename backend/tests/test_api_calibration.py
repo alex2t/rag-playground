@@ -90,6 +90,9 @@ def test_agreement_appears_only_with_the_last_grade(conn, calibration_id):
     assert (state["graded"], state["item"]) == (30, None)
     assert state["agreement"]["pass_fail"] == 1.0 and state["agreement"]["target_reached"] is True
     assert state["agreement"]["pass_fail_low"] == pytest.approx(0.8865, abs=0.0001)
+    agreed = state["agreement"]
+    assert (agreed["judge_passed"], agreed["passes_confirmed"], agreed["judge_failed"], agreed["fails_confirmed"]) == (
+        12, 12, 18, 18)
 
 
 def test_a_grade_below_target_is_reported_as_not_reached(calibration_id):
@@ -168,6 +171,8 @@ def test_the_script_resumes_and_reports_agreement_after_the_last_grade(conn, s0_
     assert "Answer 2 of 30" in out and "Answer 1 of 30" not in out
     assert "Pass/fail agreement: 40% of 30 answers (95% Wilson interval 25% to 58%)" in out
     assert "Within 1 point: 60%" in out and "NOT reached" in out
+    assert "Judge passed: you agreed on 12 of 12 (95% Wilson interval 76% to 100%)" in out
+    assert "Judge failed: you agreed on 0 of 18 (95% Wilson interval 0% to 18%)" in out
 
 
 def test_the_script_never_prints_the_judge_or_the_stack(conn, s0_runs, monkeypatch, capsys):

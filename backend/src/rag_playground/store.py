@@ -156,7 +156,7 @@ CREATE TABLE IF NOT EXISTS calibrations (
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     run_a INTEGER NOT NULL REFERENCES runs (id),
     run_b INTEGER NOT NULL REFERENCES runs (id),
-    per_score INTEGER NOT NULL,
+    per_run INTEGER NOT NULL,
     seed INTEGER NOT NULL,
     size INTEGER NOT NULL CHECK (size > 0),
     UNIQUE (run_a, run_b)
