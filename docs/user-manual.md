@@ -89,7 +89,7 @@ Any saved prompt version can be used, yours or the default. For a **held-out** r
 Pick two finished runs. You see the metrics side by side, whether the difference is real (see section 7), which questions one run fixed or broke, and cost against accuracy.
 
 ### Story: the ladder
-Runs the fixed ladder one step per click, on each stack separately, and draws one line per stack across the steps. Each stack's button shows the step's estimated cost before you click, covering OpenRouter costs only; OpenAI's costs are not included. A step that pays for enrichment (S4) asks you to confirm. If a step fails, the finished runs are kept, and the next click pays only for the rest.
+Runs the fixed ladder one step per click, on each stack separately, and draws one line per stack across the steps. Each stack's button shows the step's estimated cost before you click, including Stack A's search fee; OpenAI's index building is not included. A step that pays for enrichment (S4) asks you to confirm. If a step fails, the finished runs are kept, and the next click pays only for the rest.
 
 | Step | What changes |
 |---|---|
@@ -138,7 +138,7 @@ Spend against the budget, error rate, slowest-answer time (p95) and the app vers
 1. Run the ladder (**Story**) on both stacks, and confirm on held-out questions.
 2. Note the best eligible configuration (highlighted), including its prompt version.
 3. Load it in the settings panel and open **Ask**.
-4. Let your guests type their own questions. Each costs about $0.0002 to $0.0003 with `gpt-4.1-nano`, more with a stronger model.
+4. Let your guests type their own questions. Each costs about $0.0002 to $0.0003 with `gpt-4.1-nano`, more with a stronger model; Stack A adds $0.0025.
 
 ### Find out whether a setting helps
 1. **Evaluate** the configuration without the change, on dev questions.
@@ -164,14 +164,14 @@ Spend against the budget, error rate, slowest-answer time (p95) and the app vers
 
 | What | About |
 |---|---|
-| One question, `gpt-4.1-nano`, K=2 (answer and grading) | $0.0012 per stack |
-| A full dev run (192 questions), `gpt-4.1-nano`, K=2 | $0.23 per stack |
-| The same at K=8 (projected from token counts) | $0.55 per stack |
-| A full dev run with `gpt-6.1-sol` | $2.50 or more per stack (not measured yet) |
-| One question typed on **Ask** (no grading) | $0.0002 to $0.0003 with `gpt-4.1-nano` |
+| One question, `gpt-4.1-nano`, K=2 (answer and grading) | $0.0012 on Stack B, $0.0037 on Stack A |
+| A full dev run (192 questions), `gpt-4.1-nano`, K=2 | $0.23 on Stack B, $0.71 on Stack A |
+| The same at K=8 (projected from token counts) | $0.55 on Stack B, $1.03 on Stack A |
+| A full dev run with `gpt-6.1-sol` | $2.50 or more on Stack B, $2.98 or more on Stack A (not measured yet) |
+| One question typed on **Ask** (no grading) | $0.0002 to $0.0003 with `gpt-4.1-nano`, plus $0.0025 on Stack A |
 | Building an `llm_enriched` chunk set | $0.04 to $0.27, once per chunk set (projected, not measured yet) |
 
-Most of the cost of an evaluation is the judge. Stack A may add OpenAI's own search fees (being checked).
+On Stack B, most of the cost of an evaluation is the judge. On Stack A, the largest part is OpenAI's search fee of $0.0025 per question, which counts against the budget.
 
 ## 9. If something goes wrong
 

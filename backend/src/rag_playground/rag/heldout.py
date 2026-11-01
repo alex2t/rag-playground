@@ -31,7 +31,7 @@ def next_runs(conn: sqlite3.Connection, stack: str) -> list[Config]:
     left = [config for config in configurations(now) if result(config) is None]
     if not left:
         raise ValueError(f"Stack {stack} is already confirmed on the held-out questions")
-    ladder_step.check_budget(conn, left, tests())
+    ladder_step.check_budget(conn, stack, left, tests())
     return left
 
 

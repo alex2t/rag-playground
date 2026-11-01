@@ -48,7 +48,7 @@ def test_the_state_of_a_new_ladder_shows_s0_and_its_estimate(world):
         "B", [], "S0", False, None)
     assert state["missing"] == [{"chunk_size": 1024, "overlap": 200, "top_k": 2, "answer_model": BASE.answer_model,
                                  "prompt_name": "default", "method": "fixed", "rerank": False}]
-    assert state["estimate_usd"] == pytest.approx(ladder_step.run_cost(world.conn, BASE)) and state["estimate_usd"] > 0
+    assert state["estimate_usd"] == pytest.approx(ladder_step.run_cost(world.conn, "B", BASE)) and state["estimate_usd"] > 0
     assert (state["enrichment_usd"], state["budget_left_usd"]) == (0, 1.0)
 
 
@@ -64,7 +64,7 @@ def test_the_state_after_a_step_shows_its_scores_and_the_next_estimate(world):
         True, run_ids(world)[0], 5.0, ["mrr", "recall", "correct_refusal_rate"])
     assert tried["mrr"] == pytest.approx(0.5) and tried["cost_per_question"] == pytest.approx(0.0015)
     assert state["next_step"] == "S1" and len(state["missing"]) == len(LADDER_SIZES) - 1
-    assert state["estimate_usd"] == pytest.approx(ladder_step.step_cost(world.conn, S1_NEW))
+    assert state["estimate_usd"] == pytest.approx(ladder_step.step_cost(world.conn, "B", S1_NEW))
     assert state["budget_left_usd"] < 1.0
 
 
@@ -110,7 +110,7 @@ def test_s4_reports_its_enrichment_within_the_estimate(world, monkeypatch):
     monkeypatch.setattr(ladder_step.ladder_runs, "finder", lambda conn, stack: result)
     state = client.get("/api/story/B").json()
     assert (state["next_step"], state["enrichment_usd"]) == ("S4", 0.25)
-    run = ladder_step.run_cost(world.conn, options("S3", BASE, ())[0])
+    run = ladder_step.run_cost(world.conn, "B", options("S3", BASE, ())[0])
     assert state["estimate_usd"] == pytest.approx(run + 0.25)
 
 
@@ -309,3 +309,15 @@ def test_a_step_that_keeps_the_same_settings_reports_no_change(world, monkeypatc
     steps = steps_of(world, monkeypatch, lambda size: run(2, 4.0, 0.25) if size == 400 else run(1, 2.0, 0.5))
     assert steps[2]["step"] == "S2"
     assert steps[2]["change"]["accuracy"] == {"low": 0, "high": 0, "real": False}
+
+
+def test_stack_a_s_button_and_budget_check_count_the_search_fee(world, monkeypatch):
+    """T53: S0 is one run on the dev questions; a budget between the two estimates stops only Stack A."""
+    prompts.ensure_default(world.conn)
+    stack_a = client.get("/api/story/A").json()["estimate_usd"]
+    stack_b = client.get("/api/story/B").json()["estimate_usd"]
+    assert stack_a - stack_b == pytest.approx(len(ladder_step.dev_tests()) * 0.0025)
+    monkeypatch.setattr(settings, "budget_usd", (stack_a + stack_b) / 2)
+    refused = client.post("/api/story", json={"stack": "A"})
+    assert refused.status_code == 409 and "The step is estimated" in refused.json()["detail"]
+    assert click(world).status_code == 202

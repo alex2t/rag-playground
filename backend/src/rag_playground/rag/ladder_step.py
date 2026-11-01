@@ -50,18 +50,18 @@ def next_step(conn: sqlite3.Connection, stack: str, prompt_names: tuple[str, ...
         now = progress(conn, stack, prompt_names)
     if now.next_step is None:
         raise ValueError(f"The ladder is finished on Stack {stack}")
-    check_budget(conn, now.missing)
+    check_budget(conn, stack, now.missing)
     if choosing:
         insert(conn, "ladder_prompts", {"stack": stack, "names": json.dumps(prompt_names)})
     return now
 
 
-def run_cost(conn: sqlite3.Connection, config: Config, tests: list[TestCase] | None = None) -> float:
+def run_cost(conn: sqlite3.Connection, stack: str, config: Config, tests: list[TestCase] | None = None) -> float:
     """A configuration's estimated run (T43), on the dev questions unless given others. Answers read the original
     chunks, enriched or not (T47)."""
     questions = dev_tests() if tests is None else tests
     return estimate.run_cost(questions, prompts.get(conn, config.prompt_name), config.answer_model, config.top_k,
-                             config.rerank, load_or_build(config.chunk_size, config.overlap))
+                             config.rerank, load_or_build(config.chunk_size, config.overlap), stack)
 
 
 def enrichment_cost(config: Config) -> float:
@@ -72,14 +72,14 @@ def enrichment_cost(config: Config) -> float:
     return enrich_run.remaining_cost(chunk_set_id(config.chunk_size, config.overlap))
 
 
-def step_cost(conn: sqlite3.Connection, missing: list[Config], tests: list[TestCase] | None = None) -> float:
-    """Estimated OpenRouter dollars for a step. Stack A's index builds and searches are OpenAI's, not counted (T44)."""
-    return sum(run_cost(conn, config, tests) + enrichment_cost(config) for config in missing)
+def step_cost(conn: sqlite3.Connection, stack: str, missing: list[Config], tests: list[TestCase] | None = None) -> float:
+    """Estimated dollars for a step, Stack A's search fees included (T53). Stack A's index builds are not counted (T44)."""
+    return sum(run_cost(conn, stack, config, tests) + enrichment_cost(config) for config in missing)
 
 
-def check_budget(conn: sqlite3.Connection, missing: list[Config], tests: list[TestCase] | None = None) -> None:
+def check_budget(conn: sqlite3.Connection, stack: str, missing: list[Config], tests: list[TestCase] | None = None) -> None:
     """Refuse a step whose estimate is over what is left of BUDGET_USD, before anything is paid."""
-    cost, left = step_cost(conn, missing, tests), pipeline.remaining(conn)
+    cost, left = step_cost(conn, stack, missing, tests), pipeline.remaining(conn)
     if cost > left:
         raise pipeline.BudgetExceeded(f"The step is estimated at ${cost:.4f}, but only ${left:.4f} of BUDGET_USD "
                                       f"${settings.budget_usd:.2f} is left")

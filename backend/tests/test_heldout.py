@@ -162,9 +162,9 @@ def test_the_estimate_counts_the_held_out_questions_not_the_dev_ones(held, monke
     monkeypatch.setattr(heldout, "tests", lambda: HELD[:1])
     panel = client.get("/api/story/B").json()["heldout"]
     configs = heldout.configurations(ladder_step.progress(held.conn, "B"))
-    expected = sum(ladder_step.run_cost(held.conn, c, HELD[:1]) for c in configs)
+    expected = sum(ladder_step.run_cost(held.conn, "B", c, HELD[:1]) for c in configs)
     assert panel["estimate_usd"] == pytest.approx(expected)
-    assert expected < sum(ladder_step.run_cost(held.conn, c) for c in configs)
+    assert expected < sum(ladder_step.run_cost(held.conn, "B", c) for c in configs)
 
 
 def test_the_budget_check_also_counts_the_held_out_questions(held, monkeypatch):
@@ -172,7 +172,7 @@ def test_the_budget_check_also_counts_the_held_out_questions(held, monkeypatch):
     finished(held, monkeypatch)
     monkeypatch.setattr(heldout, "tests", lambda: HELD[:1])
     configs = heldout.configurations(ladder_step.progress(held.conn, "B"))
-    cheap = sum(ladder_step.run_cost(held.conn, c, HELD[:1]) for c in configs)
+    cheap = sum(ladder_step.run_cost(held.conn, "B", c, HELD[:1]) for c in configs)
     monkeypatch.setattr(settings, "budget_usd", cheap * 1.5)
     assert [c.chunk_size for c in heldout.next_runs(held.conn, "B")] == [1024, 400]
 
@@ -210,7 +210,7 @@ def test_the_panel_gain_is_the_final_configuration_minus_s0_for_each_score(held,
 
 def test_no_questions_estimate_nothing(held, monkeypatch):
     finished(held, monkeypatch)
-    assert ladder_step.run_cost(held.conn, BASE, []) == 0
+    assert ladder_step.run_cost(held.conn, "B", BASE, []) == 0
 
 
 def test_a_finished_ladder_shows_the_estimate_before_any_held_out_run(held, monkeypatch):
@@ -244,3 +244,17 @@ def test_a_gain_whose_interval_crosses_zero_is_not_real():
 def test_a_ladder_that_changed_nothing_has_one_configuration():
     decision = Decision("S0", [BASE], BASE)
     assert heldout.configurations(Progress([decision, decision], None, [])) == [BASE]
+
+
+def test_a_stack_a_confirmation_counts_the_search_fee(held, monkeypatch):
+    """T53: every held-out run pays it; a budget between the two estimates stops only Stack A."""
+    finished(held, monkeypatch)
+    configs = heldout.configurations(ladder_step.progress(held.conn, "B"))
+    jobs.insert(held.conn, "ladder_prompts", {"stack": "A", "names": "[]"})
+    estimate_a = client.get("/api/story/A").json()["heldout"]["estimate_usd"]
+    estimate_b = client.get("/api/story/B").json()["heldout"]["estimate_usd"]
+    assert estimate_a - estimate_b == pytest.approx(len(configs) * len(HELD) * 0.0025)
+    monkeypatch.setattr(settings, "budget_usd", (estimate_a + estimate_b) / 2)
+    refused = client.post("/api/story/A/heldout")
+    assert refused.status_code == 409 and "The step is estimated" in refused.json()["detail"]
+    assert click(held).status_code == 202

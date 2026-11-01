@@ -52,7 +52,7 @@ def confirmation(conn: sqlite3.Connection, stack: str, now: Progress) -> dict | 
     done = [run for _, run in found if run]
     return {"runs": [option(run, config, config == configs[-1]) for config, run in found if run],
             "missing": [asdict(config) for config in left],
-            "estimate_usd": ladder_step.step_cost(conn, left, heldout.tests()),
+            "estimate_usd": ladder_step.step_cost(conn, stack, left, heldout.tests()),
             "gain": heldout.gain(*done) if len(done) == 2 else None}
 
 
@@ -65,7 +65,7 @@ def state(conn: sqlite3.Connection, stack: str, proposed: tuple[str, ...] | None
     steps = [finished_step(d, before, result) for d, before in zip(now.decisions, [None, *now.decisions])]
     return {"stack": stack, "steps": steps, "next_step": now.next_step,
             "needs_prompts": now.next_step == "S6" and not now.missing, "missing": [asdict(c) for c in now.missing],
-            "estimate_usd": ladder_step.step_cost(conn, now.missing),
+            "estimate_usd": ladder_step.step_cost(conn, stack, now.missing),
             "enrichment_usd": sum(ladder_step.enrichment_cost(c) for c in now.missing),
             "budget_left_usd": pipeline.remaining(conn), "job_id": jobs.active_step(conn, stack),
             "last_error": jobs.last_failure(conn, stack), "saved_prompts": ladder_step.chosen_prompts(conn, stack),

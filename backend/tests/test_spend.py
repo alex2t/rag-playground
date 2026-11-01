@@ -1,6 +1,7 @@
 """Step 6 checks of spend recording (T44), with fake OpenRouter replies (no network, no cost)."""
 
 import sqlite3
+from dataclasses import replace
 from types import SimpleNamespace
 
 import pytest
@@ -180,3 +181,47 @@ def test_a_completed_run_records_the_same_spend_as_its_results(conn, paying_fake
     pipeline.execute(conn, run_id, retrieve)
     assert spend.total(conn, run_id) == pytest.approx(sum(r.cost_usd for r in runs.get_results(conn, run_id)))
     assert spend.total(conn, run_id) == pytest.approx(3 * 0.016)
+
+
+STACK_A = runs.RunMeta(
+    stack="A", split="dev", test_ids=[t.id for t in DEV], chunk_set_id="fixed__c1024__o200", top_k=2, hybrid=False,
+    openai_ranking={"ranker": "auto"}, answer_model="m", answer_slug="m-1", judge_model="j", judge_slug="j-1",
+    rerank_model=None, rerank_slug=None, rerank_candidates=None, temperature_controlled=True, prompt_name="default",
+    prompt_sha256=prompts.sha256(prompts.DEFAULT_TEXT), dataset_sha256="d" * 64, app_version="test")
+STACK_B = replace(STACK_A, stack="B", openai_ranking=None)
+
+
+def stored(conn, meta, questions):
+    run_id = runs.create_run(conn, meta)
+    for test in DEV[:questions]:
+        runs.add_result(conn, run_id, runs.Result(test_id=test.id, hits=[], rerank_repaired=None, answer="a",
+                                                  judgement=VERDICT, cost_usd=0.001, latency_s=1.0))
+    return run_id
+
+
+def test_each_stored_stack_a_question_adds_one_search_fee(conn):
+    """T53: the total is the paid calls plus $0.0025 per Stack A question; the stored result costs are not added."""
+    run_id = stored(conn, STACK_A, 3)
+    spend.record(conn, run_id, call(0.25))
+    assert spend.total(conn, run_id) == pytest.approx(0.25 + 3 * 0.0025)
+    assert spend.total(conn) == pytest.approx(0.25 + 3 * 0.0025)
+
+
+def test_stack_b_pays_no_search_fee(conn):
+    run_id = stored(conn, STACK_B, 3)
+    assert spend.total(conn, run_id) == spend.total(conn) == 0
+
+
+def test_a_runs_total_counts_only_its_own_searches(conn):
+    first, second = stored(conn, STACK_A, 2), stored(conn, STACK_A, 1)
+    stored(conn, STACK_B, 3)
+    assert spend.total(conn, first) == pytest.approx(2 * 0.0025)
+    assert spend.total(conn, second) == pytest.approx(0.0025)
+    assert spend.total(conn) == pytest.approx(3 * 0.0025)
+
+
+def test_the_fee_is_the_one_measured_on_the_bill():
+    """20, 192 and 1,344 searches were billed $0.05, $0.48 and $3.36 (T53)."""
+    for searches, billed in [(20, 0.05), (192, 0.48), (1344, 3.36)]:
+        assert searches * spend.search_fee("A") == pytest.approx(billed)
+    assert spend.search_fee("B") == 0

@@ -223,16 +223,16 @@ def test_the_estimate_adds_every_missing_run_and_the_enrichment(world):
     world.enrich_cost = 0.25
     enriched = options("S4", BASE, ())[1]
     prompts.ensure_default(world.conn)
-    single = ladder_step.run_cost(world.conn, BASE)
+    single = ladder_step.run_cost(world.conn, "B", BASE)
     assert single > 0
-    assert ladder_step.step_cost(world.conn, [BASE, enriched]) == pytest.approx(2 * single + 0.25)
+    assert ladder_step.step_cost(world.conn, "B", [BASE, enriched]) == pytest.approx(2 * single + 0.25)
 
 
 def test_a_step_over_the_budget_counts_the_enrichment(world, monkeypatch):
     prompts.ensure_default(world.conn)
     world.enrich_cost = 2.0
     with pytest.raises(pipeline.BudgetExceeded):
-        ladder_step.check_budget(world.conn, [options("S4", BASE, ())[1]])
+        ladder_step.check_budget(world.conn, "B", [options("S4", BASE, ())[1]])
 
 
 def test_an_enriched_configuration_is_enriched_before_it_is_indexed(world, monkeypatch):
@@ -382,3 +382,10 @@ def test_an_interrupted_step_is_marked_failed_at_startup(world):
 def test_the_database_refuses_incomplete_jobs(world, row):
     with pytest.raises(sqlite3.IntegrityError):
         jobs.insert(world.conn, "jobs", row)
+
+
+def test_a_stack_a_step_estimate_includes_a_search_fee_per_question(world):
+    """T53, for the estimate shown on the Story button and for the budget check."""
+    prompts.ensure_default(world.conn)
+    difference = ladder_step.step_cost(world.conn, "A", [BASE]) - ladder_step.step_cost(world.conn, "B", [BASE])
+    assert difference == pytest.approx(len(ladder_step.dev_tests()) * 0.0025)

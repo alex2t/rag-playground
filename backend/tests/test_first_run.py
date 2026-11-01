@@ -89,9 +89,10 @@ def test_both_stacks_index_s0_once_and_answer_the_same_10_questions(world, capsy
     assert world["created"] == ["rag-playground-dev-fixed__c1024__o200", "fixed__c1024__o200"]
     ranking = openai_vector_store.Ranking(**S0["search"]["A"]["openai_ranking"])
     assert world["searched"] == [("A", "vs_1", 2, ranking)] * 10 + [("B", "fixed__c1024__o200", 2, False)] * 10
-    assert spend.total(conn) == pytest.approx(2 * 10 * 0.0004)
+    assert spend.total(conn) == pytest.approx(2 * 10 * 0.0004 + 10 * 0.0025)  # Stack A's 10 search fees (T53)
     out = capsys.readouterr().out
-    assert out.count("recorded spend $0.0040; actual / estimate = ") == 2
+    assert "Stack A: run 1 done; recorded spend $0.0290; actual / estimate = " in out
+    assert "Stack B: run 2 done; recorded spend $0.0040; actual / estimate = " in out
 
 
 def test_a_second_run_reuses_the_recorded_indexes(world):

@@ -7,13 +7,14 @@ from statistics import fmean
 from rag_playground.chunking.chunk_sets import load as load_chunk_set
 from rag_playground.datasets.schema import dataset_sha256, load_tests
 from rag_playground.llm.models import model_info
-from rag_playground.rag import runs
+from rag_playground.rag import runs, spend
 from rag_playground.scoring import retrieval, selection, trust
 from rag_playground.settings import JUDGE_MODEL
 
 
 def candidate(conn: sqlite3.Connection, run: runs.Run, by_id: dict) -> selection.Candidate:
-    """Score one stored run. Retrieval scores use answerable questions only; the others are means over all."""
+    """Score one stored run. Retrieval scores use answerable questions only; the others are means over all. Cost
+    includes the search fee, which stored results leave out (T53)."""
     results = runs.get_results(conn, run.id)
     tests = [by_id[result.test_id] for result in results]
     found = retrieval.score_run(tests, {r.test_id: r.hits for r in results}, run.meta.top_k,
@@ -25,7 +26,7 @@ def candidate(conn: sqlite3.Connection, run: runs.Run, by_id: dict) -> selection
     mrr = {r.test_id: retrieval.reciprocal_rank([h.source for h in r.hits], by_id[r.test_id].source_docs)
            for r in results if by_id[r.test_id].source_docs}
     return selection.Candidate(run.id, scores, {r.test_id: r.judgement.accuracy for r in results},
-                               fmean(r.cost_usd for r in results), mrr)
+                               fmean(r.cost_usd for r in results) + spend.search_fee(run.meta.stack), mrr)
 
 
 def candidates(conn: sqlite3.Connection, split: str = "dev") -> list[selection.Candidate]:

@@ -1,4 +1,5 @@
-"""Spend recorded per paid OpenRouter call (T44); the budget (D15) is checked against its total."""
+"""Spend: paid OpenRouter calls recorded one by one (T44) plus Stack A's search fees (T53); the budget (D15) is checked
+against the total."""
 
 import sqlite3
 from collections.abc import Iterator
@@ -7,6 +8,7 @@ from threading import Lock
 
 from rag_playground.llm.openrouter import ChatResult, cost_listener
 from rag_playground.rag.runs import insert
+from rag_playground.settings import STACK_A_SEARCH_USD
 
 
 def record(conn: sqlite3.Connection, run_id: int | None, result: ChatResult) -> None:
@@ -14,6 +16,11 @@ def record(conn: sqlite3.Connection, run_id: int | None, result: ChatResult) -> 
     insert(conn, "spend", {"run_id": run_id, "model": result.model, "prompt_tokens": result.prompt_tokens,
                            "completion_tokens": result.completion_tokens,
                            "reasoning_tokens": result.reasoning_tokens, "cost_usd": result.cost_usd})
+
+
+def search_fee(stack: str) -> float:
+    """OpenAI's fee for one question's search (T53); one search per question, with or without the reranker."""
+    return STACK_A_SEARCH_USD if stack == "A" else 0.0
 
 
 @contextmanager
@@ -34,7 +41,12 @@ def recording(conn: sqlite3.Connection, run_id: int | None) -> Iterator[None]:
 
 
 def total(conn: sqlite3.Connection, run_id: int | None = None) -> float:
-    """Dollars spent, by one run or (run_id None) in total."""
+    """Dollars spent, by one run or (run_id None) in total, Stack A's search fees included."""
     if run_id is None:
-        return conn.execute("SELECT coalesce(sum(cost_usd), 0) FROM spend").fetchone()[0]
-    return conn.execute("SELECT coalesce(sum(cost_usd), 0) FROM spend WHERE run_id = ?", (run_id,)).fetchone()[0]
+        calls = conn.execute("SELECT coalesce(sum(cost_usd), 0) FROM spend").fetchone()[0]
+        searches = conn.execute("SELECT count(*) FROM results JOIN runs ON runs.id = run_id WHERE stack = 'A'").fetchone()[0]
+    else:
+        calls = conn.execute("SELECT coalesce(sum(cost_usd), 0) FROM spend WHERE run_id = ?", (run_id,)).fetchone()[0]
+        searches = conn.execute("SELECT count(*) FROM results JOIN runs ON runs.id = run_id "
+                                "WHERE stack = 'A' AND run_id = ?", (run_id,)).fetchone()[0]
+    return calls + searches * STACK_A_SEARCH_USD

@@ -60,7 +60,7 @@ def prices(monkeypatch):
 
 
 def cost(top_k: int = 3, rerank: bool = False, test=TEST) -> float:
-    return estimate.question_cost(test, PROMPT, ANSWER_MODEL, top_k, rerank, CHUNK_TOKENS)
+    return estimate.question_cost(test, PROMPT, ANSWER_MODEL, top_k, rerank, CHUNK_TOKENS, "B")
 
 
 def test_the_filler_has_exactly_the_requested_tokens():
@@ -82,7 +82,7 @@ def test_answer_input_grows_with_k(prices):
 def test_the_answer_prompt_version_is_counted(prices):
     prices[ANSWER_MODEL, "in"] = 1.0
     longer = PromptVersion("long", DEFAULT_TEXT + " the" * 1000, "x")
-    assert estimate.question_cost(TEST, longer, ANSWER_MODEL, 3, False, CHUNK_TOKENS) - cost() == 1000
+    assert estimate.question_cost(TEST, longer, ANSWER_MODEL, 3, False, CHUNK_TOKENS, "B") - cost() == 1000
 
 
 def test_answer_output_is_the_measured_30_tokens(prices):
@@ -138,13 +138,26 @@ def chunk(tokens_: int) -> Chunk:
 
 def test_a_run_costs_the_sum_of_its_questions_at_the_mean_chunk_length(prices):
     prices[ANSWER_MODEL, "in"] = prices[JUDGE_MODEL, "in"] = prices[JUDGE_MODEL, "out"] = 1.0
-    total = estimate.run_cost(TESTS, PROMPT, ANSWER_MODEL, 3, False, [chunk(100), chunk(300)])
+    total = estimate.run_cost(TESTS, PROMPT, ANSWER_MODEL, 3, False, [chunk(100), chunk(300)], "B")
     assert total == sum(cost(test=t) for t in TESTS)
-    assert total != estimate.run_cost(TESTS, PROMPT, ANSWER_MODEL, 3, False, [chunk(100), chunk(100)])
+    assert total != estimate.run_cost(TESTS, PROMPT, ANSWER_MODEL, 3, False, [chunk(100), chunk(100)], "B")
 
 
 def test_the_mean_chunk_length_is_rounded_to_the_nearest_token(prices):
     prices[ANSWER_MODEL, "in"] = 1.0
     chunks = [chunk(100), chunk(101), chunk(101)]  # mean 100.67
-    nearest = estimate.question_cost(TEST, PROMPT, ANSWER_MODEL, 3, False, 101)
-    assert estimate.run_cost([TEST], PROMPT, ANSWER_MODEL, 3, False, chunks) == nearest
+    nearest = estimate.question_cost(TEST, PROMPT, ANSWER_MODEL, 3, False, 101, "B")
+    assert estimate.run_cost([TEST], PROMPT, ANSWER_MODEL, 3, False, chunks, "B") == nearest
+
+
+def test_stack_a_adds_one_search_fee_per_question_and_stack_b_none(prices):
+    """T53, also with the reranker: the 20 candidates come from one search."""
+    prices[ANSWER_MODEL, "in"] = 1.0
+    for rerank in (False, True):
+        stack_b = estimate.question_cost(TEST, PROMPT, ANSWER_MODEL, 3, rerank, CHUNK_TOKENS, "B")
+        stack_a = estimate.question_cost(TEST, PROMPT, ANSWER_MODEL, 3, rerank, CHUNK_TOKENS, "A")
+        assert stack_a - stack_b == pytest.approx(0.0025)
+    chunks = [chunk(100)]
+    difference = (estimate.run_cost(TESTS, PROMPT, ANSWER_MODEL, 3, False, chunks, "A")
+                  - estimate.run_cost(TESTS, PROMPT, ANSWER_MODEL, 3, False, chunks, "B"))
+    assert difference == pytest.approx(len(TESTS) * 0.0025)

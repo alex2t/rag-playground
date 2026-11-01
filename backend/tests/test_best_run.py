@@ -125,3 +125,11 @@ def test_a_failed_run_and_a_running_run_never_compete(conn):
 def test_the_order_of_a_runs_questions_does_not_stop_it_competing(conn):
     run_id = store_run(conn, meta=replace(META, test_ids=DEV_IDS[::-1]))
     assert [c.run_id for c in best_run.candidates(conn)] == [run_id]
+
+
+def test_a_stack_a_candidates_cost_includes_the_search_fee_and_stack_b_does_not(conn):
+    """T53: stored costs leave the fee out, so a Stack A vs Stack B comparison must add it."""
+    stack_a = replace(META, stack="A", openai_ranking={"ranker": "auto"})
+    first, second = store_run(conn, meta=stack_a), store_run(conn)
+    costs = {c.run_id: c.cost_per_question for c in best_run.candidates(conn)}
+    assert costs == pytest.approx({first: 0.01 + 0.0025, second: 0.01})

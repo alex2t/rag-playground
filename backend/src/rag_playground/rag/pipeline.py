@@ -29,7 +29,7 @@ class BudgetExceeded(Exception):
 
 
 def remaining(conn: sqlite3.Connection) -> float:
-    """Dollars left of BUDGET_USD, after every recorded paid call (T44)."""
+    """Dollars left of BUDGET_USD, after every recorded paid call (T44) and Stack A's search fees (T53)."""
     return settings.budget_usd - spend.total(conn)
 
 
@@ -107,7 +107,7 @@ def start_run(conn: sqlite3.Connection, choices: Choices, tests: list[TestCase])
         raise ValueError(f"Held-out runs use the default prompt or a version evaluated on dev questions; "
                          f"{prompt.name!r} has no finished dev run")
     cost = estimate.run_cost(tests, prompt, choices.answer_model, choices.top_k, choices.rerank,
-                             load_chunk_set(choices.chunk_set_id))
+                             load_chunk_set(choices.chunk_set_id), choices.stack)
     if cost > remaining(conn):
         raise BudgetExceeded(f"The run is estimated at ${cost:.4f}, but only ${remaining(conn):.4f} of "
                              f"BUDGET_USD ${settings.budget_usd:.2f} is left")
@@ -165,12 +165,12 @@ def execute(conn: sqlite3.Connection, run_id: int, retrieve: Retrieve) -> None:
             while done < len(tests):
                 size = PARALLEL_QUESTIONS if done else 1
                 assumed = [max(largest, estimate.question_cost(test, prompt, meta.answer_model, meta.top_k,
-                                                               meta.rerank_model is not None, chunk_tokens))
+                                                               meta.rerank_model is not None, chunk_tokens, meta.stack))
                            for test in tests[done:done + size]]
                 check_budget(conn, assumed[0])
                 count = fitting(conn, assumed)
                 cost = ask_together(conn, run_id, pool, tests[done:done + count], meta, prompt, retrieve)
-                largest, done = max(largest, cost), done + count
+                largest, done = max(largest, cost + spend.search_fee(meta.stack)), done + count
     except Exception as exc:
         runs.finish_run(conn, run_id, error=f"{type(exc).__name__}: {exc}")
         raise

@@ -51,7 +51,7 @@ def run_stack(conn, stack: str, tests: list) -> int:
         print(f"Stack {stack}: indexing {choices.chunk_set_id} ...", flush=True)
         indexes.build(conn, stack, choices.chunk_set_id)
     guess = estimate.run_cost(tests, prompts.get(conn, choices.prompt_name), choices.answer_model, choices.top_k,
-                              choices.rerank, chunks)
+                              choices.rerank, chunks, stack)
     run_id = pipeline.start_run(conn, choices, tests)
     print(f"Stack {stack}: run {run_id}, {len(tests)} questions, estimate ${guess:.4f}", flush=True)
     pipeline.execute(conn, run_id, indexes.retriever(conn, runs.get_run(conn, run_id).meta))

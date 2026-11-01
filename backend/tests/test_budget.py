@@ -42,16 +42,18 @@ def conn(tmp_path):
 def world(monkeypatch):
     """Budget $1; each question really costs `cost` (one paid answer call, the judge free); the estimates are
     fixed. Records what the estimate functions received and which questions were answered."""
-    state = {"cost": 0.25, "guess": 0.125, "run_estimate": 0.0, "answered": [], "run_args": [], "guess_args": []}
+    state = {"cost": 0.25, "guess": 0.125, "run_estimate": 0.0, "answered": [], "run_args": [], "guess_args": [], "stacks": set()}
     monkeypatch.setattr(settings, "budget_usd", 1.0)
     monkeypatch.setattr(pipeline, "model_info", lambda m: ModelInfo(m, f"{m}-1", frozenset(), 0.0, 0.0))
     monkeypatch.setattr(pipeline, "load_chunk_set", lambda set_id: CHUNKS if set_id == CHOICES.chunk_set_id else [])
 
-    def run_cost(tests, prompt, answer_model, top_k, rerank, chunks):
+    def run_cost(tests, prompt, answer_model, top_k, rerank, chunks, stack):
+        state["stacks"].add(("run", stack))
         state["run_args"].append(([t.id for t in tests], prompt.name, answer_model, top_k, rerank, chunks))
         return state["run_estimate"]
 
-    def question_cost(test, prompt, answer_model, top_k, rerank, chunk_tokens):
+    def question_cost(test, prompt, answer_model, top_k, rerank, chunk_tokens, stack):
+        state["stacks"].add(("question", stack))
         state["guess_args"].append((test.id, prompt.name, answer_model, top_k, rerank, chunk_tokens))
         return state["guess"]
 
@@ -177,3 +179,34 @@ def test_each_guess_uses_the_run_settings_and_the_mean_chunk_length(conn, world,
     monkeypatch.setattr(pipeline, "rerank", lambda question, hits, k: Reranked(hits[:k], None, repaired=False))
     pipeline.execute(conn, pipeline.start_run(conn, choices, DEV[:2]), retrieve)
     assert world["guess_args"] == [(t.id, "default", "openai/gpt-4.1-mini", 4, True, 300.0) for t in DEV[:2]]
+
+
+STACK_A = pipeline.Choices(stack="A", chunk_set_id=CHOICES.chunk_set_id, top_k=3, hybrid=False,
+                           openai_ranking={"ranker": "auto"}, rerank=False, answer_model=CHOICES.answer_model,
+                           prompt_name="default")
+
+
+def test_a_stack_a_question_counts_its_search_fee_against_the_budget(conn, world, monkeypatch):
+    """T53. Spent $0.2525 after the first question; each next one is assumed to cost $0.2525. $0.2510 left: stops."""
+    monkeypatch.setattr(settings, "budget_usd", 0.5035)
+    run_id = pipeline.start_run(conn, STACK_A, DEV)
+    with pytest.raises(pipeline.BudgetExceeded, match="Budget reached"):
+        pipeline.execute(conn, run_id, retrieve)
+    assert len(world["answered"]) == 1
+    assert spend.total(conn, run_id) == pytest.approx(0.2525)
+
+
+def test_the_same_budget_lets_stack_b_ask_the_next_question(conn, world, monkeypatch):
+    """Stack B pays no fee: the same $0.5035 leaves room for a second question at $0.25."""
+    monkeypatch.setattr(settings, "budget_usd", 0.5035)
+    run_id = pipeline.start_run(conn, CHOICES, DEV)
+    with pytest.raises(pipeline.BudgetExceeded, match="Budget reached"):
+        pipeline.execute(conn, run_id, retrieve)
+    assert len(world["answered"]) == 2
+
+
+def test_both_estimates_of_a_run_are_told_its_stack(conn, world):
+    """T53: the fee depends on the stack, at the start and in the guard before each question."""
+    world["cost"] = 0.001
+    pipeline.execute(conn, pipeline.start_run(conn, STACK_A, DEV[:2]), retrieve)
+    assert world["stacks"] == {("run", "A"), ("question", "A")}

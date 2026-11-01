@@ -87,7 +87,7 @@ export default function StackPanel({ stack, ladder }: { stack: StackId; ladder: 
                 </button>
                 <p className="mt-1 text-muted">
                   {state.enrichment_usd > 0 && `Includes ${money(state.enrichment_usd)} of enrichment. `}
-                  {money(state.budget_left_usd)} of the budget left. OpenRouter costs only; OpenAI's are not counted.
+                  {money(state.budget_left_usd)} of the budget left. Includes Stack A's search fee; OpenAI's index building is not counted.
                 </p>
               </div>
             )}
