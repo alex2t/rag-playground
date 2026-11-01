@@ -67,6 +67,46 @@ Answer concisely, in a few sentences at most.
 
 The rule is kept for two reasons. It avoids paying for a gain that may be luck, which matters most at S3, where K=8 costs about 2.5 times K=2 (projected). It was also fixed before any results, and changing it after seeing them would weaken the study. Its cost is that a small real gain can be given up. See T08, T09 and T50 in [decision.md](decision.md).
 
+## The held-out questions: why the final numbers can be trusted
+
+**What they are.** The 240 test questions are split once, with a fixed seed, into two groups. Every question type has the same share in both, including the questions the documents cannot answer. No fact is tested twice, so the two groups never ask the same thing.
+
+| Group | Questions | Cannot be answered | Used for |
+| --- | --- | --- | --- |
+| Dev | 192 | 20 | Trying settings and choosing the best ones |
+| Held-out | 48 | 5 | Confirming the final choice, and nothing else |
+
+A **held-out run** is a run on those 48 questions.
+
+**Why it matters.** The ladder tries many options and keeps whichever scores best on the dev questions. Some of that gain is real, and some is luck: an option can suit those 192 questions without being better in general. So a score on the questions used for choosing tends to flatter the winner. It is like marking students on the practice questions they studied.
+
+The held-out questions are the exam. They played no part in any choice, so they measure how the system does on questions it was never tuned on. Without them, the study could only say "this scored well on the questions we tuned it on".
+
+**How they are used.**
+1. The ladder finishes on the dev questions, on each stack separately.
+2. Each stack then runs two configurations on the held-out questions: the S0 baseline and its final choice.
+3. A paired bootstrap on the same 48 questions shows whether the final choice is really better than the baseline.
+
+**What the results are for.**
+- **The quoted result:** these are the numbers reported for each stack, not the dev scores.
+- **The real gain:** the final configuration against S0, on questions neither of them was tuned on.
+- **A check for overfitting:** a held-out score well below the dev score means part of the dev gain was luck. Some drop is normal.
+- **Never for tuning:** a weak result is reported as it is. Changing a setting and running again would turn the exam into more practice, and the number would stop meaning anything.
+
+**How the app protects them.**
+- The Ask page cannot pick a held-out question, and asking for one by its id gets the same answer as an id that does not exist.
+- A held-out run shows overall scores only: no answers, no question table and no scores per category.
+- Story confirms each configuration once and only after the ladder is finished.
+- A prompt version can run on held-out questions only after a finished dev run, or if it is the default.
+
+**Limits.**
+- 48 questions give wide confidence intervals, so only a fairly large difference can be shown to be real.
+- All 240 questions were written by an LLM from the same documents, so held-out questions show how the system handles new questions of the same kind, not every question a real user might ask.
+- Some dev and held-out questions share one of their two values, for example two different comparisons that involve the same service's duration.
+- The Evaluate page can still start a held-out run with any settings, so the rule against tuning on them depends partly on the person using it. Every run is stored and cannot be changed or deleted, so such runs stay visible.
+
+**Status:** the ladder has reached S2, so no held-out run has been made yet. See T18 and T56 in [decision.md](decision.md) and [docs/evaluation.md](docs/evaluation.md).
+
 ## How far to trust the judge
 
 Answers are scored by an LLM judge (`gemini-3.5-flash-lite`), so the judge was tested before any comparison relied on it. One person graded 30 of its answers blind, 15 from each stack, without seeing its scores or which stack wrote the answer. The judge had used only scores 1, 3 and 5, so the sample took an equal number of each, and the rules were fixed before any grading.

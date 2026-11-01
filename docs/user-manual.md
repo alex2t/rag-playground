@@ -83,7 +83,7 @@ Use it to measure a configuration on many questions.
 2. Press **Estimate** to see the number of questions, the cost and the time.
 3. Press **Evaluate**. Progress updates while it runs (for example "12 of 192 questions"); you can leave the page. Runs go one at a time: a second run waits as **queued** until the first finishes.
 
-The result shows 4 headline tiles (MRR, Recall@K, Accuracy, Faithfulness), a **show all** switch for the other metrics, refusal rates, scores by question category, and a table of every question that opens it in **Ask**. Export it as CSV.
+The result shows 4 headline tiles (MRR, Recall@K, Accuracy, Faithfulness), a **show all** switch for the other metrics, refusal rates, scores by question category, and a table of every question that opens it in **Ask**. Export it as CSV. A **held-out** run shows its overall scores only, with no category scores and no question table: those questions stay out of tuning.
 
 Any saved prompt version can be used, yours or the default. For a **held-out** run, the version must first have finished a run on dev questions (the default always may): prompts are chosen on dev questions and only confirmed on held-out ones.
 
