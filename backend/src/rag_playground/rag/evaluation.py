@@ -3,6 +3,7 @@
 import sqlite3
 from statistics import fmean
 
+from rag_playground.chunking.chunk_sets import chunk_settings
 from rag_playground.chunking.chunk_sets import load as load_chunk_set
 from rag_playground.datasets.schema import TestCase, dataset_sha256, load_tests
 from rag_playground.rag import pipeline, runs, spend
@@ -24,22 +25,22 @@ def estimate_run(conn: sqlite3.Connection, choices: pipeline.Choices, tests: lis
 
 def settings_of(meta: runs.RunMeta) -> dict:
     """The settings a result must state (T12, T14). No scores: this also describes held-out runs."""
-    return {"chunk_set_id": meta.chunk_set_id, "top_k": meta.top_k, "hybrid": meta.hybrid,
+    return {**chunk_settings(meta.chunk_set_id), "chunk_set_id": meta.chunk_set_id, "top_k": meta.top_k, "hybrid": meta.hybrid,
             "openai_ranking": meta.openai_ranking, "rerank": meta.rerank_model is not None,
             "answer_model": meta.answer_model, "prompt_name": meta.prompt_name,
             "temperature_controlled": meta.temperature_controlled}
 
 
 def summary(conn: sqlite3.Connection, run_id: int) -> dict:
-    """One line of the run list. `job_id` is the job still working on it. `full` says it asked its whole split, so a
+    """One line of the run list. `job_id` and `job_status` are the job still working on it. `full` says it asked its whole split, so a
     smoke test or a sample is never read as a full run."""
     run = runs.get_run(conn, run_id)
     split_size = sum(test.split == run.meta.split for test in load_tests())
-    job = conn.execute("SELECT id FROM jobs WHERE run_id = ? AND status IN ('queued', 'running')", (run_id,)).fetchone()
+    job = conn.execute("SELECT id, status FROM jobs WHERE run_id = ? AND status IN ('queued', 'running')", (run_id,)).fetchone()
     return {"id": run.id, "created_at": run.created_at, "status": run.status, "error": run.error,
             "stack": run.meta.stack, "split": run.meta.split, "questions": len(run.meta.test_ids),
             "full": len(run.meta.test_ids) == split_size, "done": runs.run_row(conn, run_id)["done"],
-            "job_id": job and job["id"], "settings": settings_of(run.meta)}
+            "job_id": job and job["id"], "job_status": job and job["status"], "settings": settings_of(run.meta)}
 
 
 def listing(conn: sqlite3.Connection) -> list[dict]:

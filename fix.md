@@ -4,6 +4,14 @@ Add new bugs at the top. Status: `open` | `investigating` | `fixed`.
 
 ---
 
+## [2026-11-01] Step 9: a slow estimate could let Evaluate start settings never estimated - `fixed`
+- **Symptom:** found by Antigravity (Gemini 3.8). Press Estimate, change a setting while the reply is on its way: the late reply showed the old estimate and enabled Evaluate, which then started the new settings.
+- **Reproduce:** `race.mjs` in headless Edge with the estimate reply delayed by 1 s and faked: before the fix, Evaluate stayed enabled and the estimate stayed shown.
+- **Root cause (evidence):** the page cleared the estimate on change, but nothing tied a reply to the settings it was asked for.
+- **Fix:** an estimate is stored with its settings and question set, and `evaluate.estimateFor` counts it only if both still match. Antigravity suggested locking the inputs during the request; not used, since it treats the symptom and every future input would need locking too.
+- **Verified by:** the same script after the fix: Evaluate disabled and no estimate shown until a fresh one; a new test on each setting; deliberate breaks caught.
+- **Status:** fixed.
+
 ## [2026-11-01] Step 9: saved panel values could crash Ask or reach the API as null - `fixed`
 - **Symptom:** found by Antigravity (Gemini 3.8) for corrupt or hand-edited browser storage: unreadable JSON stopped Ask loading, and `openai_ranking: null` crashed the panel. Claude found that it needs no hand-editing: a Stack A box left blank while asking Stack B alone is saved, `NaN` becomes `null` in JSON, and on return `panelProblem` passes it (`null >= 0` is true in JavaScript), so Stack A would be sent an invalid request.
 - **Reproduce:** the 4 new tests in `panel.test.ts` failed before the fix.

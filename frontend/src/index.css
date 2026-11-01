@@ -8,6 +8,8 @@
   --color-muted: #66655d;
   --color-accent: #2a78d6;
   --color-danger: #b42318;
+  --color-good: #17794a;
+  --color-warn: #a15c00;
   --color-stack-a: #2a78d6;
   --color-stack-b: #eb6834;
 }
@@ -21,6 +23,8 @@
     --color-muted: #c3c2b7;
     --color-accent: #3987e5;
     --color-danger: #ff8a7a;
+    --color-good: #5fd39a;
+    --color-warn: #f2b45a;
     --color-stack-a: #3987e5;
     --color-stack-b: #d95926;
   }

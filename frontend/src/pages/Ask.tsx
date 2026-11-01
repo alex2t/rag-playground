@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
-import { ask, getAskQuestions, getPanel, getPrompts } from '../api/client.ts'
-import type { AskQuestion, AskResult, PanelOptions, StackId } from '../api/types.ts'
+import { ask, getAskQuestions } from '../api/client.ts'
+import type { AskQuestion, AskResult, StackId } from '../api/types.ts'
+import { usePanel } from '../api/usePanel.ts'
 import { byCategory, questionBody } from '../ask.ts'
 import AskResultCard from '../components/AskResultCard.tsx'
 import SettingsPanel from '../components/SettingsPanel.tsx'
-import { loadSaved, panelProblem, requestFor, restoredValues, saveValues, settingsLine, stacksOf, type PanelValues } from '../panel.ts'
+import { panelProblem, requestFor, saveValues, settingsLine, stacksOf, type PanelValues } from '../panel.ts'
+import { linkedTest } from '../route.ts'
 
 type Reply = { stack: StackId; line: string; result?: AskResult; error?: string }
 
@@ -50,27 +52,19 @@ function ReplyCard({ reply }: { reply: Reply }) {
 
 /** One question with the panel's settings (T54), on one stack or both side by side. */
 export default function Ask() {
-  const [options, setOptions] = useState<PanelOptions | null>(null)
-  const [promptNames, setPromptNames] = useState<string[]>([])
+  const { options, promptNames, values, setValues, error: panelError } = usePanel()
   const [questions, setQuestions] = useState<AskQuestion[]>([])
-  const [values, setValues] = useState<PanelValues | null>(null)
   const [typed, setTyped] = useState('')
-  const [testId, setTestId] = useState('')
+  const [testId, setTestId] = useState(linkedTest(location.hash))
   const [asking, setAsking] = useState(false)
   const [replies, setReplies] = useState<Reply[]>([])
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    Promise.all([getPanel(), getPrompts(), getAskQuestions()]).then(([panel, prompts, tests]) => {
-      const names = prompts.map((prompt) => prompt.name)
-      setOptions(panel)
-      setPromptNames(names)
-      setQuestions(tests)
-      setValues(restoredValues(loadSaved(), panel, names))
-    }).catch((e: Error) => setError(e.message))
+    getAskQuestions().then(setQuestions).catch((e: Error) => setError(e.message))
   }, [])
 
-  if (error) return <p role="alert" className="text-sm text-danger">{error}</p>
+  if (error ?? panelError) return <p role="alert" className="text-sm text-danger">{error ?? panelError}</p>
   if (options === null || values === null) return <p className="text-sm text-muted">Loading...</p>
 
   const body = questionBody(typed, testId)

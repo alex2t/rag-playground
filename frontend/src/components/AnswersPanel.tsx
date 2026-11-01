@@ -12,7 +12,7 @@ function Scores({ item }: { item: Answer }) {
 }
 
 /** One run's questions, lowest accuracy first: what the system answered and what the judge said. */
-export default function AnswersPanel({ runId }: { runId: number }) {
+export default function AnswersPanel({ runId, onOpen }: { runId: number; onOpen?: (testId: string) => void }) {
   const [answers, setAnswers] = useState<Answer[] | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -30,6 +30,7 @@ export default function AnswersPanel({ runId }: { runId: number }) {
           <summary className="cursor-pointer">{item.accuracy} of 5: {item.question}</summary>
           <div className="mt-1 space-y-1">
             <Scores item={item} />
+            {onOpen && <button type="button" className="underline" onClick={() => onOpen(item.test_id)}>Open in Ask</button>}
             <p><span className="font-medium">Answer:</span> {item.answer}</p>
             <p><span className="font-medium">Reference answer:</span> {item.reference_answer}</p>
             <p><span className="font-medium">Judge:</span> {item.feedback}</p>

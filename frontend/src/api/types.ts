@@ -124,6 +124,63 @@ export type AskResult = {
   judgement: AskJudgement | null
 }
 
+export type RunSettings = {
+  chunking_method: 'fixed' | 'llm_enriched'
+  chunk_size: number
+  overlap: number
+  chunk_set_id: string
+  top_k: number
+  hybrid: boolean
+  openai_ranking: OpenAIRanking | null
+  rerank: boolean
+  answer_model: string
+  prompt_name: string
+  temperature_controlled: boolean
+}
+
+export type RunSummary = {
+  id: number
+  created_at: string
+  status: 'running' | 'done' | 'failed'
+  error: string | null
+  stack: StackId
+  split: 'dev' | 'heldout'
+  questions: number
+  full: boolean
+  done: number
+  job_id: number | null
+  job_status: 'queued' | 'running' | null
+  settings: RunSettings
+}
+
+export type RunScores = {
+  mrr: number
+  recall: number
+  ndcg: number
+  hit: number
+  keyword_recall: number
+  accuracy: number
+  completeness: number
+  relevance: number
+  faithfulness: number
+  correct_refusal_rate: number
+  false_refusal_rate: number
+}
+
+export type CategoryScores = { category: string; questions: number; accuracy: number; completeness: number; relevance: number; faithfulness: number }
+
+export type RunReport = RunSummary & {
+  scores: RunScores
+  failed_gates: string[]
+  cost_per_question: number
+  latency_s: number
+  categories: CategoryScores[] | null
+}
+
+export type Estimate = { questions: number; estimate_usd: number; seconds: number; budget_left_usd: number }
+
+export type QuestionSet = 'dev' | 'heldout' | 'smoke'
+
 export type Job = {
   id: number
   kind: string

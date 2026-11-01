@@ -1,13 +1,19 @@
 /** Pages are chosen by the address's hash, so a refresh or a link keeps the page. */
 
-export const PAGES = ['Story', 'Ask', 'Prompt'] as const
+export const PAGES = ['Story', 'Ask', 'Evaluate', 'Prompt'] as const
 export type Page = (typeof PAGES)[number]
 
 export function hashOf(page: Page): string {
   return `#/${page.toLowerCase()}`
 }
 
-/** An empty or unknown hash opens the first page. */
+/** An empty or unknown hash opens the first page. What follows a '?' is for the page itself. */
 export function pageFor(hash: string): Page {
-  return PAGES.find((page) => hashOf(page) === hash) ?? PAGES[0]
+  const [address] = hash.split('?')
+  return PAGES.find((page) => hashOf(page) === address) ?? PAGES[0]
+}
+
+/** The test question a link to Ask asks for, or an empty string. */
+export function linkedTest(hash: string): string {
+  return new URLSearchParams(hash.split('?')[1]).get('test') ?? ''
 }

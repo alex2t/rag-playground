@@ -62,7 +62,7 @@ export function bestSoFar(state: LadderState): { step: string; option: Option } 
   return step && option ? { step: step.step, option } : null
 }
 
-function csvCell(value: string | number | boolean): string {
+export function csvCell(value: string | number | boolean): string {
   const text = String(value)
   return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text
 }

@@ -1,6 +1,7 @@
 """Chunk sets: every KB document split by LlamaIndex's default SentenceSplitter, built once and reused
 by both stacks (T01, T35, T39)."""
 
+import re
 from pathlib import Path
 
 from llama_index.core.node_parser import SentenceSplitter
@@ -43,6 +44,12 @@ def check_params(size: int, overlap: int) -> None:
 
 def chunk_set_id(size: int, overlap: int) -> str:
     return f"{METHOD}__c{size}__o{overlap}"
+
+
+def chunk_settings(set_id: str) -> dict:
+    """The method, size and overlap a chunk set id was built from: the inverse of `chunk_set_id`, enriched sets included."""
+    method, size, overlap = re.fullmatch(r"(\w+?)__c(\d+)__o(\d+)", set_id).groups()
+    return {"chunking_method": method, "chunk_size": int(size), "overlap": int(overlap)}
 
 
 def kb_documents() -> dict[str, str]:

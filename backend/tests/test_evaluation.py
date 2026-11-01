@@ -9,6 +9,8 @@ from test_api_runs import A, B, counts, stack_a, start  # noqa: F401  (stack_a i
 from test_jobs import CHOICES, CHUNK, world  # noqa: F401  (world is a fixture)
 
 from rag_playground import jobs, main
+from rag_playground.chunking.chunk_sets import chunk_set_id, chunk_settings
+from rag_playground.chunking.enrichment import enriched_set_id
 from rag_playground.datasets.schema import Category, load_tests
 from rag_playground.rag import evaluation, pipeline, prompts, runs
 from rag_playground.rag.runs import Result
@@ -125,7 +127,8 @@ def test_the_run_list_is_newest_first_with_settings_progress_and_no_scores(score
     newest, oldest = listed
     assert (newest["status"], newest["done"], newest["questions"], newest["full"]) == ("running", 0, 1, False)
     assert (oldest["status"], oldest["done"], oldest["questions"], oldest["split"]) == ("done", 3, 3, "dev")
-    assert oldest["settings"] == {"chunk_set_id": "fixed__c1024__o200", "top_k": 2, "hybrid": False, "openai_ranking": None,
+    assert oldest["settings"] == {"chunking_method": "fixed", "chunk_size": 1024, "overlap": 200,
+                                  "chunk_set_id": "fixed__c1024__o200", "top_k": 2, "hybrid": False, "openai_ranking": None,
                                   "rerank": False, "answer_model": "openai/gpt-4.1-nano", "prompt_name": "default",
                                   "temperature_controlled": True}
     assert "scores" not in oldest and "accuracy" not in str(oldest)
@@ -134,11 +137,21 @@ def test_the_run_list_is_newest_first_with_settings_progress_and_no_scores(score
 def test_the_list_names_the_job_still_working_on_a_run(world, monkeypatch):
     monkeypatch.setattr(jobs.executor, "submit", lambda *args: None)
     job_id = client.post("/api/runs", json=B).json()["job_id"]
-    assert client.get("/api/runs").json()[0]["job_id"] == job_id
+    line = lambda: client.get("/api/runs").json()[0]
+    assert (line()["job_id"], line()["job_status"]) == (job_id, "queued")
     jobs.set_status(world["conn"], job_id, "running")
-    assert client.get("/api/runs").json()[0]["job_id"] == job_id
+    assert (line()["job_id"], line()["job_status"]) == (job_id, "running")
     jobs.set_status(world["conn"], job_id, "done")
-    assert client.get("/api/runs").json()[0]["job_id"] is None
+    assert (line()["job_id"], line()["job_status"]) == (None, None)
+
+
+@pytest.mark.parametrize("set_id, expected", [
+    ("fixed__c1024__o200", ("fixed", 1024, 200)), ("llm_enriched__c800__o0", ("llm_enriched", 800, 0))])
+def test_a_chunk_set_id_gives_back_its_settings(set_id, expected):
+    method, size, overlap = expected
+    assert chunk_settings(set_id) == {"chunking_method": method, "chunk_size": size, "overlap": overlap}
+    base = chunk_set_id(size, overlap)
+    assert set_id == (base if method == "fixed" else enriched_set_id(base))
 
 
 def test_a_whole_split_counts_as_full(world, monkeypatch):

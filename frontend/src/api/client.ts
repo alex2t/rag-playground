@@ -1,6 +1,6 @@
 /** Typed calls to the backend. A refused request throws its reason, as the API words it. */
 
-import type { Answer, AskQuestion, AskResult, Job, LadderState, PanelOptions, PanelRequest, PromptVersion, StackId } from './types.ts'
+import type { Answer, AskQuestion, AskResult, Estimate, Job, LadderState, PanelOptions, PanelRequest, PromptVersion, QuestionSet, RunReport, RunSummary, StackId } from './types.ts'
 
 /** The API's reason, or a line with the status: a crash or a proxy answers in plain text, not JSON. */
 export function refusal(status: number, text: string): string {
@@ -55,6 +55,22 @@ export function getAskQuestions(): Promise<AskQuestion[]> {
 
 export function ask(settings: PanelRequest, question: { question: string } | { test_id: string }): Promise<AskResult> {
   return post('/api/ask', { ...settings, ...question })
+}
+
+export function getRuns(): Promise<RunSummary[]> {
+  return send('/api/runs')
+}
+
+export function getReport(runId: number): Promise<RunReport> {
+  return send(`/api/runs/${runId}/report`)
+}
+
+export function estimateRun(settings: PanelRequest, questions: QuestionSet): Promise<Estimate> {
+  return post('/api/runs/estimate', { ...settings, questions })
+}
+
+export async function startRun(settings: PanelRequest, questions: QuestionSet): Promise<number> {
+  return (await post<{ job_id: number }>('/api/runs', { ...settings, questions })).job_id
 }
 
 export async function startStep(stack: StackId, prompts?: string[]): Promise<number> {
