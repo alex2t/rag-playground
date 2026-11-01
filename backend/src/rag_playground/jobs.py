@@ -52,8 +52,7 @@ def set_status(conn: sqlite3.Connection, job_id: int, status: str, error: str | 
 def submit_evaluation(conn: sqlite3.Connection, choices: pipeline.Choices, tests: list[TestCase]) -> int:
     """Create the run and its job, and queue it; return the job id. A run that would be refused (not indexed,
     over budget, a held-out prompt not evaluated on dev) raises here, before any run or job is stored."""
-    if indexes.lookup(conn, choices.stack, choices.chunk_set_id) is None:
-        raise KeyError(f"{choices.chunk_set_id} is not indexed on Stack {choices.stack}")
+    indexes.require(conn, choices.stack, choices.chunk_set_id)
     run_id = pipeline.start_run(conn, choices, tests)
     job_id = insert(conn, "jobs", {"kind": "evaluate", "run_id": run_id})
     executor.submit(evaluate, job_id, run_id)

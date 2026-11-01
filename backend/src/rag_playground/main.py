@@ -14,7 +14,7 @@ from rag_playground import jobs, store, story
 from rag_playground.ask_requests import AskRequest, dev_questions
 from rag_playground.calibration_requests import DbId, GradeRequest, OpenCalibration
 from rag_playground.prompt_requests import SavePrompt
-from rag_playground.rag import ask, grading, prompts
+from rag_playground.rag import ask, evaluation, grading, prompts
 from rag_playground.rag.pipeline import BudgetExceeded
 from rag_playground.run_requests import RunRequest, panel_options
 from rag_playground.scoring.judging import ACCURACY_RUBRIC
@@ -66,6 +66,44 @@ def start_run(request: RunRequest) -> dict:
         raise HTTPException(status_code=404, detail=f"Not found: {exc.args[0]}")
     except BudgetExceeded as exc:
         raise HTTPException(status_code=409, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    finally:
+        conn.close()
+
+
+@app.post("/api/runs/estimate")
+def estimate_run(request: RunRequest) -> dict:
+    """A run's questions, cost and time, what is left of the budget; nothing stored. 404 and 422 as POST /api/runs."""
+    conn = store.connect()
+    try:
+        return evaluation.estimate_run(conn, request.choices(), request.tests())
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=f"Not found: {exc.args[0]}")
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    finally:
+        conn.close()
+
+
+@app.get("/api/runs")
+def list_runs() -> list[dict]:
+    """Every stored run, newest first, with its settings and no scores."""
+    conn = store.connect()
+    try:
+        return evaluation.listing(conn)
+    finally:
+        conn.close()
+
+
+@app.get("/api/runs/{run_id}/report")
+def run_report(run_id: DbId) -> dict:
+    """A finished run's scores; a held-out run reports them overall only. 404 no such run, 422 not finished."""
+    conn = store.connect()
+    try:
+        return evaluation.report(conn, run_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail=f"No run {run_id}")
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
     finally:

@@ -51,6 +51,14 @@ def lookup(conn: sqlite3.Connection, stack: str, chunk_set_id: str) -> str | Non
     return row[0] if row else None
 
 
+def require(conn: sqlite3.Connection, stack: str, chunk_set_id: str) -> str:
+    """The index reference of a chunk set on a stack; KeyError if it was never indexed there."""
+    ref = lookup(conn, stack, chunk_set_id)
+    if ref is None:
+        raise KeyError(f"{chunk_set_id} is not indexed on Stack {stack}")
+    return ref
+
+
 def with_original_text(search: Retrieve, chunk_set_id: str) -> Retrieve:
     """Stack A returns the text it was given, so an enriched hit gets its original text back (T47)."""
     originals = {chunk.chunk_id: chunk.text for chunk in load_chunk_set(chunk_set_id)}
@@ -60,9 +68,7 @@ def with_original_text(search: Retrieve, chunk_set_id: str) -> Retrieve:
 def retriever(conn: sqlite3.Connection, meta: RunMeta | Choices) -> Retrieve:
     """Search a run's index with its stored settings, or the Ask page's choices; KeyError if the chunk set is not
     indexed."""
-    ref = lookup(conn, meta.stack, meta.chunk_set_id)
-    if ref is None:
-        raise KeyError(f"{meta.chunk_set_id} is not indexed on Stack {meta.stack}")
+    ref = require(conn, meta.stack, meta.chunk_set_id)
     if meta.stack == "A":
         ranking = openai_vector_store.Ranking(**meta.openai_ranking)
 

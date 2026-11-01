@@ -117,18 +117,23 @@ def evaluated_on_dev(conn: sqlite3.Connection, prompt_name: str) -> bool:
                         (prompt_name,)).fetchone() is not None
 
 
-def start_run(conn: sqlite3.Connection, choices: Choices, tests: list[TestCase]) -> int:
-    """Store a new run with its metadata and return its id, before any question is asked. A held-out run uses the
-    default prompt or a version already evaluated on dev questions: held-out questions confirm a choice made on dev,
-    never make one (T36 revision). A run whose estimate (T43) exceeds what is left of BUDGET_USD is refused. Nothing
-    is stored when a run is refused."""
+def plan_run(conn: sqlite3.Connection, choices: Choices, tests: list[TestCase]) -> tuple[runs.RunMeta, float]:
+    """A run's metadata and estimate (T43), storing nothing. A held-out run uses the default prompt or a version
+    already evaluated on dev questions: held-out questions confirm a choice made on dev, never make one (T36
+    revision)."""
     prompt = prompts.get(conn, choices.prompt_name)
     meta = build_meta(choices, prompt, tests)
     if meta.split == "heldout" and prompt.name != prompts.DEFAULT_NAME and not evaluated_on_dev(conn, prompt.name):
         raise ValueError(f"Held-out runs use the default prompt or a version evaluated on dev questions; "
                          f"{prompt.name!r} has no finished dev run")
-    cost = estimate.run_cost(tests, prompt, choices.answer_model, choices.top_k, choices.rerank,
-                             load_chunk_set(choices.chunk_set_id), choices.stack)
+    return meta, estimate.run_cost(tests, prompt, choices.answer_model, choices.top_k, choices.rerank,
+                                   load_chunk_set(choices.chunk_set_id), choices.stack)
+
+
+def start_run(conn: sqlite3.Connection, choices: Choices, tests: list[TestCase]) -> int:
+    """Store a new run with its metadata and return its id, before any question is asked. A run `plan_run` refuses, or
+    whose estimate exceeds what is left of BUDGET_USD, stores nothing."""
+    meta, cost = plan_run(conn, choices, tests)
     if cost > remaining(conn):
         raise BudgetExceeded(f"The run is estimated at ${cost:.4f}, but only ${remaining(conn):.4f} of "
                              f"BUDGET_USD ${settings.budget_usd:.2f} is left")
