@@ -2,7 +2,7 @@
 
 import hashlib
 import sqlite3
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 
 DEFAULT_NAME = "default"
 DEFAULT_TEXT = """You are the internal knowledge assistant of Larkspur Cloud Partners, a consulting firm that delivers \
@@ -48,6 +48,14 @@ def list_all(conn: sqlite3.Connection) -> list[PromptVersion]:
     """All versions, oldest first."""
     rows = conn.execute("SELECT name, text, sha256 FROM prompt_versions ORDER BY created_at, rowid").fetchall()
     return [PromptVersion(**row) for row in rows]
+
+
+def with_runs(conn: sqlite3.Connection) -> list[dict]:
+    """Every version, oldest first, with the runs that used it, oldest first. No scores: held-out results stay private."""
+    used = conn.execute("SELECT id, stack, split, status, created_at, prompt_name FROM runs ORDER BY id").fetchall()
+    return [asdict(version) | {"runs": [{key: run[key] for key in ("id", "stack", "split", "status", "created_at")}
+                                        for run in used if run["prompt_name"] == version.name]}
+            for version in list_all(conn)]
 
 
 def ensure_default(conn: sqlite3.Connection) -> PromptVersion:

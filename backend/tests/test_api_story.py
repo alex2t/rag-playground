@@ -2,6 +2,7 @@
 fakes as test_ladder_step.py (no network, no cost)."""
 
 import threading
+import time
 from types import SimpleNamespace
 
 import pytest
@@ -130,6 +131,9 @@ def test_a_second_click_says_a_step_is_running_even_when_the_budget_is_used_up(w
     """The running step is the reason to wait, so it is reported before any estimate is worked out."""
     world.gate = threading.Event()
     client.post("/api/story", json={"stack": "B"})
+    deadline = time.monotonic() + 5
+    while not world.questions and time.monotonic() < deadline:  # past the worker's own budget check, held at the gate
+        time.sleep(0.01)
     monkeypatch.setattr(settings, "budget_usd", 0.0)
     response = client.post("/api/story", json={"stack": "B"})
     world.gate.set()

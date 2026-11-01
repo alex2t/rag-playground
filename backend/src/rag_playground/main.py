@@ -10,7 +10,8 @@ from fastapi.staticfiles import StaticFiles
 
 from rag_playground import jobs, store, story
 from rag_playground.calibration_requests import DbId, GradeRequest, OpenCalibration
-from rag_playground.rag import grading
+from rag_playground.prompt_requests import SavePrompt
+from rag_playground.rag import grading, prompts
 from rag_playground.rag.pipeline import BudgetExceeded
 from rag_playground.run_requests import RunRequest
 from rag_playground.scoring.judging import ACCURACY_RUBRIC
@@ -136,6 +137,37 @@ def run_answers(run_id: DbId) -> list[dict]:
         raise HTTPException(status_code=404, detail=f"No run {run_id}")
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
+    finally:
+        conn.close()
+
+
+@app.get("/api/prompts")
+def list_prompts() -> list[dict]:
+    """Every system prompt version with the runs that used it (T36). The default is saved on first use. 409 if the
+    stored default differs from the code's text."""
+    conn = store.connect()
+    try:
+        prompts.ensure_default(conn)
+        return prompts.with_runs(conn)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    finally:
+        conn.close()
+
+
+@app.post("/api/prompts", status_code=201)
+def save_prompt(request: SavePrompt) -> dict:
+    """Save a new version (T36); a saved version never changes. The default is saved first, so its name can never be
+    taken by another text. 409 if the name is taken or the stored default differs from the code's text, 422 if the name
+    or text is invalid."""
+    conn = store.connect()
+    try:
+        prompts.ensure_default(conn)
+        return asdict(prompts.save(conn, request.name, request.text))
+    except sqlite3.IntegrityError:
+        raise HTTPException(status_code=409, detail=f"A version named '{request.name}' already exists.")
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
     finally:
         conn.close()
 

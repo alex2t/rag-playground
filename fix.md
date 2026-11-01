@@ -4,6 +4,16 @@ Add new bugs at the top. Status: `open` | `investigating` | `fixed`.
 
 ---
 
+## [2026-11-01] Step 9: a Story test failed once in the full suite - `fixed`
+- **Symptom:** `test_a_second_click_says_a_step_is_running_even_when_the_budget_is_used_up` failed in one full run (1 failed, 763 passed); it then passed 6 times alone and 3 times with its file. The failure text of that run was not kept.
+- **Reproduce:** delay the worker's start by 0.5 s and the second click by 1.5 s: the click gets "The step is estimated at $0.0042, but only $0.0000 of BUDGET_USD $0.00 is left".
+- **Root cause (evidence):** the test set the budget to $0 right after the first click, while the worker might not have passed its own check in `pipeline.start_run`. The job then failed, no step was running, and the second click correctly got the budget refusal. A fault in the test, not the product. This matches the forced order; the original failure's message is unknown, so the link to that run is inferred.
+- **Fix:** the test waits until the job has reached a question (held at its gate) before setting the budget to $0. The assertion is unchanged.
+- **Verified by:** the forced delays now pass; full suite 764 passed.
+- **Status:** fixed.
+
+---
+
 ## [2026-10-31] Step 9: one ladder step took over an hour - `fixed`
 - **Symptom:** Stack A's S1 took 82 minutes.
 - **Reproduce:** run any ladder step with 192 questions.
