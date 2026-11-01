@@ -16,7 +16,7 @@ from rag_playground.calibration_requests import DbId, GradeRequest, OpenCalibrat
 from rag_playground.prompt_requests import SavePrompt
 from rag_playground.rag import ask, grading, prompts
 from rag_playground.rag.pipeline import BudgetExceeded
-from rag_playground.run_requests import RunRequest
+from rag_playground.run_requests import RunRequest, panel_options
 from rag_playground.scoring.judging import ACCURACY_RUBRIC
 from rag_playground.settings import settings
 from rag_playground.stacks import qdrant_store
@@ -143,6 +143,12 @@ def run_answers(run_id: DbId) -> list[dict]:
         raise HTTPException(status_code=422, detail=str(exc))
     finally:
         conn.close()
+
+
+@app.get("/api/panel")
+def panel() -> dict:
+    """The settings panel's ranges, models and starting values (T35)."""
+    return panel_options()
 
 
 @app.get("/api/ask/questions")

@@ -70,6 +70,60 @@ export type PromptRun = { id: number; stack: StackId; split: string; status: str
 
 export type PromptVersion = { name: string; text: string; sha256: string; runs: PromptRun[] }
 
+export type OpenAIRanking = { ranker: 'auto' | 'none'; embedding_weight: number; text_weight: number; score_threshold: number }
+
+export type PanelOptions = {
+  min_chunk_size: number
+  max_chunk_size: number
+  max_overlap_share: number
+  max_top_k: number
+  answer_models: string[]
+  start: {
+    chunking_method: 'fixed' | 'llm_enriched'
+    chunk_size: number
+    overlap: number
+    top_k: number
+    rerank: boolean
+    answer_model: string
+    openai_ranking: OpenAIRanking
+    hybrid: boolean
+  }
+}
+
+export type PanelRequest = Omit<PanelOptions['start'], 'openai_ranking' | 'hybrid'> & {
+  stack: StackId
+  prompt_name: string
+  openai_ranking?: OpenAIRanking
+  hybrid?: boolean
+}
+
+export type AskQuestion = { id: string; category: string; question: string }
+
+export type AskChunk = { rank: number; source: string; score: number; text: string; gold: boolean }
+
+export type AskJudgement = {
+  refused: boolean
+  accuracy: number
+  completeness: number
+  relevance: number
+  faithfulness: number
+  feedback: string
+  faithfulness_feedback: string
+}
+
+export type AskResult = {
+  answer: string
+  stack: StackId
+  latency_s: number
+  cost_usd: number
+  temperature_controlled: boolean
+  rerank_repaired: boolean
+  chunks: AskChunk[]
+  reference_answer: string | null
+  gold_sources: string[]
+  judgement: AskJudgement | null
+}
+
 export type Job = {
   id: number
   kind: string

@@ -1,12 +1,23 @@
 /** Typed calls to the backend. A refused request throws its reason, as the API words it. */
 
-import type { Answer, Job, LadderState, PromptVersion, StackId } from './types.ts'
+import type { Answer, AskQuestion, AskResult, Job, LadderState, PanelOptions, PanelRequest, PromptVersion, StackId } from './types.ts'
+
+/** The API's reason, or a line with the status: a crash or a proxy answers in plain text, not JSON. */
+export function refusal(status: number, text: string): string {
+  try {
+    const { detail } = JSON.parse(text)
+    if (typeof detail === 'string') return detail
+  } catch {
+    return `The server failed (${status}).`
+  }
+  return `Request refused (${status})`
+}
 
 async function send<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, init)
-  const body = await response.json()
-  if (!response.ok) throw new Error(typeof body.detail === 'string' ? body.detail : `Request refused (${response.status})`)
-  return body
+  const text = await response.text()
+  if (!response.ok) throw new Error(refusal(response.status, text))
+  return JSON.parse(text)
 }
 
 function post<T>(url: string, body?: object): Promise<T> {
@@ -32,6 +43,18 @@ export function getPrompts(): Promise<PromptVersion[]> {
 
 export function savePrompt(name: string, text: string): Promise<Omit<PromptVersion, 'runs'>> {
   return post('/api/prompts', { name, text })
+}
+
+export function getPanel(): Promise<PanelOptions> {
+  return send('/api/panel')
+}
+
+export function getAskQuestions(): Promise<AskQuestion[]> {
+  return send('/api/ask/questions')
+}
+
+export function ask(settings: PanelRequest, question: { question: string } | { test_id: string }): Promise<AskResult> {
+  return post('/api/ask', { ...settings, ...question })
 }
 
 export async function startStep(stack: StackId, prompts?: string[]): Promise<number> {

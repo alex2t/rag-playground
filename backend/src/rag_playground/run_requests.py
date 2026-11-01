@@ -5,14 +5,25 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from rag_playground.chunking.chunk_sets import check_params, chunk_set_id
+from rag_playground.chunking.chunk_sets import MAX_OVERLAP_SHARE, MAX_SIZE, MIN_SIZE, check_params, chunk_set_id
 from rag_playground.chunking.enrichment import enriched_set_id
 from rag_playground.datasets.schema import TestCase, load_tests
 from rag_playground.datasets.splits import round_robin
 from rag_playground.rag.pipeline import Choices
-from rag_playground.settings import ANSWER_MODELS, MAX_TOP_K
+from rag_playground.settings import ANSWER_MODELS, MAX_TOP_K, S0
 
 SMOKE_QUESTIONS = 20
+
+
+def panel_options() -> dict:
+    """What the settings panel offers (T35): the ranges and models it may choose from, and S0's values to start from.
+    They live in the backend so the page cannot drift from what the requests below accept."""
+    search = S0["search"]
+    return {"min_chunk_size": MIN_SIZE, "max_chunk_size": MAX_SIZE, "max_overlap_share": MAX_OVERLAP_SHARE,
+            "max_top_k": MAX_TOP_K, "answer_models": ANSWER_MODELS,
+            "start": {"chunking_method": "fixed", "chunk_size": S0["chunk_size"], "overlap": S0["overlap"],
+                      "top_k": S0["top_k"], "rerank": S0["rerank"], "answer_model": S0["answer_model"],
+                      "openai_ranking": search["A"]["openai_ranking"], "hybrid": search["B"]["hybrid"]}}
 
 
 class OpenAIRanking(BaseModel):

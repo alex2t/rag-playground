@@ -4,6 +4,14 @@ Add new bugs at the top. Status: `open` | `investigating` | `fixed`.
 
 ---
 
+## [2026-11-01] Step 9: saved panel values could crash Ask or reach the API as null - `fixed`
+- **Symptom:** found by Antigravity (Gemini 3.8) for corrupt or hand-edited browser storage: unreadable JSON stopped Ask loading, and `openai_ranking: null` crashed the panel. Claude found that it needs no hand-editing: a Stack A box left blank while asking Stack B alone is saved, `NaN` becomes `null` in JSON, and on return `panelProblem` passes it (`null >= 0` is true in JavaScript), so Stack A would be sent an invalid request.
+- **Reproduce:** the 4 new tests in `panel.test.ts` failed before the fix.
+- **Root cause (evidence):** `restoredValues` trusted storage, and `rankingProblem` compared without checking for a number. Antigravity's suggested merge would have kept the `null`, so it was not used as written.
+- **Fix:** `Number.isFinite` in `rankingProblem`; `restoredValues` reads storage safely, merges `openai_ranking` field by field, and falls back to the start for a bad Stack A setting or for anything else that could not be sent.
+- **Verified by:** the 4 tests pass; deliberate breaks of the fix caught.
+- **Status:** fixed.
+
 ## [2026-11-01] Step 9: a Story test failed once in the full suite - `fixed`
 - **Symptom:** `test_a_second_click_says_a_step_is_running_even_when_the_budget_is_used_up` failed in one full run (1 failed, 763 passed); it then passed 6 times alone and 3 times with its file. The failure text of that run was not kept.
 - **Reproduce:** delay the worker's start by 0.5 s and the second click by 1.5 s: the click gets "The step is estimated at $0.0042, but only $0.0000 of BUDGET_USD $0.00 is left".

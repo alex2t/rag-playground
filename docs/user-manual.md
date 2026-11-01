@@ -38,7 +38,7 @@ Each stack runs independently: you set each one's search settings yourself. The 
 ## 3. Before you start
 
 - Open the app at `https://<domain>` (production) or `https://staging.<domain>` and sign in with the user name and password you were given.
-- Every paid action shows its estimated cost first and waits for you to confirm.
+- Every paid action shows its estimated cost first and waits for you to confirm. One question on **Ask** is the exception: it costs a fraction of a cent, so it runs at once and shows its cost with the answer.
 - All spending counts against one budget per environment (`BUDGET_USD`: $60 in production, $5 in staging). The **Ops** page shows what is left. A run that would go over the budget is refused, and a running one stops before it would pass it.
 
 ## 4. The settings panel
@@ -54,6 +54,8 @@ The **Ask**, **Evaluate** and **Sweep** pages share one settings panel:
 5. **Reranking** on or off.
 6. **Answer model.**
 7. **System prompt version.**
+
+The panel opens with the last values you used on this browser, or with the S0 baseline the first time.
 
 If the chunks for your chunk size and overlap do not exist yet, the panel shows how long building them takes and what it costs, and builds them only after you confirm.
 
@@ -73,7 +75,7 @@ Use it to see how one configuration answers.
 2. Type any question, or pick one of the test questions.
 3. Press **Ask**.
 
-You see the answer, the chunks it was given (document, rank and score), and for a test question also the reference answer, the documents that hold the answer (highlighted where they were retrieved) and the judge's scores. A question you type yourself has no reference answer, so it shows no scores.
+You see the answer, its settings, time and cost, the chunks it was given (document, rank and score), and for a test question also the reference answer, the documents that hold the answer (highlighted where they were retrieved) and the judge's scores. A question you type yourself has no reference answer, so it shows no scores.
 
 ### Evaluate: score one configuration
 Use it to measure a configuration on many questions.
