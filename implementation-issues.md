@@ -262,3 +262,21 @@ Antigravity's review confirmed 5 of 6 findings:
 **Also found:** the same review claimed 15 deliberate breaks were caught, but 3 of those passed every test on the earlier increment, and it named classes and tables that do not exist. Its verdicts were mostly right; its evidence was not. The prompts now ask for the file, the line and a quote for every claim.
 
 **Lesson:** a reviewer's "safe" is a claim like any other. Check the reasoning, not only the verdict, and count a test as proof only after seeing it fail without the fix. A check run on already failing tests proves nothing, which happened here too: one "12 of 12 caught" was meaningless, because a new test was failing before any break was applied.
+
+## 18. Step 9: slow runs, and a link that seemed dead (2026-10-31)
+
+**Step and task:** the first real ladder steps from the Story page.
+
+**What went wrong:** one step on Stack A took 82 minutes. Later, three small things looked broken on the page: View answers seemed to do nothing, the page went blank once, and the first PNG was empty.
+
+**First guess:** for the slow run, that uploads were the cost. They were a few minutes; the real cost was asking 192 questions one at a time. I also said the plan assumed 5 at a time, which was wrong: the plan said one at a time, and only my own notes mentioned 5.
+
+**Root causes:**
+- Slow runs: questions ran in sequence, at about 5 seconds each.
+- View answers worked, but opened below a long table, off screen. A button state in the user's screenshot proved it.
+- The blank page: the page had new code and the server still had old code, so an expected field was missing.
+- The empty PNG: the first SVG on the chart was a 14-pixel legend icon, not the chart.
+
+**Fixes:** 5 questions at a time, with the budget guard counting money in flight (T51), which cut a step to 43 minutes. Answers now open under the clicked row. A restart fixed the blank page, and no guard was added, since a release ships both parts together. The PNG code skips legend icons.
+
+**Lesson:** a test that passes is not the same as a page that works. The PNG bug showed up only by capturing the real file, and the View answers fault only in the browser. A speed estimate should be measured too: 4 times faster turned out to be about 2.5 times.
