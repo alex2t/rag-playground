@@ -119,7 +119,7 @@ This doesn't work for held-out runs, because those questions are kept separate f
 The held-out confirmation opens when a stack's ladder is finished, and each configuration is confirmed once. At S6, type at most 4 prompt versions and press **Estimate**, and press it again if you change them; leaving the box empty skips S6. The choice is final for that stack.
 
 ### Prompt: edit the instructions
-Write your own system prompts: start from the default or any saved version, edit it, and save it under a new name. Save as many versions as you like; each can be picked in the settings panel on **Ask**, **Evaluate** and **Sweep**. A saved version never changes, and the page lists the runs that used each one.
+Write your own system prompts: start from the default or any saved version, edit it, and save it under a new name. A name cannot contain a comma, and the text must differ from every saved version. Save as many versions as you like; each can be picked in the settings panel on **Ask**, **Evaluate** and **Sweep**. A saved version never changes, and the page lists the runs that used each one.
 
 For the ladder's prompt step (S6), choose up to 4 of your versions before the step runs; the best one is kept for the rest of the ladder and for the demo.
 
