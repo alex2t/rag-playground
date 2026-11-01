@@ -25,9 +25,9 @@ class OpenAIRanking(BaseModel):
     score_threshold: float = Field(ge=0, le=1)
 
 
-class RunRequest(BaseModel):
-    """One evaluation run: the settings panel plus the question set. Stack A takes `openai_ranking`, Stack B
-    `hybrid`; the other stack's field must be left out. Types are strict: "3" is not 3 (D27)."""
+class PanelSettings(BaseModel):
+    """The settings panel (T35), shared by Evaluate and Ask. Stack A takes `openai_ranking`, Stack B `hybrid`; the
+    other stack's field must be left out. Types are strict: "3" is not 3 (D27)."""
 
     model_config = ConfigDict(extra="forbid", strict=True)
     stack: Literal["A", "B"]
@@ -40,10 +40,9 @@ class RunRequest(BaseModel):
     rerank: bool
     answer_model: Literal[tuple(ANSWER_MODELS)]
     prompt_name: str
-    questions: Literal["dev", "heldout", "smoke"]
 
     @model_validator(mode="after")
-    def check(self) -> "RunRequest":
+    def check(self) -> "PanelSettings":
         check_params(self.chunk_size, self.overlap)
         if self.stack == "A" and (self.openai_ranking is None or self.hybrid is not None):
             raise ValueError("Stack A takes openai_ranking, not hybrid")
@@ -59,6 +58,12 @@ class RunRequest(BaseModel):
         set_id = enriched_set_id(base_id) if self.chunking_method == "llm_enriched" else base_id
         return Choices(stack=self.stack, chunk_set_id=set_id, top_k=self.top_k, hybrid=hybrid, openai_ranking=ranking, rerank=self.rerank, answer_model=self.answer_model,
                        prompt_name=self.prompt_name)
+
+
+class RunRequest(PanelSettings):
+    """One evaluation run: the settings panel plus the question set."""
+
+    questions: Literal["dev", "heldout", "smoke"]
 
     def tests(self) -> list[TestCase]:
         """All 192 dev or 48 held-out questions, or the 20-question smoke test (round-robin over dev, T46)."""

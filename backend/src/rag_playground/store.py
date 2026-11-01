@@ -162,7 +162,8 @@ CREATE TRIGGER IF NOT EXISTS ladder_prompts_no_update BEFORE UPDATE ON ladder_pr
 BEGIN SELECT RAISE(ABORT, 'ladder prompts are chosen once per stack'); END;
 CREATE TRIGGER IF NOT EXISTS ladder_prompts_no_delete BEFORE DELETE ON ladder_prompts
 BEGIN SELECT RAISE(ABORT, 'ladder prompts are chosen once per stack'); END;
--- One row per paid OpenRouter call, written as soon as it returns (T44). run_id is NULL outside runs.
+-- One row per paid OpenRouter call, written as soon as it returns (T44), and per Stack A search outside a run (T54).
+-- run_id is NULL outside runs.
 CREATE TABLE IF NOT EXISTS spend (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),

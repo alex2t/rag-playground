@@ -23,6 +23,10 @@ class PromptVersion:
     sha256: str
 
 
+class DefaultChanged(ValueError):
+    """The stored default prompt differs from the code's text."""
+
+
 def sha256(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
@@ -65,5 +69,5 @@ def ensure_default(conn: sqlite3.Connection) -> PromptVersion:
     except KeyError:
         return save(conn, DEFAULT_NAME, DEFAULT_TEXT)
     if stored.sha256 != sha256(DEFAULT_TEXT):
-        raise ValueError("The stored default prompt differs from DEFAULT_TEXT; save the new text under a new name.")
+        raise DefaultChanged("The stored default prompt differs from DEFAULT_TEXT; save the new text under a new name.")
     return stored

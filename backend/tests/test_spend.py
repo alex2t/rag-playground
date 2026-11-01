@@ -199,6 +199,14 @@ def stored(conn, meta, questions):
     return run_id
 
 
+def test_a_search_outside_a_run_counts_in_the_total_only_on_stack_a(conn):
+    """T54: the Ask page's searches store no result, so they get their own row."""
+    spend.record_search(conn, "B")
+    assert spend.total(conn) == 0
+    spend.record_search(conn, "A")
+    assert spend.total(conn) == pytest.approx(0.0025)
+
+
 def test_each_stored_stack_a_question_adds_one_search_fee(conn):
     """T53: the total is the paid calls plus $0.0025 per Stack A question; the stored result costs are not added."""
     run_id = stored(conn, STACK_A, 3)

@@ -10,6 +10,8 @@ from rag_playground.llm.openrouter import ChatResult, cost_listener
 from rag_playground.rag.runs import insert
 from rag_playground.settings import STACK_A_SEARCH_USD
 
+SEARCH_ROW = "openai/vector-store-search"  # the `model` of a spend row holding a search fee, not an LLM call (T54)
+
 
 def record(conn: sqlite3.Connection, run_id: int | None, result: ChatResult) -> None:
     """Store one paid call with its tokens and cost."""
@@ -21,6 +23,14 @@ def record(conn: sqlite3.Connection, run_id: int | None, result: ChatResult) -> 
 def search_fee(stack: str) -> float:
     """OpenAI's fee for one question's search (T53); one search per question, with or without the reranker."""
     return STACK_A_SEARCH_USD if stack == "A" else 0.0
+
+
+def record_search(conn: sqlite3.Connection, stack: str) -> None:
+    """Store the fee of a search outside any run (T54); inside a run, stored results count it, so never call this
+    there. A stack with no fee stores nothing."""
+    if search_fee(stack):
+        insert(conn, "spend", {"run_id": None, "model": SEARCH_ROW, "prompt_tokens": 0, "completion_tokens": 0,
+                               "reasoning_tokens": 0, "cost_usd": search_fee(stack)})
 
 
 @contextmanager

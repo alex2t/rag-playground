@@ -7,11 +7,14 @@ from typing import Annotated
 
 from fastapi import FastAPI, HTTPException, Query, Response
 from fastapi.staticfiles import StaticFiles
+from openai import OpenAIError
+from qdrant_client.http.exceptions import ApiException
 
 from rag_playground import jobs, store, story
+from rag_playground.ask_requests import AskRequest, dev_questions
 from rag_playground.calibration_requests import DbId, GradeRequest, OpenCalibration
 from rag_playground.prompt_requests import SavePrompt
-from rag_playground.rag import grading, prompts
+from rag_playground.rag import ask, grading, prompts
 from rag_playground.rag.pipeline import BudgetExceeded
 from rag_playground.run_requests import RunRequest
 from rag_playground.scoring.judging import ACCURACY_RUBRIC
@@ -30,6 +33,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="RAG Playground", version=settings.app_version, lifespan=lifespan)
+SERVICE_ERRORS = (OpenAIError, ApiException)  # both LLM providers use the openai client; Stack B's is Qdrant's
 
 
 def qdrant_status() -> str:
@@ -137,6 +141,31 @@ def run_answers(run_id: DbId) -> list[dict]:
         raise HTTPException(status_code=404, detail=f"No run {run_id}")
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
+    finally:
+        conn.close()
+
+
+@app.get("/api/ask/questions")
+def ask_questions() -> list[dict]:
+    """The dev test questions the Ask page may pick from, without their answers."""
+    return [{"id": test.id, "category": test.category, "question": test.question} for test in dev_questions()]
+
+
+@app.post("/api/ask")
+def ask_question(request: AskRequest) -> dict:
+    """Answer one question with the panel's settings, and judge it if it is a test question (T54). 404 (chunk set not
+    indexed, unknown prompt or question), 409 (over budget, or the stored default prompt changed), 422 (invalid
+    settings, before this runs), 502 (OpenAI, OpenRouter or Qdrant failed). Anything else is a bug: a plain 500."""
+    conn = store.connect()
+    try:
+        test = request.test()
+        return ask.ask(conn, request.choices(), test.question if test else request.question, test)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=f"Not found: {exc.args[0]}")
+    except (BudgetExceeded, prompts.DefaultChanged) as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    except SERVICE_ERRORS as exc:
+        raise HTTPException(status_code=502, detail=f"The question failed: {type(exc).__name__}: {exc}")
     finally:
         conn.close()
 

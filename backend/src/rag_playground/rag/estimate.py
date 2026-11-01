@@ -45,20 +45,27 @@ def price(model: str, input_tokens: int, output_tokens: int) -> float:
     return input_tokens * info.prompt_usd_per_token + output_tokens * info.completion_usd_per_token
 
 
-def question_cost(test: TestCase, prompt: PromptVersion, answer_model: str, top_k: int, rerank: bool,
-                  chunk_tokens: float, stack: str) -> float:
-    """Estimated dollars for one question: the search fee, optional rerank, answer, and the judge's two calls."""
+def answer_cost(question: str, prompt: PromptVersion, answer_model: str, top_k: int, rerank: bool,
+                chunk_tokens: float, stack: str) -> float:
+    """Estimated dollars to answer a question without judging it: the search fee, optional rerank, answer."""
     chunk = filler(round(chunk_tokens))
     hits = [Hit(f"c{i}", "doc.md", 1.0, chunk) for i in range(top_k)]
-    answer = filler(ANSWER_TOKENS)
-    cost = search_fee(stack) + price(answer_model, count(answer_messages(prompt, test.question, hits)), ANSWER_TOKENS)
-    cost += price(JUDGE_MODEL, count(grade_messages(test, answer)), JUDGE_TOKENS)
-    cost += price(JUDGE_MODEL, count(faithfulness_messages(test, [chunk] * top_k, answer)), JUDGE_TOKENS)
+    cost = search_fee(stack) + price(answer_model, count(answer_messages(prompt, question, hits)), ANSWER_TOKENS)
     if rerank:
         candidates = [Hit(f"c{i}", "doc.md", 1.0, chunk) for i in range(RERANK_CANDIDATES)]
         reply = json.dumps({"ranking": list(range(1, RERANK_CANDIDATES + 1))})
-        cost += price(RERANK_MODEL, count(rerank_messages(test.question, candidates)), len(get_tokenizer()(reply)))
+        cost += price(RERANK_MODEL, count(rerank_messages(question, candidates)), len(get_tokenizer()(reply)))
     return cost
+
+
+def question_cost(test: TestCase, prompt: PromptVersion, answer_model: str, top_k: int, rerank: bool,
+                  chunk_tokens: float, stack: str) -> float:
+    """Estimated dollars for one test question: answering it, and the judge's two calls."""
+    chunk = filler(round(chunk_tokens))
+    answer = filler(ANSWER_TOKENS)
+    cost = answer_cost(test.question, prompt, answer_model, top_k, rerank, chunk_tokens, stack)
+    cost += price(JUDGE_MODEL, count(grade_messages(test, answer)), JUDGE_TOKENS)
+    return cost + price(JUDGE_MODEL, count(faithfulness_messages(test, [chunk] * top_k, answer)), JUDGE_TOKENS)
 
 
 def run_cost(tests: list[TestCase], prompt: PromptVersion, answer_model: str, top_k: int, rerank: bool,

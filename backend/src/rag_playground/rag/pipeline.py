@@ -14,6 +14,7 @@ from time import perf_counter
 from rag_playground.chunking.chunk_sets import load as load_chunk_set
 from rag_playground.datasets.schema import TestCase, dataset_sha256, load_tests
 from rag_playground.llm.models import model_info
+from rag_playground.llm.openrouter import ChatResult
 from rag_playground.rag import estimate, prompts, runs, spend
 from rag_playground.rag.answer import answer
 from rag_playground.rag.rerank import rerank
@@ -71,23 +72,43 @@ def build_meta(choices: Choices, prompt: prompts.PromptVersion, tests: list[Test
         app_version=settings.app_version)
 
 
-def run_question(test: TestCase, meta: runs.RunMeta, prompt: prompts.PromptVersion, retrieve: Retrieve) -> runs.Result:
-    """Answer and judge one question. Latency covers what a user waits for (retrieval, rerank, answer), not the
-    judge; cost covers every call, the judge included."""
+@dataclass(frozen=True)
+class Answered:
+    """A question searched and answered, not yet judged. `calls` are the paid calls so far; latency is what a user
+    waits for."""
+
+    hits: list[Hit]
+    repaired: bool | None
+    reply: ChatResult
+    calls: list[ChatResult]
+    latency_s: float
+
+
+def search_and_answer(question: str, top_k: int, rerank_candidates: int | None, answer_model: str,
+                      prompt: prompts.PromptVersion, retrieve: Retrieve) -> Answered:
+    """Search, rerank if `rerank_candidates` is set, and answer: one path for runs and for the Ask page, so both read
+    the same chunks."""
     start = perf_counter()
     calls, repaired = [], None
-    if meta.rerank_model:
-        reranked = rerank(test.question, retrieve(test.question, meta.rerank_candidates), meta.top_k)
+    if rerank_candidates:
+        reranked = rerank(question, retrieve(question, rerank_candidates), top_k)
         hits, repaired = reranked.hits, reranked.repaired
         calls += [reranked.result] if reranked.result else []
     else:
-        hits = retrieve(test.question, meta.top_k)
-    reply = answer(meta.answer_model, prompt, test.question, hits)
-    latency = perf_counter() - start
-    verdict, judge_calls = judge(test, [hit.text for hit in hits], reply.text)
-    cost = sum(call.cost_usd for call in [*calls, reply, *judge_calls])
-    return runs.Result(test_id=test.id, hits=hits, rerank_repaired=repaired, answer=reply.text,
-                       judgement=verdict, cost_usd=cost, latency_s=latency)
+        hits = retrieve(question, top_k)
+    reply = answer(answer_model, prompt, question, hits)
+    return Answered(hits, repaired, reply, [*calls, reply], perf_counter() - start)
+
+
+def run_question(test: TestCase, meta: runs.RunMeta, prompt: prompts.PromptVersion, retrieve: Retrieve) -> runs.Result:
+    """Answer and judge one question. Latency covers what a user waits for (retrieval, rerank, answer), not the
+    judge; cost covers every call, the judge included."""
+    done = search_and_answer(test.question, meta.top_k, meta.rerank_candidates if meta.rerank_model else None,
+                             meta.answer_model, prompt, retrieve)
+    verdict, judge_calls = judge(test, [hit.text for hit in done.hits], done.reply.text)
+    cost = sum(call.cost_usd for call in [*done.calls, *judge_calls])
+    return runs.Result(test_id=test.id, hits=done.hits, rerank_repaired=done.repaired, answer=done.reply.text,
+                       judgement=verdict, cost_usd=cost, latency_s=done.latency_s)
 
 
 def evaluated_on_dev(conn: sqlite3.Connection, prompt_name: str) -> bool:

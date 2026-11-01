@@ -6,6 +6,7 @@ from dataclasses import replace
 
 from rag_playground.chunking import enrichment
 from rag_playground.chunking.chunk_sets import Chunk, load as load_chunk_set
+from rag_playground.rag.pipeline import Choices
 from rag_playground.rag.runs import RunMeta, insert
 from rag_playground.settings import settings
 from rag_playground.stacks import openai_vector_store, qdrant_store
@@ -56,8 +57,9 @@ def with_original_text(search: Retrieve, chunk_set_id: str) -> Retrieve:
     return lambda question, k: [replace(hit, text=originals[hit.chunk_id]) for hit in search(question, k)]
 
 
-def retriever(conn: sqlite3.Connection, meta: RunMeta) -> Retrieve:
-    """Search the run's own index with its stored settings; KeyError if its chunk set is not indexed."""
+def retriever(conn: sqlite3.Connection, meta: RunMeta | Choices) -> Retrieve:
+    """Search a run's index with its stored settings, or the Ask page's choices; KeyError if the chunk set is not
+    indexed."""
     ref = lookup(conn, meta.stack, meta.chunk_set_id)
     if ref is None:
         raise KeyError(f"{meta.chunk_set_id} is not indexed on Stack {meta.stack}")
