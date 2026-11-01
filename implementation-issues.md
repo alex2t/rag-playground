@@ -280,3 +280,19 @@ Antigravity's review confirmed 5 of 6 findings:
 **Fixes:** 5 questions at a time, with the budget guard counting money in flight (T51), which cut a step to 43 minutes. Answers now open under the clicked row. A restart fixed the blank page, and no guard was added, since a release ships both parts together. The PNG code skips legend icons.
 
 **Lesson:** a test that passes is not the same as a page that works. The PNG bug showed up only by capturing the real file, and the View answers fault only in the browser. A speed estimate should be measured too: 4 times faster turned out to be about 2.5 times.
+
+## 19. Step 9: the bill, the blank box and the late reply (2026-11-01)
+
+**When:** building the Prompt, Ask, Evaluate and Compare pages, after the first ladder steps had been paid for.
+
+**What went wrong:**
+- The user's OpenAI bill showed a cost the app had never counted: $3.89 for Stack A's searches, against $3.07 of recorded model calls. The local budget of $5 was really exceeded.
+- A Stack A box left blank while asking Stack B alone was saved in the browser. JSON turned the blank into `null`, and JavaScript reads `null >= 0` as true, so the page would later have sent a request the API refuses.
+- On Evaluate, a slow estimate could arrive after a setting changed. The button then started settings nobody had priced.
+- A speed figure in the notes, 1.75 s per question, did not match the jobs table, which gave 1.35 s and 2.5 s.
+
+**First guesses:** the reviewer treated the blank box as hand-edited storage, and suggested locking the inputs for the slow reply. A third suggestion, returning a refusal rate of 1.0 when a run has no unanswerable questions, would have invented a score that passes a gate.
+
+**Root causes and fixes:** the fee is now counted as spend, in estimates and in the budget (T53), matched to the bill to the cent. Saved values are checked like typed ones. An estimate is stored with the exact settings it was made for, so a late reply cannot stand for anything else. The speed comes from measured jobs.
+
+**Lesson:** the outside record is the test of the inside one: only the bill showed the missing cost. And a reviewer's finding can be right while its fix is wrong, so the finding and the fix each need checking on their own.

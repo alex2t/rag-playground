@@ -88,7 +88,7 @@ The result shows 4 headline tiles (MRR, Recall@K, Accuracy, Faithfulness), a **s
 Any saved prompt version can be used, yours or the default. For a **held-out** run, the version must first have finished a run on dev questions (the default always may): prompts are chosen on dev questions and only confirmed on held-out ones.
 
 ### Compare: is one configuration really better?
-Pick two finished runs. You see the metrics side by side, whether the difference is real (see section 7), which questions one run fixed or broke, and cost against accuracy.
+Pick two finished runs of the same question set, full dev or held-out, not a smoke test. You see the metrics side by side, whether the difference is real (see section 7), which questions one run fixed or broke, and cost against accuracy. A question counts as fixed or broken when its accuracy crosses the pass mark of 4. Two held-out runs compare overall only, with no question list.
 
 ### Story: the ladder
 Runs the fixed ladder one step per click, on each stack separately, and draws one line per stack across the steps. Each stack's button shows the step's estimated cost before you click, including Stack A's search fee; OpenAI's index building is not included. A step that pays for enrichment (S4) asks you to confirm. If a step fails, the finished runs are kept, and the next click pays only for the rest.
