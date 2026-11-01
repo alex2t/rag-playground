@@ -1,6 +1,6 @@
 /** Typed calls to the backend. A refused request throws its reason, as the API words it. */
 
-import type { Answer, Job, LadderState, StackId } from './types.ts'
+import type { Answer, Job, LadderState, PromptVersion, StackId } from './types.ts'
 
 async function send<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, init)
@@ -24,6 +24,14 @@ export function getJob(id: number): Promise<Job> {
 
 export function getAnswers(runId: number): Promise<Answer[]> {
   return send(`/api/runs/${runId}/answers`)
+}
+
+export function getPrompts(): Promise<PromptVersion[]> {
+  return send('/api/prompts')
+}
+
+export function savePrompt(name: string, text: string): Promise<Omit<PromptVersion, 'runs'>> {
+  return post('/api/prompts', { name, text })
 }
 
 export async function startStep(stack: StackId, prompts?: string[]): Promise<number> {

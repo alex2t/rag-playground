@@ -69,6 +69,12 @@ def test_a_blank_or_lookalike_name_is_refused(conn, name):
     assert prompts.list_all(conn) == []
 
 
+@pytest.mark.parametrize("name", ["a,b", ",", ",v1", "v1,", "strict v2, short"])
+def test_a_name_with_a_comma_is_refused_since_s6_could_never_choose_it(conn, name):
+    assert save(name=name).status_code == 422
+    assert prompts.list_all(conn) == []
+
+
 @pytest.mark.parametrize("text", ["", " ", " \n\t "])
 def test_a_blank_text_is_refused(conn, text):
     assert save(text=text).status_code == 422

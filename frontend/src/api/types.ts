@@ -66,6 +66,10 @@ export type Answer = {
   chunks: { source: string; text: string }[]
 }
 
+export type PromptRun = { id: number; stack: StackId; split: string; status: string; created_at: string }
+
+export type PromptVersion = { name: string; text: string; sha256: string; runs: PromptRun[] }
+
 export type Job = {
   id: number
   kind: string
