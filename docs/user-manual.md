@@ -2,7 +2,7 @@
 
 How to use the RAG Playground dashboard: ask questions, run evaluations, compare set-ups and prepare the live demo.
 
-> **Status (2026-10-30):** the dashboard pages are designed but not built yet (plan step 9). This manual follows the design in `plan.md` and will be updated when the pages exist. What is behind them is built and tested: the evaluation engine, LLM enrichment, background runs, best-run selection, the API that starts a run (`POST /api/runs`) and the progress API (`GET /api/jobs/{id}`).
+> **Status (2026-11-01):** Story, Ask, Evaluate and Prompt are built. Compare, Build, Sweep and Ops are not built yet, and neither is the settings panel's offer to build chunks; this manual describes them as designed.
 
 ## 1. What the app does
 
