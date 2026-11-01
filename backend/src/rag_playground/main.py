@@ -14,7 +14,7 @@ from rag_playground import jobs, store, story
 from rag_playground.ask_requests import AskRequest, dev_questions
 from rag_playground.calibration_requests import DbId, GradeRequest, OpenCalibration
 from rag_playground.prompt_requests import SavePrompt
-from rag_playground.rag import ask, evaluation, grading, prompts
+from rag_playground.rag import ask, compare, evaluation, grading, prompts
 from rag_playground.rag.pipeline import BudgetExceeded
 from rag_playground.run_requests import RunRequest, panel_options
 from rag_playground.scoring.judging import ACCURACY_RUBRIC
@@ -104,6 +104,20 @@ def run_report(run_id: DbId) -> dict:
         return evaluation.report(conn, run_id)
     except KeyError:
         raise HTTPException(status_code=404, detail=f"No run {run_id}")
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    finally:
+        conn.close()
+
+
+@app.get("/api/compare")
+def compare_runs(before: DbId, after: DbId) -> dict:
+    """Two finished runs on the same questions, `after` against `before`. 404 no such run, 422 they cannot be compared."""
+    conn = store.connect()
+    try:
+        return compare.compare(conn, before, after)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=f"No run {exc.args[0]}")
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
     finally:
