@@ -2,7 +2,7 @@
 
 How to use the RAG Playground dashboard: ask questions, run evaluations, compare set-ups and prepare the live demo.
 
-> **Status (2026-11-02):** Story, Ask, Evaluate, Compare, Build and Prompt are built. Sweep and Ops are not built yet, and neither is the settings panel's offer to build chunks; this manual describes them as designed.
+> **Status (2026-11-02):** Story, Ask, Evaluate, Compare, Build and Prompt are built. Sweep and Ops are not built yet; this manual describes them as designed.
 
 ## 1. What the app does
 
@@ -57,7 +57,7 @@ The **Ask**, **Evaluate** and **Sweep** pages share one settings panel:
 
 The panel opens with the last values you used on this browser, or with the S0 baseline the first time.
 
-If the chunks for your chunk size and overlap do not exist yet, the panel shows how long building them takes and what it costs, and builds them only after you confirm.
+If the chunks for your chunking method, chunk size and overlap are not built on a chosen stack yet, the panel says so. **Estimate the build** shows the number of chunks and the cost; **Build them** builds them on the stacks that lack them, and the panel shows each build until it is done or failed.
 
 ## 5. The pages
 
