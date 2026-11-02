@@ -95,7 +95,7 @@ def test_a_failure_stops_the_rest_keeps_finished_runs_and_closes_the_failed_one(
     assert [(r.meta.top_k, r.status) for r in made(sweep_world)] == [(2, "done"), (4, "failed")]
 
 
-def test_a_running_sweep_reports_its_run_and_questions_and_the_plan_shows_it(sweep_world):
+def test_a_running_sweep_reports_its_run_and_questions_and_the_latest_route_shows_it(sweep_world):
     sweep_world.gate = threading.Event()
     job_id = sweep_world.client.post("/api/sweeps", json={"base": BASE, "variable": "top_k", "values": [4]}).json()["job_id"]
     for _ in range(200):
@@ -103,27 +103,30 @@ def test_a_running_sweep_reports_its_run_and_questions_and_the_plan_shows_it(swe
             break
         threading.Event().wait(0.02)
     assert jobs.get_job(sweep_world.conn, job_id).message.startswith("Sweep on Stack B: run 1 of 2, ")
-    shown = sweep_world.client.post("/api/sweeps/plan", json={"base": BASE, "variable": "top_k", "values": [4]}).json()["job"]
+    shown = sweep_world.client.get("/api/sweeps/latest/B").json()
     assert (shown["id"], shown["kind"], shown["status"]) == (job_id, "sweep", "running")
     sweep_world.gate.set()
     finish(sweep_world)
     done = sweep_world.client.post("/api/sweeps/plan", json={"base": BASE, "variable": "top_k", "values": [4]}).json()
-    assert done["job"]["status"] == "done" and [i["run"]["run_id"] is not None for i in done["items"]] == [True, True]
+    assert sweep_world.client.get("/api/sweeps/latest/B").json()["status"] == "done"
+    assert [i["run"]["run_id"] is not None for i in done["items"]] == [True, True]
 
 
-def test_the_plan_shows_the_latest_sweep_of_the_stack(sweep_world):
+def test_the_latest_route_shows_the_newest_sweep_of_the_stack_only(sweep_world):
     sweep_world.fail_at = 1
     failed = jobs.submit_sweep(sweep_world.conn, sweep("top_k", [4]))
     finish(sweep_world)
     sweep_world.fail_at = None
     latest = jobs.submit_sweep(sweep_world.conn, sweep("top_k", [6]))
     finish(sweep_world)
-    shown = sweep_world.client.post("/api/sweeps/plan", json={"base": BASE, "variable": "top_k", "values": [6]}).json()["job"]
+    shown = sweep_world.client.get("/api/sweeps/latest/B").json()
     assert (failed, shown["id"], shown["status"]) == (latest - 1, latest, "done")
+    assert sweep_world.client.get("/api/sweeps/latest/A").json() is None
 
 
-def test_the_plan_shows_no_job_on_a_stack_never_swept(sweep_world):
-    assert sweep_world.client.post("/api/sweeps/plan", json={"base": BASE, "variable": "top_k", "values": [4]}).json()["job"] is None
+def test_the_latest_route_shows_nothing_on_a_stack_never_swept_and_refuses_an_unknown_stack(sweep_world):
+    assert sweep_world.client.get("/api/sweeps/latest/B").json() is None
+    assert sweep_world.client.get("/api/sweeps/latest/C").status_code == 422
 
 
 def test_a_sweep_left_unfinished_by_a_restart_is_marked_failed_with_its_run(sweep_world):

@@ -1,0 +1,217 @@
+import { useEffect, useState } from 'react'
+import { getLatestSweep, planSweep, startSweep } from '../api/client.ts'
+import type { PanelOptions, SweepPlan, SweepValue } from '../api/types.ts'
+import { usePanel } from '../api/usePanel.ts'
+import type { LegendLine } from '../chartImage.ts'
+import LadderChart from '../components/LadderChart.tsx'
+import SettingsPanel from '../components/SettingsPanel.tsx'
+import { panelProblem, saveValues, stacksOf, type PanelValues } from '../panel.ts'
+import {
+  bodyFor, chartRows, choicesFor, fromKey, isWorking, overBudget, parseNumbers, planKey, planLine, plansFor, toRun, valueText,
+  sweepJobLine, variableOf, variablesFor, type Latest, type Planned,
+} from '../sweep.ts'
+
+const BOX = 'mt-1 w-full rounded border border-line bg-transparent px-2 py-1'
+const POLL_MS = 2000
+const NOTE = 'Exploratory: dev questions only. Bars show the 95% interval. + or - marks a real change against the base value. Many values tested at once can show a real-looking difference by luck.'
+const IMAGE_LEGEND: LegendLine[] = [
+  { text: 'Stack A (filled)', swatch: '--color-stack-a' },
+  { text: 'Stack B (hollow)', swatch: '--color-stack-b' },
+  { text: 'Exploratory: dev questions only. Bars: 95% interval.' },
+  { text: '+ or -: real change against the base value.' },
+]
+
+function Picks({ choices, picked, onChange }: { choices: SweepValue[]; picked: SweepValue[]; onChange: (picked: SweepValue[]) => void }) {
+  return (
+    <fieldset className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+      <legend className="mb-1">Values</legend>
+      {choices.map((choice) => (
+        <label key={String(choice)} className="flex items-center gap-1">
+          <input type="checkbox" checked={picked.includes(choice)}
+            onChange={(e) => onChange(e.target.checked ? choices.filter((c) => c === choice || picked.includes(c)) : picked.filter((c) => c !== choice))} />
+          {valueText(choice)}
+        </label>
+      ))}
+    </fieldset>
+  )
+}
+
+function PlanTable({ plan }: { plan: SweepPlan }) {
+  return (
+    <div className="min-w-0 overflow-x-auto">
+      <table className="w-full text-left text-sm tabular-nums">
+        <caption className="mb-1 text-left font-medium">Stack {plan.stack}</caption>
+        <thead className="text-muted">
+          <tr><th className="pr-3 font-normal">Value</th><th className="pr-3 font-normal">Run</th><th className="pr-3 font-normal">Accuracy</th><th className="pr-3 font-normal">MRR</th><th className="font-normal">Against the base</th></tr>
+        </thead>
+        <tbody>
+          {plan.items.map((item) => (
+            <tr key={String(item.value)} className="border-t border-line">
+              <td className="pr-3 [overflow-wrap:anywhere]">{valueText(item.value)}{item.base && ' (base)'}</td>
+              <td className="pr-3">{item.run ? `run ${item.run.run_id}` : `to run, $${item.estimate_usd!.toFixed(4)}${item.built ? '' : ', chunks to build'}`}</td>
+              <td className="pr-3">{item.run ? `${item.run.accuracy.toFixed(3)} (${item.run.accuracy_ci[0].toFixed(2)} to ${item.run.accuracy_ci[1].toFixed(2)})` : ''}</td>
+              <td className="pr-3">{item.run ? `${item.run.mrr.toFixed(3)} (${item.run.mrr_ci[0].toFixed(2)} to ${item.run.mrr_ci[1].toFixed(2)})` : ''}</td>
+              <td>{item.run?.change ? `accuracy ${item.run.change.accuracy.verdict}, MRR ${item.run.change.mrr.verdict}` : ''}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function Results({ plans, variable }: { plans: SweepPlan[]; variable: string }) {
+  const about = variableOf(variable)
+  const anyRun = plans.some((plan) => plan.items.some((item) => item.run))
+  return (
+    <div className="space-y-4">
+      {anyRun && (
+        <div className="grid gap-4 md:grid-cols-2">
+          <LadderChart title={`Accuracy by ${about.label.toLowerCase()} (1 to 5, 192 dev questions)`} rows={chartRows(plans, about, 'accuracy')}
+            domain={[1, 5]} ticks={[1, 2, 3, 4, 5]} note={NOTE} imageLegend={IMAGE_LEGEND} connect={about.ordered} />
+          <LadderChart title={`MRR by ${about.label.toLowerCase()} (0 to 1, answerable dev questions)`} rows={chartRows(plans, about, 'mrr')}
+            domain={[0, 1]} ticks={[0, 0.25, 0.5, 0.75, 1]} note={NOTE} imageLegend={IMAGE_LEGEND} connect={about.ordered} />
+        </div>
+      )}
+      <section aria-label="Sweep values" className="min-w-0 space-y-3 rounded-lg border border-line bg-panel p-4">
+        {plans.map((plan) => <PlanTable key={plan.stack} plan={plan} />)}
+        <p className="text-xs text-muted">Exploratory: dev questions only, and no value is picked as the winner. Only one setting changes, so how settings interact is not shown.</p>
+      </section>
+    </div>
+  )
+}
+
+type ValuesProps = { variable: string; options: PanelOptions; promptNames: string[]; typed: string; picked: SweepValue[]; onType: (text: string) => void; onPick: (picked: SweepValue[]) => void }
+
+function ValuesInput({ variable, options, promptNames, typed, picked, onType, onPick }: ValuesProps) {
+  const about = variableOf(variable)
+  if (about.kind === 'pick') return <Picks choices={choicesFor(variable, options, promptNames)} picked={picked} onChange={onPick} />
+  return (
+    <label className="block text-sm">
+      Values, separated by commas
+      <input className={BOX} value={typed} placeholder={about.kind === 'int' ? '200, 400, 800' : '0, 0.5, 2'} onChange={(e) => onType(e.target.value)} />
+    </label>
+  )
+}
+
+/** One setting over several values on the dev questions (T58): Estimate, then Confirm, then follow it below. */
+export default function Sweep() {
+  const { options, promptNames, values, setValues, error: panelError } = usePanel()
+  const [variable, setVariable] = useState('chunk_size')
+  const [typed, setTyped] = useState('')
+  const [picked, setPicked] = useState<SweepValue[]>([])
+  const [planned, setPlanned] = useState<Planned | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [latest, setLatest] = useState<Latest>({})
+
+  const offered = values ? variablesFor(values.stacks) : []
+  const current = offered.some((v) => v.key === variable) ? variable : 'chunk_size'
+  const parsed = variableOf(current).kind === 'pick' ? { values: picked } : parseNumbers(variableOf(current).kind, typed)
+  const list = 'values' in parsed ? parsed.values : null
+  const key = values && list ? planKey(values, current, list) : ''
+  const plans = plansFor(planned, key)
+  const working = isWorking(latest)
+  const stackChoice = values?.stacks
+
+  useEffect(() => {
+    if (!stackChoice) return
+    Promise.all(stacksOf(stackChoice).map(async (stack) => [stack, await getLatestSweep(stack)] as const))
+      .then((found) => setLatest(Object.fromEntries(found)))
+      .catch((e: Error) => setError(e.message))
+  }, [stackChoice])
+
+  useEffect(() => {
+    if (!working || !stackChoice) return
+    const timer = setInterval(async () => {
+      try {
+        const found = await Promise.all(stacksOf(stackChoice).map(async (stack) => [stack, await getLatestSweep(stack)] as const))
+        setLatest(Object.fromEntries(found))
+        if (!key) return
+        const [panel, setting, chosen] = fromKey(key)
+        const fresh = await Promise.all(stacksOf(panel.stacks).map((stack) => planSweep(bodyFor(panel, stack, setting, chosen))))
+        setPlanned((before) => (before?.key === key ? { key, plans: fresh } : before))
+      } catch (e) {
+        setError((e as Error).message)
+      }
+    }, POLL_MS)
+    return () => clearInterval(timer)
+  }, [working, key, stackChoice])
+
+  if (panelError) return <p role="alert" className="text-sm text-danger">{panelError}</p>
+  if (options === null || values === null) return <p className="text-sm text-muted">Loading...</p>
+
+  const panel: PanelValues = values
+  const problem = panelProblem(panel, options) ?? ('problem' in parsed ? parsed.problem : list!.length === 0 ? 'Tick at least one value.' : null)
+  const stacks = stacksOf(panel.stacks)
+  const runnable = plans ? toRun(plans) : []
+  const over = plans !== null && overBudget(plans)
+
+  async function estimate() {
+    setBusy(true)
+    setError(null)
+    try {
+      const fresh = await Promise.all(stacks.map((stack) => planSweep(bodyFor(panel, stack, current, list!))))
+      setPlanned({ key, plans: fresh })
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function confirm() {
+    setBusy(true)
+    setError(null)
+    saveValues(panel)
+    const refused: string[] = []
+    for (const stack of runnable) {
+      try {
+        await startSweep(bodyFor(panel, stack, current, list!))
+      } catch (e) {
+        refused.push(`Stack ${stack}: ${(e as Error).message}`)
+      }
+    }
+    setError(refused.length ? refused.join(' ') : null)
+    setLatest(Object.fromEntries(await Promise.all(stacks.map(async (stack) => [stack, await getLatestSweep(stack)] as const))))
+    await estimate()
+  }
+
+  const jobs = stacks.flatMap((stack) => (latest[stack] ? [{ stack, job: latest[stack] }] : []))
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-[22rem_minmax(0,1fr)]">
+        <SettingsPanel values={panel} options={options} promptNames={promptNames} onChange={setValues} />
+        <section aria-label="Sweep" className="min-w-0 space-y-3 self-start rounded-lg border border-line bg-panel p-4">
+          <p className="text-sm text-muted">The panel is the base configuration. One setting changes; every value runs on the 192 dev questions, and values with a run already are reused.</p>
+          <label className="block text-sm">
+            Setting to vary
+            <select className={BOX} value={current} onChange={(e) => { setVariable(e.target.value); setPicked([]); setTyped('') }}>
+              {offered.map((v) => <option key={v.key} value={v.key}>{v.label}</option>)}
+            </select>
+          </label>
+          <ValuesInput variable={current} options={options} promptNames={promptNames} typed={typed} picked={picked} onType={setTyped} onPick={setPicked} />
+          <p className="text-xs text-muted">At most 6 values, the base configuration's own value included: it is what the others are compared with.</p>
+          <div className="flex gap-2">
+            <button type="button" className="rounded border border-line px-3 py-1 text-sm disabled:opacity-50" disabled={busy || problem !== null}
+              onClick={() => void estimate()}>Estimate</button>
+            <button type="button" className="rounded bg-accent px-3 py-1 text-sm font-medium text-white disabled:opacity-50"
+              disabled={busy || plans === null || runnable.length === 0 || over || working} onClick={() => void confirm()}>Confirm</button>
+          </div>
+          {problem && <p className="text-sm text-muted">{problem}</p>}
+          {plans && <p className="text-sm">{planLine(plans)}</p>}
+          {over && <p role="alert" className="text-sm text-danger">Only ${plans[0].budget_left_usd.toFixed(4)} of the budget is left.</p>}
+          {!plans && !problem && <p className="text-sm text-muted">Press Estimate to see each value's run or cost.</p>}
+          {jobs.map(({ stack, job }) => (
+            <p key={stack} role={job.status === 'failed' ? 'alert' : undefined}
+              className={`text-sm [overflow-wrap:anywhere] ${job.status === 'failed' ? 'text-danger' : 'text-muted'}`}>
+              {sweepJobLine(stack, job)}
+            </p>
+          ))}
+          {error && <p role="alert" className="text-sm text-danger [overflow-wrap:anywhere]">{error}</p>}
+        </section>
+      </div>
+      {plans && <Results plans={plans} variable={current} />}
+    </div>
+  )
+}

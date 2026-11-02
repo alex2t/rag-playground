@@ -4,6 +4,14 @@ Add new bugs at the top. Status: `open` | `investigating` | `fixed`.
 
 ---
 
+## [2026-11-02] Step 9: the Sweep page lost a running sweep after leaving and coming back - `fixed`
+- **Symptom:** found by Claude while checking Antigravity's (Gemini 3.8) review of the Sweep page, which said polling resumes after leaving and returning. It did only after typing the same setting and values again and pressing Estimate: the latest sweep job came with the plan, the plan is kept only in the page, and typed values are not saved. So on return the page showed nothing of a running sweep.
+- **Reproduce:** in headless Edge, open Sweep while a sweep runs, with nothing estimated: before the fix no line about it.
+- **Root cause (evidence):** the job was only part of `POST /api/sweeps/plan`, which needs the sweep's request.
+- **Fix:** `GET /api/sweeps/latest/{stack}`; the page reads each chosen stack's latest sweep on opening and every 2 s while one waits or runs, reading the job before the plan, so a plan refreshed when the job reads done includes its runs. The plan no longer carries the job. Antigravity's deliberate break edited a copy of `overBudget`, not the code, so it is not counted; the real break of that line is caught.
+- **Verified by:** headless Edge with the job faked: shown on opening with nothing estimated, polled while running, the plan refreshed once on finishing, then polling stops. Backend tests moved to the new route (newest sweep only, none on a stack never swept, 422 for an unknown stack). 23 page breaks caught.
+- **Status:** fixed.
+
 ## [2026-11-02] Step 9: the sweep plan's stored-run matching was not tested - `fixed`
 - **Symptom:** found by Antigravity (Gemini 3.8) reviewing the sweep plan (T58): the tests' fake lookup handled only 3 of the 12 settings and replaced the real matching. Partly right: `ladder_runs.stored_runs` was tested through the ladder, but never with the settings only a sweep varies (Stack A's ranker, weights, threshold), and never with the JSON a browser sends.
 - **Reproduce:** its scratch test raised `KeyError: 'hybrid'` from the fake. Claude's suspicion that a browser's `1` (for 1.0) would miss a run stored as `1.0` was checked on a copy of the dev database and is wrong: Pydantic turns it into 1.0, and run 19 was found.

@@ -200,6 +200,30 @@ export type BuildJob = BuildSettings & { id: number; created_at: string; status:
 
 export type Builds = { built: BuiltSet[]; jobs: BuildJob[] }
 
+export type SweepValue = number | string | boolean
+
+export type SweepRun = {
+  run_id: number
+  accuracy: number
+  accuracy_ci: [number, number]
+  mrr: number
+  mrr_ci: [number, number]
+  cost_per_question: number
+  failed_gates: string[]
+  change: { accuracy: PairedChange; mrr: PairedChange } | null
+}
+
+export type SweepItem = { value: SweepValue; base: boolean; chunk_set_id: string; built: boolean; run: SweepRun | null; estimate_usd: number | null }
+
+export type SweepPlan = {
+  stack: StackId
+  variable: string
+  items: SweepItem[]
+  runs_to_do: number
+  estimate_usd: number
+  budget_left_usd: number
+}
+
 export type Estimate = { questions: number; estimate_usd: number; seconds: number; budget_left_usd: number }
 
 export type QuestionSet = 'dev' | 'heldout' | 'smoke'

@@ -167,9 +167,19 @@ def plan_sweep(request: SweepRequest) -> dict:
     cost (T58); nothing stored. 404 unknown prompt version, 422 invalid sweep."""
     conn = store.connect()
     try:
-        return sweeps.plan(conn, request) | {"job": jobs.last_sweep(conn, request.base.stack)}
+        return sweeps.plan(conn, request)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=f"Not found: {exc.args[0]}")
+    finally:
+        conn.close()
+
+
+@app.get("/api/sweeps/latest/{stack}")
+def latest_sweep(stack: Stack) -> dict | None:
+    """A stack's latest sweep job with its progress, or null: the page shows it as soon as it opens, whatever was swept."""
+    conn = store.connect()
+    try:
+        return jobs.last_sweep(conn, stack)
     finally:
         conn.close()
 
