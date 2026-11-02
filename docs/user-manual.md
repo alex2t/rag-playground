@@ -2,7 +2,7 @@
 
 How to use the RAG Playground dashboard: ask questions, run evaluations, compare set-ups and prepare the live demo.
 
-> **Status (2026-11-02):** Story, Ask, Evaluate, Compare, Build and Prompt are built. Sweep and Ops are not built yet; this manual describes them as designed.
+> **Status (2026-11-02):** Story, Ask, Evaluate, Compare, Build, Prompt and Sweep are built. Ops is not built yet; this manual describes it as designed.
 
 ## 1. What the app does
 
@@ -129,7 +129,7 @@ For the ladder's prompt step (S6), choose up to 4 of your versions before the st
 Choose the chunking method, chunk size, overlap and stacks, then press **Estimate**. It shows the chunk set, its number of chunks, the stacks that already have it, and the cost: only `llm_enriched` costs money, paid once for both stacks. Press **Embed** to build it on the stacks that do not have it yet. Each build is listed below: green once the chunks are stored, red with the reason if it failed. Stack B builds on this computer and needs Qdrant running; 84 chunks took about 80 seconds. Stack A uploads each chunk to OpenAI, whose storage fee is not counted in the budget.
 
 ### Sweep: try several values of one setting
-Pick a base configuration, the setting to vary (for example chunk size, K, a stack's search settings or prompt version) and its values. Press **Estimate**, then **Confirm**. Combinations already run are reused, not paid twice.
+The settings panel is the base configuration. Pick the one setting to vary and its values: type numbers separated by commas, or tick values from a list. At most 6 values, the base configuration's own value included, since every other value is compared with it. With both stacks, only settings both share can be varied; a stack's own search settings are swept on that stack alone. Press **Estimate** to see each value's run or cost, then **Confirm**. Each value runs on the 192 dev questions; values with a run already are reused, not paid twice. The charts show each value's accuracy and MRR with their 95% interval, and + or − where a value is really better or worse than the base. Sweeps are exploratory: no winner is picked.
 
 ### Ops: health and spend
 Spend against the budget, error rate, slowest-answer time (p95) and the app version.
