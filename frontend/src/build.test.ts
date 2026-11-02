@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import type { BuildEstimate, BuildJob, PanelOptions } from './api/types.ts'
-import { buildProblem, estimateFor, estimateLine, isWorking, jobLine, jobTone, overBudget, settingsOf, startValues, toBuild, type BuildValues } from './build.ts'
+import type { BuildEstimate, BuildJob, BuiltSet, PanelOptions } from './api/types.ts'
+import { buildValuesOf, missingStacks, notBuilding, offerJobs, buildProblem, estimateFor, estimateLine, isWorking, jobLine, jobTone, overBudget, settingsOf, startValues, toBuild, type BuildValues } from './build.ts'
 
 const OPTIONS: PanelOptions = {
   min_chunk_size: 64, max_chunk_size: 2048, max_overlap_share: 0.5, max_top_k: 8, answer_models: ['m'],
@@ -10,7 +10,7 @@ const OPTIONS: PanelOptions = {
 }
 const VALUES: BuildValues = { chunking_method: 'fixed', chunk_size: 800, overlap: 100, stacks: 'both' }
 const ESTIMATE: BuildEstimate = { chunk_set_id: 'fixed__c800__o100', chunks: 84, enrichment_usd: 0, built: [], budget_left_usd: 1 }
-const JOB: BuildJob = { id: 3, created_at: '2026-11-02 10:00:00', status: 'done', stack: 'B', chunk_set_id: 'fixed__c800__o100', error: null }
+const JOB: BuildJob = { chunking_method: 'fixed', chunk_size: 800, overlap: 100, id: 3, created_at: '2026-11-02 10:00:00', status: 'done', stack: 'B', chunk_set_id: 'fixed__c800__o100', error: null }
 
 test('the page opens on S0 chunking for both stacks', () => {
   assert.deepEqual(startValues(OPTIONS), { chunking_method: 'fixed', chunk_size: 1024, overlap: 200, stacks: 'both' })
@@ -80,4 +80,52 @@ test('the page follows jobs only while one waits or runs', () => {
   assert.equal(isWorking([JOB, { ...JOB, status: 'queued' }]), true)
   assert.equal(isWorking([{ ...JOB, status: 'running' }]), true)
   assert.equal(isWorking([]), false)
+})
+
+const BUILT: BuiltSet = { stack: 'B', chunk_set_id: 'fixed__c800__o100', chunking_method: 'fixed', chunk_size: 800, overlap: 100, chunk_count: 84, created_at: '2026-11-02' }
+
+test('the panel asks for its chunk set and stacks, nothing else', () => {
+  const panel = { ...OPTIONS.start, stacks: 'A' as const, prompt_name: 'default', chunk_size: 600, overlap: 60 }
+  assert.deepEqual(buildValuesOf(panel), { chunking_method: 'fixed', chunk_size: 600, overlap: 60, stacks: 'A' })
+})
+
+test('a stack is missing the chunks unless a set of the same method, size and overlap is built on it', () => {
+  assert.deepEqual(missingStacks([BUILT], VALUES), ['A'])
+  assert.deepEqual(missingStacks([BUILT], { ...VALUES, stacks: 'B' }), [])
+  assert.deepEqual(missingStacks([BUILT, { ...BUILT, stack: 'A' }], VALUES), [])
+  assert.deepEqual(missingStacks([], VALUES), ['A', 'B'])
+})
+
+test('a set differing in method, size or overlap does not count', () => {
+  assert.deepEqual(missingStacks([BUILT], { ...VALUES, stacks: 'B', chunking_method: 'llm_enriched' }), ['B'])
+  assert.deepEqual(missingStacks([BUILT], { ...VALUES, stacks: 'B', chunk_size: 801 }), ['B'])
+  assert.deepEqual(missingStacks([BUILT], { ...VALUES, stacks: 'B', overlap: 99 }), ['B'])
+})
+
+test('the offer shows the builds it started, and others of these chunks still waiting or running', () => {
+  const running = { ...JOB, id: 8, status: 'running' as const }
+  const queued = { ...JOB, id: 9, status: 'queued' as const, stack: 'A' as const }
+  assert.deepEqual(offerJobs([JOB, running, queued], VALUES, []).map(({ id }) => id), [8, 9])
+  assert.deepEqual(offerJobs([JOB, running], VALUES, [3]).map(({ id }) => id), [3, 8])
+})
+
+test('a finished build, another stack, or other chunks are not shown unless started here', () => {
+  const running = { ...JOB, id: 8, status: 'running' as const }
+  assert.deepEqual(offerJobs([JOB, { ...JOB, id: 4, status: 'failed' as const }], VALUES, []), [])
+  assert.deepEqual(offerJobs([running], { ...VALUES, stacks: 'A' }, []), [])
+  assert.deepEqual(offerJobs([running], { ...VALUES, overlap: 99 }, []), [])
+  assert.deepEqual(offerJobs([running], { ...VALUES, chunk_size: 801 }, []), [])
+  assert.deepEqual(offerJobs([running], { ...VALUES, chunking_method: 'llm_enriched' }, []), [])
+  assert.deepEqual(offerJobs([{ ...JOB, id: 4, status: 'failed' as const }], VALUES, [4]).map(({ id }) => id), [4])
+})
+
+test('a stack whose build waits or runs is not built again; a finished or failed one may be', () => {
+  assert.deepEqual(notBuilding(['A', 'B'], [{ ...JOB, status: 'running' }]), ['A'])
+  assert.deepEqual(notBuilding(['A', 'B'], [{ ...JOB, stack: 'A', status: 'queued' }]), ['B'])
+  assert.deepEqual(notBuilding(['A', 'B'], [JOB, { ...JOB, status: 'failed' }]), ['A', 'B'])
+})
+
+test('the estimate names only the stacks a build would start', () => {
+  assert.equal(estimateLine(ESTIMATE, VALUES, ['A']), 'fixed__c800__o100: 84 chunks. To build on Stack A. No paid call.')
+  assert.equal(estimateLine(ESTIMATE, VALUES, []), 'fixed__c800__o100: 84 chunks. Nothing to build.')
 })

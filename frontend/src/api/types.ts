@@ -196,7 +196,7 @@ export type BuildEstimate = { chunk_set_id: string; chunks: number; enrichment_u
 
 export type BuiltSet = BuildSettings & { stack: StackId; chunk_set_id: string; chunk_count: number; created_at: string }
 
-export type BuildJob = { id: number; created_at: string; status: Job['status']; stack: StackId; chunk_set_id: string; error: string | null }
+export type BuildJob = BuildSettings & { id: number; created_at: string; status: Job['status']; stack: StackId; chunk_set_id: string; error: string | null }
 
 export type Builds = { built: BuiltSet[]; jobs: BuildJob[] }
 

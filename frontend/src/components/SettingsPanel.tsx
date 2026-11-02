@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import type { OpenAIRanking, PanelOptions } from '../api/types.ts'
 import { stacksOf, type PanelValues, type StackChoice } from '../panel.ts'
+import BuildOffer from './BuildOffer.tsx'
 
 const BOX = 'mt-1 w-full rounded border border-line bg-transparent px-2 py-1'
 
@@ -84,6 +85,7 @@ export default function SettingsPanel({ values, options, promptNames, onChange }
           {promptNames.map((name) => <option key={name}>{name}</option>)}
         </select>
       </Field>
+      <BuildOffer values={values} options={options} />
     </section>
   )
 }

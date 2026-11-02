@@ -10,6 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 
 from rag_playground import store
+from rag_playground.chunking.chunk_sets import chunk_settings
 from rag_playground.chunking.enrichment import set_id_for
 from rag_playground.datasets.schema import TestCase
 from rag_playground.rag import builds, heldout, ladder_runs, ladder_step, pipeline, runs
@@ -197,10 +198,11 @@ def build_job(row: sqlite3.Row) -> Job:
 
 
 def build_jobs(conn: sqlite3.Connection) -> list[dict]:
-    """Every build job, newest first, so the page can follow one after leaving and show how each ended."""
+    """Every build job with its chunk set's settings, newest first, so a page can follow one after leaving and show how
+    each ended."""
     rows = conn.execute("SELECT id, created_at, status, stack, chunk_set_id, error FROM jobs WHERE kind = 'build' "
                         "ORDER BY id DESC").fetchall()
-    return [dict(row) for row in rows]
+    return [dict(row) | chunk_settings(row["chunk_set_id"]) for row in rows]
 
 
 def step_job(row: sqlite3.Row, run: sqlite3.Row | None) -> Job:

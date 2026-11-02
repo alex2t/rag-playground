@@ -228,6 +228,8 @@ def test_the_list_shows_what_is_built_with_its_settings_and_every_build_job_newe
     assert listing["built"][0]["chunk_count"] == len(load("fixed__c800__o100"))
     assert [(job["stack"], job["chunk_set_id"], job["status"], job["error"]) for job in listing["jobs"]] == [
         ("B", "llm_enriched__c800__o100", "done", None), ("A", "fixed__c800__o100", "failed", "RuntimeError: boom")]
+    assert [(job["chunking_method"], job["chunk_size"], job["overlap"]) for job in listing["jobs"]] == [
+        ("llm_enriched", 800, 100), ("fixed", 800, 100)]
 
 
 def test_built_sets_are_listed_newest_first(world):
