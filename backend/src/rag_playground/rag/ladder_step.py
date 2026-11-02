@@ -4,9 +4,8 @@ import json
 import sqlite3
 from collections.abc import Callable
 
-from rag_playground.chunking.chunk_sets import load_or_build
 from rag_playground.datasets.schema import TestCase, load_tests
-from rag_playground.rag import builds, estimate, ladder, ladder_runs, pipeline, prompts
+from rag_playground.rag import builds, ladder, ladder_runs, pipeline, prompts
 from rag_playground.rag.ladder import Config, Progress
 from rag_playground.rag.runs import insert
 from rag_playground.scoring.selection import Candidate
@@ -57,9 +56,7 @@ def next_step(conn: sqlite3.Connection, stack: str, prompt_names: tuple[str, ...
 def run_cost(conn: sqlite3.Connection, stack: str, config: Config, tests: list[TestCase] | None = None) -> float:
     """A configuration's estimated run (T43), on the dev questions unless given others. Answers read the original
     chunks, enriched or not (T47)."""
-    questions = dev_tests() if tests is None else tests
-    return estimate.run_cost(questions, prompts.get(conn, config.prompt_name), config.answer_model, config.top_k,
-                             config.rerank, load_or_build(config.chunk_size, config.overlap), stack)
+    return builds.run_cost(conn, ladder_runs.choices(stack, config), dev_tests() if tests is None else tests)
 
 
 def enrichment_cost(config: Config) -> float:

@@ -54,7 +54,6 @@ def world(tmp_path, monkeypatch):
     monkeypatch.setattr(best_run, "load_tests", lambda: DEV)
     monkeypatch.setattr(best_run, "load_chunk_set", lambda set_id: GOLD_CHUNKS)
     monkeypatch.setattr(pipeline, "load_chunk_set", lambda set_id: [CHUNK])
-    monkeypatch.setattr(ladder_step, "load_or_build", lambda size, overlap: [CHUNK])
     monkeypatch.setattr(builds, "load_or_build", lambda size, overlap: [CHUNK])
     monkeypatch.setattr(indexes, "load_chunk_set", lambda set_id: [CHUNK])
     monkeypatch.setattr(indexes.enrichment, "load_complete", lambda set_id: [CHUNK])

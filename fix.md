@@ -4,6 +4,14 @@ Add new bugs at the top. Status: `open` | `investigating` | `fixed`.
 
 ---
 
+## [2026-11-02] Step 9: the sweep plan's stored-run matching was not tested - `fixed`
+- **Symptom:** found by Antigravity (Gemini 3.8) reviewing the sweep plan (T58): the tests' fake lookup handled only 3 of the 12 settings and replaced the real matching. Partly right: `ladder_runs.stored_runs` was tested through the ladder, but never with the settings only a sweep varies (Stack A's ranker, weights, threshold), and never with the JSON a browser sends.
+- **Reproduce:** its scratch test raised `KeyError: 'hybrid'` from the fake. Claude's suspicion that a browser's `1` (for 1.0) would miss a run stored as `1.0` was checked on a copy of the dev database and is wrong: Pydantic turns it into 1.0, and run 19 was found.
+- **Root cause (evidence):** the test design, not the code: the fake stood in for the part most likely to go wrong.
+- **Fix:** 3 tests with real Stack A runs in a fresh database, read by the real lookup, sent as raw JSON with whole numbers: rankings told apart by keyword weight, ranker and threshold; the oldest of two equal runs kept. Antigravity's suggestion (a more general fake) was not used: it would still leave the matching untested. Before the review, Claude also found that an unknown prompt version passed when every value had a run; the plan now checks every value's prompt first.
+- **Verified by:** 4 breaks of the real matching (ranking reduced to the ranker, newest match kept, K ignored, hybrid always on for Stack A) all fail the new tests.
+- **Status:** fixed.
+
 ## [2026-11-02] Step 9: a free build was refused once spend had passed the budget - `fixed`
 - **Symptom:** found by Antigravity (Gemini 3.8) reviewing the Build backend (D29). With spend past `BUDGET_USD`, as on the dev database ($6.96 of $5), `POST /api/builds` refused a fixed build with "Enrichment is estimated at $0.0000, but only $-1.9633 of the budget is left".
 - **Reproduce:** on a copy of the dev database, `builds.check_budget(conn, 'fixed', 600, 60)` raised that error. Claude found the same flaw in `enrich_run.enrich_set`: with nothing left to pay, it raised "... $0.0000, but only $-1.9633 of BUDGET_USD $5.00 is left". So with only the suggested fix, a set already enriched would be queued for its second stack and then fail inside the job.

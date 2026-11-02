@@ -9,7 +9,8 @@ from fastapi.testclient import TestClient
 
 from rag_playground import jobs, main, store
 from rag_playground.chunking.chunk_sets import load
-from rag_playground.rag import builds, enrich_run, spend
+from rag_playground.rag import builds, enrich_run, prompts
+from rag_playground.rag.pipeline import Choices
 from rag_playground.rag.enrich_run import enrich_set as real_enrich_set
 from rag_playground.rag.runs import insert
 from rag_playground.settings import settings
@@ -268,3 +269,17 @@ def test_a_build_names_one_real_stack(world, stack):
 def test_the_limits_are_accepted_at_their_exact_edges(world):
     assert world.client.post("/api/builds/estimate", json={**FIXED, "chunk_size": 64, "overlap": 32}).status_code == 200
     assert world.client.post("/api/builds/estimate", json={**FIXED, "chunk_size": 2048, "overlap": 1024}).status_code == 200
+
+
+def test_a_run_is_priced_on_the_original_split_of_its_own_chunk_set_and_its_own_settings(world, monkeypatch):
+    """An enriched set is priced on its base split: answers read the original chunks (T47)."""
+    asked = []
+    monkeypatch.setattr(builds, "load_or_build", lambda size, overlap: asked.append((size, overlap)) or ["chunks"])
+    monkeypatch.setattr(builds.pricing, "run_cost", lambda *args: asked.append(args) or 0.3)
+    prompts.ensure_default(world.conn)
+    choices = Choices(stack="A", chunk_set_id="llm_enriched__c800__o100", top_k=6, hybrid=False, openai_ranking={},
+                      rerank=True, answer_model="openai/gpt-4.1-nano", prompt_name="default")
+    assert builds.run_cost(world.conn, choices, ["t1", "t2"]) == 0.3
+    tests, prompt, model, top_k, rerank, chunks, stack = asked[1]
+    assert asked[0] == (800, 100)
+    assert (tests, prompt.name, model, top_k, rerank, chunks, stack) == (["t1", "t2"], "default", "openai/gpt-4.1-nano", 6, True, ["chunks"], "A")

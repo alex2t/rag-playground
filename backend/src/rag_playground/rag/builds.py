@@ -6,7 +6,9 @@ import sqlite3
 from rag_playground.chunking.chunk_sets import METHOD as FIXED_METHOD
 from rag_playground.chunking.chunk_sets import chunk_set_id, chunk_settings, load_or_build
 from rag_playground.chunking.enrichment import set_id_for
-from rag_playground.rag import enrich_run, pipeline
+from rag_playground.datasets.schema import TestCase
+from rag_playground.rag import enrich_run, pipeline, prompts
+from rag_playground.rag import estimate as pricing
 from rag_playground.stacks import indexes
 
 
@@ -27,6 +29,15 @@ def estimate(conn: sqlite3.Connection, method: str, size: int, overlap: int) -> 
     return {"chunk_set_id": set_id, "chunks": len(chunks), "enrichment_usd": enrichment_cost(method, size, overlap),
             "built": [stack for stack in ("A", "B") if indexes.lookup(conn, stack, set_id)],
             "budget_left_usd": pipeline.remaining(conn)}
+
+
+def run_cost(conn: sqlite3.Connection, choices: pipeline.Choices, tests: list[TestCase]) -> float:
+    """A run's estimate (T43) before its chunks exist: answers read the original chunks, enriched or not (T47), so the
+    base split prices it. Shared by the ladder and sweeps."""
+    settings = chunk_settings(choices.chunk_set_id)
+    chunks = load_or_build(settings["chunk_size"], settings["overlap"])
+    return pricing.run_cost(tests, prompts.get(conn, choices.prompt_name), choices.answer_model, choices.top_k,
+                            choices.rerank, chunks, choices.stack)
 
 
 def check_budget(conn: sqlite3.Connection, method: str, size: int, overlap: int) -> None:

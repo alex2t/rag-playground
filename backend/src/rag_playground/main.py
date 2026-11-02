@@ -15,13 +15,14 @@ from rag_playground.ask_requests import AskRequest, dev_questions
 from rag_playground.build_requests import BuildRequest, BuildSettings
 from rag_playground.calibration_requests import DbId, GradeRequest, OpenCalibration
 from rag_playground.prompt_requests import SavePrompt
-from rag_playground.rag import ask, builds, compare, evaluation, grading, prompts
+from rag_playground.rag import ask, builds, compare, evaluation, grading, prompts, sweeps
 from rag_playground.rag.pipeline import BudgetExceeded
 from rag_playground.run_requests import RunRequest, panel_options
 from rag_playground.scoring.judging import ACCURACY_RUBRIC
 from rag_playground.settings import settings
 from rag_playground.stacks import qdrant_store
 from rag_playground.story_requests import Stack, StoryRequest
+from rag_playground.sweep_requests import SweepRequest
 
 
 @asynccontextmanager
@@ -156,6 +157,19 @@ def list_builds() -> dict:
     conn = store.connect()
     try:
         return {"built": builds.built(conn), "jobs": jobs.build_jobs(conn)}
+    finally:
+        conn.close()
+
+
+@app.post("/api/sweeps/plan")
+def plan_sweep(request: SweepRequest) -> dict:
+    """Each value of a one-setting sweep on the dev questions, with its stored run and scores or what running it would
+    cost (T58); nothing stored. 404 unknown prompt version, 422 invalid sweep."""
+    conn = store.connect()
+    try:
+        return sweeps.plan(conn, request)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=f"Not found: {exc.args[0]}")
     finally:
         conn.close()
 

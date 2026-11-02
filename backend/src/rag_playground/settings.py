@@ -29,6 +29,7 @@ LADDER_OVERLAP_SHARES = (0.0, S0["overlap"] / S0["chunk_size"], 0.25)
 LADDER_TOP_KS = (2, 4, 6, 8)
 LADDER_MAX_PROMPTS = 4  # versions the user may add at S6, besides the one the ladder already uses (T36)
 LADDER_STRONG_MODEL = "openai/gpt-6.1-sol"  # S7, reported as a cost trade-off and never kept
+SWEEP_MAX_VALUES = 6  # values in one sweep, the base value included; the ladder's largest sweep has 6 (T58)
 GENERATOR_MODEL = "anthropic/claude-sonnet-5.5"
 AUDIT_MODEL = "openai/gpt-6.1-sol"
 

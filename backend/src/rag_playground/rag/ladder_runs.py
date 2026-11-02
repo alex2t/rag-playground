@@ -25,21 +25,26 @@ def settings_key(stack: str, set_id: str, top_k: int, hybrid: bool, ranking: dic
     return stack, set_id, top_k, hybrid, json.dumps(ranking, sort_keys=True), rerank, model, prompt_name
 
 
-def lookup(conn: sqlite3.Connection, stack: str, split: str) -> Callable[[Config], Candidate | None]:
-    """From configuration to its stored run on a split. The oldest match wins, so a later run with the same settings
-    cannot change a past result."""
+def key_of(c: Choices) -> tuple:
+    return settings_key(c.stack, c.chunk_set_id, c.top_k, c.hybrid, c.openai_ranking, c.rerank, c.answer_model,
+                        c.prompt_name)
+
+
+def stored_runs(conn: sqlite3.Connection, split: str) -> Callable[[Choices], Candidate | None]:
+    """From run settings to their stored run on a split. The oldest match wins, so a later run with the same settings
+    cannot change a past result. Shared by the ladder and sweeps (T58)."""
     stored = {}
     for candidate in best_run.candidates(conn, split):
         meta = runs.get_run(conn, candidate.run_id).meta
         stored.setdefault(settings_key(meta.stack, meta.chunk_set_id, meta.top_k, meta.hybrid, meta.openai_ranking,
                                        meta.rerank_model is not None, meta.answer_model, meta.prompt_name), candidate)
+    return lambda c: stored.get(key_of(c))
 
-    def result(config: Config) -> Candidate | None:
-        c = choices(stack, config)
-        return stored.get(settings_key(c.stack, c.chunk_set_id, c.top_k, c.hybrid, c.openai_ranking, c.rerank,
-                                       c.answer_model, c.prompt_name))
 
-    return result
+def lookup(conn: sqlite3.Connection, stack: str, split: str) -> Callable[[Config], Candidate | None]:
+    """From ladder configuration to its stored run on a split (oldest match, as `stored_runs`)."""
+    result = stored_runs(conn, split)
+    return lambda config: result(choices(stack, config))
 
 
 def finder(conn: sqlite3.Connection, stack: str) -> Callable[[Config], Candidate | None]:
