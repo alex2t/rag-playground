@@ -1,4 +1,4 @@
-"""D29: a jobs table made before build jobs is recreated at connect, keeping every row, all or nothing."""
+"""D29, T58: a jobs table made before build or sweep jobs is recreated at connect, keeping every row, all or nothing."""
 
 import sqlite3
 import threading
@@ -34,7 +34,7 @@ OLD_ROWS = [
     (2, "2026-10-31 12:00:00", "ladder_step", "failed", None, "B", "S2", 3, 1, "Budget reached", "2026-10-31 12:30:00"),
     (4, "2026-10-31 13:00:00", "evaluate", "running", 1, None, None, None, 0, None, None),
 ]
-ROW_COLUMNS = store.OLD_JOB_COLUMNS
+ROW_COLUMNS = "id, created_at, kind, status, run_id, stack, step, runs_total, runs_done, error, finished_at"
 BUILD = {"kind": "build", "stack": "B", "chunk_set_id": "fixed__c400__o0"}
 
 
@@ -62,7 +62,7 @@ def test_every_old_row_is_kept_with_its_id_and_every_column(tmp_path):
     old_database(tmp_path / "t.db")
     conn = store.connect(tmp_path / "t.db")
     assert rows(conn) == OLD_ROWS
-    assert "'build'" in jobs_sql(conn)
+    assert "'sweep'" in jobs_sql(conn)
 
 
 def test_a_build_job_is_accepted_after_the_upgrade_and_new_ids_follow_the_old_ones(tmp_path):
@@ -104,7 +104,7 @@ def test_a_row_the_new_rules_refuse_stops_the_upgrade_and_leaves_the_old_table_w
         store.connect(tmp_path / "t.db")
     raw = sqlite3.connect(tmp_path / "t.db")
     assert raw.execute("SELECT name FROM sqlite_master WHERE name = 'jobs_new'").fetchone() is None
-    assert "'build'" not in jobs_sql(raw)
+    assert "'sweep'" not in jobs_sql(raw)
     assert rows(raw) == [*OLD_ROWS, planted]
 
 
@@ -150,12 +150,17 @@ def test_a_second_connection_finds_the_table_upgraded_under_the_lock_and_copies_
 
 def test_a_new_database_gets_the_new_table_directly(tmp_path):
     conn = store.connect(tmp_path / "t.db")
-    assert "'build'" in jobs_sql(conn)
+    assert "'sweep'" in jobs_sql(conn)
     assert rows(conn) == []
 
 
 @pytest.mark.parametrize("job, reason", [
-    ({"kind": "x", "stack": "A"}, "only the three known kinds exist"),
+    ({"kind": "x", "stack": "A"}, "only the four known kinds exist"),
+    ({"kind": "sweep", "runs_total": 2}, "a sweep names its stack"),
+    ({"kind": "sweep", "stack": "A"}, "a sweep counts its runs"),
+    ({"kind": "sweep", "stack": "A", "runs_total": 2, "step": "S1"}, "a sweep is no ladder step"),
+    ({"kind": "sweep", "stack": "A", "runs_total": 2, "chunk_set_id": "x"}, "a sweep names no chunk set"),
+    ({"kind": "build", "stack": "A", "chunk_set_id": "x", "runs_total": 0}, "no job counts zero runs"),
     ({"kind": "build", "stack": "A"}, "a build names its chunk set"),
     ({"kind": "build", "chunk_set_id": "x"}, "a build names its stack"),
     ({"kind": "build", "stack": "A", "chunk_set_id": ""}, "a chunk set id is never blank"),
@@ -179,3 +184,48 @@ def test_a_build_has_no_run_and_an_evaluate_job_needs_one(tmp_path):
     with pytest.raises(sqlite3.IntegrityError):
         insert(conn, "jobs", {"kind": "evaluate"})
     insert(conn, "jobs", {"kind": "evaluate", "run_id": 1})
+
+
+BUILD_ERA = """CREATE TABLE jobs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    kind TEXT NOT NULL CHECK (kind IN ('evaluate', 'ladder_step', 'build')),
+    status TEXT NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'running', 'done', 'failed')),
+    run_id INTEGER REFERENCES runs (id),
+    stack TEXT CHECK (stack IN ('A', 'B')),
+    step TEXT,
+    chunk_set_id TEXT CHECK (chunk_set_id <> ''),
+    runs_total INTEGER CHECK (runs_total > 0),
+    runs_done INTEGER NOT NULL DEFAULT 0 CHECK (runs_done <= runs_total),
+    error TEXT,
+    finished_at TEXT,
+    CHECK ((kind = 'build') = (chunk_set_id IS NOT NULL)),
+    CHECK ((status = 'failed') = (error IS NOT NULL)),
+    CHECK ((status IN ('done', 'failed')) = (finished_at IS NOT NULL))
+);"""
+
+
+def test_a_table_from_the_build_era_keeps_its_builds_and_their_chunk_sets(tmp_path):
+    conn = store.connect(tmp_path / "t.db")
+    conn.executescript(f"DROP TABLE jobs; {BUILD_ERA}")
+    conn.execute("INSERT INTO jobs (id, kind, status, stack, chunk_set_id, error, finished_at) VALUES "
+                 "(3, 'build', 'done', 'B', 'fixed__c600__o60', NULL, '2026-11-02 08:13:55')")
+    conn.commit()
+    conn.close()
+    upgraded = store.connect(tmp_path / "t.db")
+    assert "'sweep'" in jobs_sql(upgraded)
+    assert tuple(upgraded.execute("SELECT id, kind, stack, chunk_set_id, status FROM jobs").fetchone()) == (
+        3, "build", "B", "fixed__c600__o60", "done")
+
+
+def test_one_sweep_at_a_time_per_stack_with_or_without_a_current_run(tmp_path):
+    conn = store.connect(tmp_path / "t.db")
+    first = insert(conn, "jobs", {"kind": "sweep", "stack": "A", "runs_total": 3})
+    with pytest.raises(sqlite3.IntegrityError, match="UNIQUE"):
+        insert(conn, "jobs", {"kind": "sweep", "stack": "A", "runs_total": 1})
+    insert(conn, "jobs", {"kind": "sweep", "stack": "B", "runs_total": 1})
+    conn.execute("UPDATE jobs SET status = 'running' WHERE id = ?", (first,))
+    with pytest.raises(sqlite3.IntegrityError, match="UNIQUE"):
+        insert(conn, "jobs", {"kind": "sweep", "stack": "A", "runs_total": 1})
+    conn.execute("UPDATE jobs SET status = 'failed', error = 'x', finished_at = datetime('now') WHERE id = ?", (first,))
+    insert(conn, "jobs", {"kind": "sweep", "stack": "A", "runs_total": 1})

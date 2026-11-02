@@ -59,6 +59,12 @@ def prepare(conn: sqlite3.Connection, stack: str, method: str, size: int, overla
     return set_id
 
 
+def prepare_for(conn: sqlite3.Connection, choices: pipeline.Choices) -> str:
+    """`prepare` for a run's settings."""
+    settings = chunk_settings(choices.chunk_set_id)
+    return prepare(conn, choices.stack, settings["chunking_method"], settings["chunk_size"], settings["overlap"])
+
+
 def built(conn: sqlite3.Connection) -> list[dict]:
     """Every chunk set built on a stack, newest first, with its settings."""
     rows = conn.execute("SELECT stack, chunk_set_id, chunk_count, created_at FROM indexes "

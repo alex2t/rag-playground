@@ -39,6 +39,11 @@ def plan(conn: sqlite3.Connection, request: SweepRequest) -> dict:
     """Each value with its stored run and scores, or what running it would cost; the total for the values still to run.
     A value with a full dev run of the same settings reuses it (oldest match), so nothing is paid twice. KeyError if
     the prompt version does not exist."""
+    return assess(conn, request)[0]
+
+
+def assess(conn: sqlite3.Connection, request: SweepRequest) -> tuple[dict, list[pipeline.Choices]]:
+    """The plan, and the settings of the values still to run, in the sweep's order."""
     for _, config in request.items():
         prompts.get(conn, config.prompt_name)
     found = ladder_runs.stored_runs(conn, "dev")
@@ -58,4 +63,4 @@ def plan(conn: sqlite3.Connection, request: SweepRequest) -> dict:
                       "estimate_usd": None if candidate else builds.run_cost(conn, choices, tests)})
     runs_usd = sum(item["estimate_usd"] or 0.0 for item in items)
     return {"stack": request.base.stack, "variable": request.variable, "items": items, "runs_to_do": len(missing),
-            "estimate_usd": runs_usd + enrichment_cost(missing), "budget_left_usd": pipeline.remaining(conn)}
+            "estimate_usd": runs_usd + enrichment_cost(missing), "budget_left_usd": pipeline.remaining(conn)}, missing

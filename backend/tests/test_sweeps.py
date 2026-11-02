@@ -233,5 +233,6 @@ def test_the_real_lookup_tells_the_ranker_and_the_threshold_apart(stored_a):
 
 def test_the_real_lookup_keeps_the_oldest_of_two_runs_with_the_same_settings(stored_a):
     conn, run = stored_a
-    first, _later = run(), run()
+    first = run()
+    run()
     assert plan_json(conn, f'{{"base":{BASE_A_JSON},"variable":"top_k","values":[4]}}') == [(2, first), (4, None)]

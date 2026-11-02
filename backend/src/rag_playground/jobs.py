@@ -7,16 +7,17 @@ import json
 import sqlite3
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 
 from rag_playground import store
 from rag_playground.chunking.chunk_sets import chunk_settings
 from rag_playground.chunking.enrichment import set_id_for
 from rag_playground.datasets.schema import TestCase
-from rag_playground.rag import builds, heldout, ladder_runs, ladder_step, pipeline, runs
+from rag_playground.rag import builds, heldout, ladder_runs, ladder_step, pipeline, runs, sweeps
 from rag_playground.rag.ladder import Config
 from rag_playground.rag.runs import insert
 from rag_playground.stacks import indexes
+from rag_playground.sweep_requests import SweepRequest
 
 INTERRUPTED = "interrupted: the app restarted"
 
@@ -78,11 +79,16 @@ def evaluate(job_id: int, run_id: int) -> None:
         conn.close()
 
 
+def active(conn: sqlite3.Connection, kind: str, stack: str) -> int | None:
+    """The id of the job of this kind waiting or running on a stack, if any."""
+    row = conn.execute("SELECT id FROM jobs WHERE kind = ? AND stack = ? AND status IN ('queued', 'running')",
+                       (kind, stack)).fetchone()
+    return row and row["id"]
+
+
 def active_step(conn: sqlite3.Connection, stack: str) -> int | None:
     """The id of the ladder step waiting or running on a stack, if any."""
-    row = conn.execute("SELECT id FROM jobs WHERE kind = 'ladder_step' AND stack = ? AND status IN "
-                       "('queued', 'running')", (stack,)).fetchone()
-    return row and row["id"]
+    return active(conn, "ladder_step", stack)
 
 
 Work = tuple[str, list[Config], list[TestCase]]
@@ -129,15 +135,20 @@ def submit_heldout(conn: sqlite3.Connection, stack: str) -> int:
 
 
 def run_step(job_id: int, stack: str, missing: list[Config], tests: list[TestCase]) -> None:
-    """Run a step's missing configurations in the worker thread. Finished runs stay, so running the step again pays
-    only for what is left."""
+    """Run a step's missing configurations in the worker thread."""
+    run_all(job_id, [ladder_runs.choices(stack, config) for config in missing], tests)
+
+
+def run_all(job_id: int, work: list[pipeline.Choices], tests: list[TestCase]) -> None:
+    """Run each configuration in turn in the worker thread, building its chunks first; a failure stops the rest. Finished
+    runs stay, so starting again pays only for what is left. Shared by ladder steps and sweeps."""
     conn = store.connect()
     run_id = None
     try:
         set_status(conn, job_id, "running")
-        for config in missing:
-            ladder_step.prepare(conn, stack, config)
-            run_id = pipeline.start_run(conn, ladder_runs.choices(stack, config), tests)
+        for choices in work:
+            builds.prepare_for(conn, choices)
+            run_id = pipeline.start_run(conn, choices, tests)
             with conn:
                 conn.execute("UPDATE jobs SET run_id = ? WHERE id = ?", (run_id, job_id))
             pipeline.execute(conn, run_id, indexes.retriever(conn, runs.get_run(conn, run_id).meta))
@@ -151,6 +162,38 @@ def run_step(job_id: int, stack: str, missing: list[Config], tests: list[TestCas
         set_status(conn, job_id, "failed", error)
     finally:
         conn.close()
+
+
+class SweepRefused(ValueError):
+    """A sweep is already waiting or running on this stack, or every value has a run."""
+
+
+def submit_sweep(conn: sqlite3.Connection, request: SweepRequest) -> int:
+    """Queue a sweep's missing values on its stack (T58); return the job id. Refused before anything is stored if a
+    sweep of that stack is waiting or running (two at once: the database stops the second), if every value has a run,
+    or if the estimate, enrichment included, is over the budget."""
+    stack = request.base.stack
+    busy = SweepRefused(f"A sweep is already running on Stack {stack}")
+    if active(conn, "sweep", stack):
+        raise busy
+    plan, missing = sweeps.assess(conn, request)
+    if not missing:
+        raise SweepRefused("Every value has a run already: nothing to run")
+    if plan["estimate_usd"] > plan["budget_left_usd"]:
+        raise pipeline.BudgetExceeded(f"The sweep is estimated at ${plan['estimate_usd']:.4f}, but only "
+                                      f"${plan['budget_left_usd']:.4f} of the budget is left")
+    try:
+        job_id = insert(conn, "jobs", {"kind": "sweep", "stack": stack, "runs_total": len(missing)})
+    except sqlite3.IntegrityError as exc:
+        raise busy from exc
+    executor.submit(run_all, job_id, missing, sweeps.dev_tests())
+    return job_id
+
+
+def last_sweep(conn: sqlite3.Connection, stack: str) -> dict | None:
+    """A stack's latest sweep job with its progress, so the page can follow it after leaving, or show why it failed."""
+    row = conn.execute("SELECT id FROM jobs WHERE kind = 'sweep' AND stack = ? ORDER BY id DESC LIMIT 1", (stack,)).fetchone()
+    return row and asdict(get_job(conn, row["id"]))
 
 
 class BuildRefused(ValueError):
@@ -206,15 +249,16 @@ def build_jobs(conn: sqlite3.Connection) -> list[dict]:
 
 
 def step_job(row: sqlite3.Row, run: sqlite3.Row | None) -> Job:
-    """A ladder step job: progress counts its finished runs and the questions of the current one."""
+    """A ladder step or sweep job: progress counts its finished runs and the questions of the current one."""
     done, total = row["runs_done"], row["runs_total"]
     asked = run["done"] if run and run["status"] == "running" else 0
     questions = len(json.loads(run["test_ids"])) if run else 1
     running = min(done + 1, total)
+    label = row["step"] or "Sweep"
     return Job(id=row["id"], kind=row["kind"], status=row["status"], run_id=row["run_id"],
                progress=(done + asked / questions) / total,
-               message=f"{row['step']} on Stack {row['stack']}: run {running} of {total}, {asked} of {questions} "
-                       f"questions" if run else f"{row['step']} on Stack {row['stack']}: preparing",
+               message=f"{label} on Stack {row['stack']}: run {running} of {total}, {asked} of {questions} "
+                       f"questions" if run else f"{label} on Stack {row['stack']}: preparing",
                error=row["error"])
 
 
@@ -223,7 +267,7 @@ def get_job(conn: sqlite3.Connection, job_id: int) -> Job:
     row = conn.execute("SELECT * FROM jobs WHERE id = ?", (job_id,)).fetchone()
     if row is None:
         raise KeyError(job_id)
-    if row["kind"] == "ladder_step":
+    if row["kind"] in ("ladder_step", "sweep"):
         return step_job(row, row["run_id"] and runs.run_row(conn, row["run_id"]))
     if row["kind"] == "build":
         return build_job(row)

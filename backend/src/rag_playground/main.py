@@ -167,9 +167,24 @@ def plan_sweep(request: SweepRequest) -> dict:
     cost (T58); nothing stored. 404 unknown prompt version, 422 invalid sweep."""
     conn = store.connect()
     try:
-        return sweeps.plan(conn, request)
+        return sweeps.plan(conn, request) | {"job": jobs.last_sweep(conn, request.base.stack)}
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=f"Not found: {exc.args[0]}")
+    finally:
+        conn.close()
+
+
+@app.post("/api/sweeps", status_code=202)
+def start_sweep(request: SweepRequest) -> dict:
+    """Queue a sweep's values still to run on its stack and return the job id (T58); the UI polls /api/jobs/{id}. 409
+    if a sweep of that stack is running, if every value has a run, or if it is over the budget; 404 unknown prompt."""
+    conn = store.connect()
+    try:
+        return {"job_id": jobs.submit_sweep(conn, request)}
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=f"Not found: {exc.args[0]}")
+    except (jobs.SweepRefused, BudgetExceeded) as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
     finally:
         conn.close()
 
