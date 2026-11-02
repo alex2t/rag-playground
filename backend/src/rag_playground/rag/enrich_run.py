@@ -23,9 +23,10 @@ def remaining_cost(base_id: str) -> float:
 
 def enrich_set(conn: sqlite3.Connection, base_id: str) -> list[enrichment.EnrichedChunk]:
     """Enrich a saved chunk set. A build estimated over what is left of BUDGET_USD is refused before any paid call;
-    during the build, the next chunk is sent only if it fits. A stop keeps every chunk already paid for."""
+    during the build, the next chunk is sent only if it fits. A stop keeps every chunk already paid for. A set with
+    nothing left to pay is never refused, even when spend has passed the budget."""
     cost = remaining_cost(base_id)
-    if cost > pipeline.remaining(conn):
+    if cost > 0 and cost > pipeline.remaining(conn):
         raise pipeline.BudgetExceeded(f"Enrichment is estimated at ${cost:.4f}, but only "
                                       f"${pipeline.remaining(conn):.4f} of BUDGET_USD ${settings.budget_usd:.2f} is left")
     with spend.recording(conn, None):

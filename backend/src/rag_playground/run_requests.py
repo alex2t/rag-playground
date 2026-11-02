@@ -5,8 +5,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from rag_playground.chunking.chunk_sets import MAX_OVERLAP_SHARE, MAX_SIZE, MIN_SIZE, check_params, chunk_set_id
-from rag_playground.chunking.enrichment import enriched_set_id
+from rag_playground.chunking.chunk_sets import MAX_OVERLAP_SHARE, MAX_SIZE, MIN_SIZE, check_params
+from rag_playground.chunking.enrichment import set_id_for
 from rag_playground.datasets.schema import TestCase, load_tests
 from rag_playground.datasets.splits import round_robin
 from rag_playground.rag.pipeline import Choices
@@ -65,9 +65,7 @@ class PanelSettings(BaseModel):
         """The pipeline's settings. On Stack A, `hybrid` records whether OpenAI's keyword list takes part."""
         ranking = self.openai_ranking.model_dump() if self.openai_ranking else None
         hybrid = ranking["text_weight"] > 0 if ranking else self.hybrid
-        base_id = chunk_set_id(self.chunk_size, self.overlap)
-        set_id = enriched_set_id(base_id) if self.chunking_method == "llm_enriched" else base_id
-        return Choices(stack=self.stack, chunk_set_id=set_id, top_k=self.top_k, hybrid=hybrid, openai_ranking=ranking, rerank=self.rerank, answer_model=self.answer_model,
+        return Choices(stack=self.stack, chunk_set_id=set_id_for(self.chunking_method, self.chunk_size, self.overlap), top_k=self.top_k, hybrid=hybrid, openai_ranking=ranking, rerank=self.rerank, answer_model=self.answer_model,
                        prompt_name=self.prompt_name)
 
 

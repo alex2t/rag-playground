@@ -4,6 +4,14 @@ Add new bugs at the top. Status: `open` | `investigating` | `fixed`.
 
 ---
 
+## [2026-11-02] Step 9: a free build was refused once spend had passed the budget - `fixed`
+- **Symptom:** found by Antigravity (Gemini 3.8) reviewing the Build backend (D29). With spend past `BUDGET_USD`, as on the dev database ($6.96 of $5), `POST /api/builds` refused a fixed build with "Enrichment is estimated at $0.0000, but only $-1.9633 of the budget is left".
+- **Reproduce:** on a copy of the dev database, `builds.check_budget(conn, 'fixed', 600, 60)` raised that error. Claude found the same flaw in `enrich_run.enrich_set`: with nothing left to pay, it raised "... $0.0000, but only $-1.9633 of BUDGET_USD $5.00 is left". So with only the suggested fix, a set already enriched would be queued for its second stack and then fail inside the job.
+- **Root cause (evidence):** both checks compared `cost > left`, and 0 > -1.96 is true: a negative amount left refused even a cost of zero.
+- **Fix:** both refuse only when there is something to pay (`cost > 0 and cost > left`). Antigravity's suggestion covered `builds.check_budget` only.
+- **Verified by:** 3 new tests in `test_builds.py` (a free build, an already enriched set on another stack with the real `enrich_set`, and an enrichment with something left to pay, still refused). Undoing each fix fails them, and refusing every paid enrichment fails `test_enrich_script.py`. Full suite 918 passed.
+- **Status:** fixed.
+
 ## [2026-11-02] Step 9: Compare showed "-0.000", and its tooltip order worked by accident - `fixed`
 - **Symptom:** found by Antigravity (Gemini 3.8) reviewing the Compare page. (1) A change that is negative but rounds to zero, such as -0.0001, read "-0.000". (2) The bar tooltip's sorter read `item.value`, which on a tooltip is the score, not the series name.
 - **Reproduce:** (1) `(-0.0001).toFixed(3)` is `-0.000`; a new assertion in `compare.test.ts` failed before the fix. (2) In Recharts 3.10.1 the tooltip sorts by `name` by default (`Tooltip.js:63`), which is alphabetical and puts After first, as first seen in Edge. The sorter returned 1 for both entries, so the order only came from the series order in the code.

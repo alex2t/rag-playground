@@ -10,8 +10,9 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 
 from rag_playground import store
+from rag_playground.chunking.enrichment import set_id_for
 from rag_playground.datasets.schema import TestCase
-from rag_playground.rag import heldout, ladder_runs, ladder_step, pipeline, runs
+from rag_playground.rag import builds, heldout, ladder_runs, ladder_step, pipeline, runs
 from rag_playground.rag.ladder import Config
 from rag_playground.rag.runs import insert
 from rag_playground.stacks import indexes
@@ -151,6 +152,57 @@ def run_step(job_id: int, stack: str, missing: list[Config], tests: list[TestCas
         conn.close()
 
 
+class BuildRefused(ValueError):
+    """The chunk set is built on that stack already, or its build is waiting or running."""
+
+
+def submit_build(conn: sqlite3.Connection, stack: str, method: str, size: int, overlap: int) -> int:
+    """Queue the build of a chunk set on one stack; return the job id. Refused before anything is stored if it is
+    built there already, if its build is already waiting or running (two at the same moment: the database stops the
+    second), or if its enrichment is estimated over the budget."""
+    set_id = set_id_for(method, size, overlap)
+    if indexes.lookup(conn, stack, set_id):
+        raise BuildRefused(f"{set_id} is already built on Stack {stack}")
+    builds.check_budget(conn, method, size, overlap)
+    try:
+        job_id = insert(conn, "jobs", {"kind": "build", "stack": stack, "chunk_set_id": set_id})
+    except sqlite3.IntegrityError as exc:
+        raise BuildRefused(f"{set_id} is already being built on Stack {stack}") from exc
+    executor.submit(run_build, job_id, stack, method, size, overlap)
+    return job_id
+
+
+def run_build(job_id: int, stack: str, method: str, size: int, overlap: int) -> None:
+    """Build in the worker thread, with the thread's own connection, so paid enrichment calls are recorded. A stopped
+    enrichment keeps every chunk paid for, and a new build pays only for the rest."""
+    conn = store.connect()
+    try:
+        set_status(conn, job_id, "running")
+        builds.prepare(conn, stack, method, size, overlap)
+        set_status(conn, job_id, "done")
+    except Exception as exc:
+        set_status(conn, job_id, "failed", f"{type(exc).__name__}: {exc}")
+    finally:
+        conn.close()
+
+
+BUILD_MESSAGES = {"queued": "waiting for the job before it", "running": "building", "done": "built", "failed": "failed"}
+
+
+def build_job(row: sqlite3.Row) -> Job:
+    return Job(id=row["id"], kind=row["kind"], status=row["status"], run_id=None,
+               progress=1.0 if row["status"] == "done" else 0.0,
+               message=f"{row['chunk_set_id']} on Stack {row['stack']}: {BUILD_MESSAGES[row['status']]}",
+               error=row["error"])
+
+
+def build_jobs(conn: sqlite3.Connection) -> list[dict]:
+    """Every build job, newest first, so the page can follow one after leaving and show how each ended."""
+    rows = conn.execute("SELECT id, created_at, status, stack, chunk_set_id, error FROM jobs WHERE kind = 'build' "
+                        "ORDER BY id DESC").fetchall()
+    return [dict(row) for row in rows]
+
+
 def step_job(row: sqlite3.Row, run: sqlite3.Row | None) -> Job:
     """A ladder step job: progress counts its finished runs and the questions of the current one."""
     done, total = row["runs_done"], row["runs_total"]
@@ -171,6 +223,8 @@ def get_job(conn: sqlite3.Connection, job_id: int) -> Job:
         raise KeyError(job_id)
     if row["kind"] == "ladder_step":
         return step_job(row, row["run_id"] and runs.run_row(conn, row["run_id"]))
+    if row["kind"] == "build":
+        return build_job(row)
     run = runs.run_row(conn, row["run_id"])
     total = len(json.loads(run["test_ids"]))
     return Job(id=row["id"], kind=row["kind"], status=row["status"], run_id=row["run_id"],

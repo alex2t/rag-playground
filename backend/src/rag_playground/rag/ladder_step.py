@@ -4,15 +4,13 @@ import json
 import sqlite3
 from collections.abc import Callable
 
-from rag_playground.chunking.chunk_sets import METHOD as FIXED_METHOD
-from rag_playground.chunking.chunk_sets import chunk_set_id, load_or_build
+from rag_playground.chunking.chunk_sets import load_or_build
 from rag_playground.datasets.schema import TestCase, load_tests
-from rag_playground.rag import enrich_run, estimate, ladder, ladder_runs, pipeline, prompts
+from rag_playground.rag import builds, estimate, ladder, ladder_runs, pipeline, prompts
 from rag_playground.rag.ladder import Config, Progress
 from rag_playground.rag.runs import insert
 from rag_playground.scoring.selection import Candidate
 from rag_playground.settings import settings
-from rag_playground.stacks import indexes
 
 
 def dev_tests() -> list[TestCase]:
@@ -66,10 +64,7 @@ def run_cost(conn: sqlite3.Connection, stack: str, config: Config, tests: list[T
 
 def enrichment_cost(config: Config) -> float:
     """What is left to pay to enrich a configuration's chunk set; both stacks share the enriched set."""
-    if config.method == FIXED_METHOD:
-        return 0.0
-    load_or_build(config.chunk_size, config.overlap)
-    return enrich_run.remaining_cost(chunk_set_id(config.chunk_size, config.overlap))
+    return builds.enrichment_cost(config.method, config.chunk_size, config.overlap)
 
 
 def step_cost(conn: sqlite3.Connection, stack: str, missing: list[Config], tests: list[TestCase] | None = None) -> float:
@@ -87,9 +82,4 @@ def check_budget(conn: sqlite3.Connection, stack: str, missing: list[Config], te
 
 def prepare(conn: sqlite3.Connection, stack: str, config: Config) -> None:
     """Build what a run needs and does not have yet: the chunk set, its paid enrichment, the stack's index."""
-    load_or_build(config.chunk_size, config.overlap)
-    if config.method != FIXED_METHOD:
-        enrich_run.enrich_set(conn, chunk_set_id(config.chunk_size, config.overlap))
-    set_id = ladder_runs.choices(stack, config).chunk_set_id
-    if indexes.lookup(conn, stack, set_id) is None:
-        indexes.build(conn, stack, set_id)
+    builds.prepare(conn, stack, config.method, config.chunk_size, config.overlap)

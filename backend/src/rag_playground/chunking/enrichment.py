@@ -7,7 +7,7 @@ from collections.abc import Callable
 from pydantic import BaseModel
 
 from rag_playground.chunking.chunk_sets import METHOD as FIXED_METHOD
-from rag_playground.chunking.chunk_sets import Chunk, kb_documents, load, saved_path
+from rag_playground.chunking.chunk_sets import Chunk, chunk_set_id, kb_documents, load, saved_path
 from rag_playground.llm.openrouter import chat_structured
 from rag_playground.settings import ENRICH_MODEL
 
@@ -50,6 +50,12 @@ def enriched_set_id(base_id: str) -> str:
     if not base_id.startswith(prefix):
         raise ValueError(f"{base_id} is not a {FIXED_METHOD} chunk set")
     return f"{METHOD}__{base_id.removeprefix(prefix)}"
+
+
+def set_id_for(method: str, size: int, overlap: int) -> str:
+    """The id of the chunk set a chunking method, size and overlap give."""
+    base_id = chunk_set_id(size, overlap)
+    return base_id if method == FIXED_METHOD else enriched_set_id(base_id)
 
 
 def messages(chunk: Chunk, document: str) -> list[dict]:

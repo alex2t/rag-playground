@@ -5,6 +5,36 @@ from pathlib import Path
 
 from rag_playground.settings import MAX_TOP_K, settings
 
+
+def jobs_table(name: str) -> str:
+    """Background jobs (D07), run one at a time; the UI polls a job's status. An evaluate job is one run. A ladder step
+    job (T50) runs several, and run_id holds its current run, empty until the first one starts. A build job (D29)
+    prepares one chunk set on one stack and has no run."""
+    return f"""CREATE TABLE IF NOT EXISTS {name} (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    kind TEXT NOT NULL CHECK (kind IN ('evaluate', 'ladder_step', 'build')),
+    status TEXT NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'running', 'done', 'failed')),
+    run_id INTEGER REFERENCES runs (id),
+    stack TEXT CHECK (stack IN ('A', 'B')),
+    step TEXT,
+    chunk_set_id TEXT CHECK (chunk_set_id <> ''),
+    runs_total INTEGER CHECK (runs_total > 0),
+    runs_done INTEGER NOT NULL DEFAULT 0 CHECK (runs_done <= runs_total),
+    error TEXT,
+    finished_at TEXT,
+    CHECK ((kind = 'evaluate') = (stack IS NULL)),
+    CHECK ((kind = 'ladder_step') = (step IS NOT NULL)),
+    CHECK ((kind = 'ladder_step') = (runs_total IS NOT NULL)),
+    CHECK ((kind = 'build') = (chunk_set_id IS NOT NULL)),
+    CHECK (kind = 'ladder_step' OR (kind = 'evaluate') = (run_id IS NOT NULL)),
+    CHECK ((status = 'failed') = (error IS NOT NULL)),
+    CHECK ((status IN ('done', 'failed')) = (finished_at IS NOT NULL))
+);"""
+
+
+OLD_JOB_COLUMNS = "id, created_at, kind, status, run_id, stack, step, runs_total, runs_done, error, finished_at"
+
 SCHEMA = f"""
 PRAGMA journal_mode = WAL;
 PRAGMA foreign_keys = ON;
@@ -122,27 +152,7 @@ CREATE TABLE IF NOT EXISTS indexes (
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     PRIMARY KEY (stack, chunk_set_id)
 );
--- Background jobs (D07), run one at a time; the UI polls a job's status. An evaluate job is one run. A ladder step
--- job (T50) runs several, and run_id holds its current run, empty until the first one starts.
-CREATE TABLE IF NOT EXISTS jobs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    kind TEXT NOT NULL CHECK (kind IN ('evaluate', 'ladder_step')),
-    status TEXT NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'running', 'done', 'failed')),
-    run_id INTEGER REFERENCES runs (id),
-    stack TEXT CHECK (stack IN ('A', 'B')),
-    step TEXT,
-    runs_total INTEGER CHECK (runs_total > 0),
-    runs_done INTEGER NOT NULL DEFAULT 0 CHECK (runs_done <= runs_total),
-    error TEXT,
-    finished_at TEXT,
-    CHECK ((kind = 'evaluate') = (stack IS NULL)),
-    CHECK ((kind = 'evaluate') = (step IS NULL)),
-    CHECK ((kind = 'evaluate') = (runs_total IS NULL)),
-    CHECK (kind = 'ladder_step' OR run_id IS NOT NULL),
-    CHECK ((status = 'failed') = (error IS NOT NULL)),
-    CHECK ((status IN ('done', 'failed')) = (finished_at IS NOT NULL))
-);
+{jobs_table("jobs")}
 -- A job moves forward only: queued -> running -> done or failed; queued -> failed when interrupted.
 CREATE TRIGGER IF NOT EXISTS jobs_forward_only BEFORE UPDATE OF status ON jobs
 WHEN NOT ((OLD.status = 'queued' AND NEW.status IN ('running', 'failed'))
@@ -150,6 +160,8 @@ WHEN NOT ((OLD.status = 'queued' AND NEW.status IN ('running', 'failed'))
 BEGIN SELECT RAISE(ABORT, 'a job moves forward only'); END;
 CREATE UNIQUE INDEX IF NOT EXISTS jobs_one_active_step ON jobs (stack)
 WHERE kind = 'ladder_step' AND status IN ('queued', 'running');
+CREATE UNIQUE INDEX IF NOT EXISTS jobs_one_active_build ON jobs (stack, chunk_set_id)
+WHERE kind = 'build' AND status IN ('queued', 'running');
 -- The prompt versions chosen for ladder step S6 (T50), once per stack: a later change would rewrite the ladder's past.
 CREATE TABLE IF NOT EXISTS ladder_prompts (
     stack TEXT PRIMARY KEY CHECK (stack IN ('A', 'B')),
@@ -230,5 +242,32 @@ def connect(path: Path | None = None) -> sqlite3.Connection:
     path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(path, check_same_thread=False)
     conn.row_factory = sqlite3.Row
+    upgrade_jobs(conn)
     conn.executescript(SCHEMA)
     return conn
+
+
+def old_jobs_table(conn: sqlite3.Connection) -> bool:
+    row = conn.execute("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'jobs'").fetchone()
+    return row is not None and "'build'" not in row[0]
+
+
+def upgrade_jobs(conn: sqlite3.Connection) -> None:
+    """Recreate a jobs table made before build jobs (D29), keeping every row and id, all or nothing. SQLite cannot
+    change a CHECK in place. It runs before SCHEMA, which then recreates the table's trigger and indexes. The check is
+    repeated under the write lock: another connection may have upgraded the table meanwhile."""
+    if not old_jobs_table(conn):
+        return
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        if not old_jobs_table(conn):
+            conn.commit()
+            return
+        conn.execute(jobs_table("jobs_new"))
+        conn.execute(f"INSERT INTO jobs_new ({OLD_JOB_COLUMNS}) SELECT {OLD_JOB_COLUMNS} FROM jobs")
+        conn.execute("DROP TABLE jobs")
+        conn.execute("ALTER TABLE jobs_new RENAME TO jobs")
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise

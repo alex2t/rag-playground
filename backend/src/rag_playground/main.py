@@ -12,9 +12,10 @@ from qdrant_client.http.exceptions import ApiException
 
 from rag_playground import jobs, store, story
 from rag_playground.ask_requests import AskRequest, dev_questions
+from rag_playground.build_requests import BuildRequest, BuildSettings
 from rag_playground.calibration_requests import DbId, GradeRequest, OpenCalibration
 from rag_playground.prompt_requests import SavePrompt
-from rag_playground.rag import ask, compare, evaluation, grading, prompts
+from rag_playground.rag import ask, builds, compare, evaluation, grading, prompts
 from rag_playground.rag.pipeline import BudgetExceeded
 from rag_playground.run_requests import RunRequest, panel_options
 from rag_playground.scoring.judging import ACCURACY_RUBRIC
@@ -120,6 +121,41 @@ def compare_runs(before: DbId, after: DbId) -> dict:
         raise HTTPException(status_code=404, detail=f"No run {exc.args[0]}")
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
+    finally:
+        conn.close()
+
+
+@app.post("/api/builds/estimate")
+def estimate_build(request: BuildSettings) -> dict:
+    """A chunk set's id, chunk count, enrichment cost, the stacks it is built on and what is left of the budget;
+    only the free base chunk set is saved. 422 invalid settings."""
+    conn = store.connect()
+    try:
+        return builds.estimate(conn, request.chunking_method, request.chunk_size, request.overlap)
+    finally:
+        conn.close()
+
+
+@app.post("/api/builds", status_code=202)
+def start_build(request: BuildRequest) -> dict:
+    """Queue a chunk set's build on one stack and return the job id; the UI then polls /api/jobs/{id}. 409 if built
+    there already, already being built, or over the budget, with nothing stored."""
+    conn = store.connect()
+    try:
+        return {"job_id": jobs.submit_build(conn, request.stack, request.chunking_method, request.chunk_size,
+                                            request.overlap)}
+    except (jobs.BuildRefused, BudgetExceeded) as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    finally:
+        conn.close()
+
+
+@app.get("/api/builds")
+def list_builds() -> dict:
+    """What is built on each stack, newest first, and every build job with how it ended."""
+    conn = store.connect()
+    try:
+        return {"built": builds.built(conn), "jobs": jobs.build_jobs(conn)}
     finally:
         conn.close()
 

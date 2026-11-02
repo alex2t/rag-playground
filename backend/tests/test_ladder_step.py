@@ -12,7 +12,7 @@ from rag_playground.chunking.chunk_sets import Chunk
 from rag_playground.datasets.schema import load_tests
 from rag_playground.llm.models import ModelInfo
 from rag_playground.llm.openrouter import ChatResult, paid
-from rag_playground.rag import best_run, enrich_run, estimate, ladder, ladder_step, pipeline, prompts, runs
+from rag_playground.rag import best_run, builds, enrich_run, estimate, ladder, ladder_step, pipeline, prompts, runs
 from rag_playground.rag.ladder import baseline, options
 from rag_playground.rag.ladder_runs import choices
 from rag_playground.scoring.judging import Judgement
@@ -55,6 +55,7 @@ def world(tmp_path, monkeypatch):
     monkeypatch.setattr(best_run, "load_chunk_set", lambda set_id: GOLD_CHUNKS)
     monkeypatch.setattr(pipeline, "load_chunk_set", lambda set_id: [CHUNK])
     monkeypatch.setattr(ladder_step, "load_or_build", lambda size, overlap: [CHUNK])
+    monkeypatch.setattr(builds, "load_or_build", lambda size, overlap: [CHUNK])
     monkeypatch.setattr(indexes, "load_chunk_set", lambda set_id: [CHUNK])
     monkeypatch.setattr(indexes.enrichment, "load_complete", lambda set_id: [CHUNK])
     monkeypatch.setattr(enrich_run, "remaining_cost", lambda base_id: state.enrich_cost)
