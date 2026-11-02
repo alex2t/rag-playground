@@ -68,13 +68,19 @@ function rankingProblem({ embedding_weight, text_weight, score_threshold }: Open
   return Number.isFinite(score_threshold) && score_threshold >= 0 && score_threshold <= 1 ? null : 'The Stack A score threshold must be from 0 to 1.'
 }
 
+/** Why a chunk size and overlap cannot be sent, or null (T35 ranges). Shared by the settings panel and Build. */
+export function chunkProblem({ chunk_size, overlap }: { chunk_size: number; overlap: number }, options: PanelOptions): string | null {
+  const { min_chunk_size: low, max_chunk_size: high, max_overlap_share: share } = options
+  if (!within(chunk_size, low, high)) return `Chunk size must be a whole number from ${low} to ${high}.`
+  const maxOverlap = Math.floor(chunk_size * share)
+  return within(overlap, 0, maxOverlap) ? null : `Overlap must be a whole number from 0 to ${maxOverlap}.`
+}
+
 /** Why these values cannot be sent yet, or null. The API checks them again; this says why in plain words. */
 export function panelProblem(values: PanelValues, options: PanelOptions): string | null {
-  const { min_chunk_size: low, max_chunk_size: high, max_overlap_share: share, max_top_k: maxK } = options
-  if (!within(values.chunk_size, low, high)) return `Chunk size must be a whole number from ${low} to ${high}.`
-  const maxOverlap = Math.floor(values.chunk_size * share)
-  if (!within(values.overlap, 0, maxOverlap)) return `Overlap must be a whole number from 0 to ${maxOverlap}.`
-  if (!within(values.top_k, 1, maxK)) return `Top-K must be a whole number from 1 to ${maxK}.`
+  const chunks = chunkProblem(values, options)
+  if (chunks) return chunks
+  if (!within(values.top_k, 1, options.max_top_k)) return `Top-K must be a whole number from 1 to ${options.max_top_k}.`
   return stacksOf(values.stacks).includes('A') ? rankingProblem(values.openai_ranking) : null
 }
 

@@ -190,6 +190,16 @@ export type Comparison = {
   questions: QuestionChanges | null
 }
 
+export type BuildSettings = { chunking_method: 'fixed' | 'llm_enriched'; chunk_size: number; overlap: number }
+
+export type BuildEstimate = { chunk_set_id: string; chunks: number; enrichment_usd: number; built: StackId[]; budget_left_usd: number }
+
+export type BuiltSet = BuildSettings & { stack: StackId; chunk_set_id: string; chunk_count: number; created_at: string }
+
+export type BuildJob = { id: number; created_at: string; status: Job['status']; stack: StackId; chunk_set_id: string; error: string | null }
+
+export type Builds = { built: BuiltSet[]; jobs: BuildJob[] }
+
 export type Estimate = { questions: number; estimate_usd: number; seconds: number; budget_left_usd: number }
 
 export type QuestionSet = 'dev' | 'heldout' | 'smoke'

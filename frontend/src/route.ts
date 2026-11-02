@@ -1,6 +1,6 @@
 /** Pages are chosen by the address's hash, so a refresh or a link keeps the page. */
 
-export const PAGES = ['Story', 'Ask', 'Evaluate', 'Compare', 'Prompt'] as const
+export const PAGES = ['Story', 'Ask', 'Evaluate', 'Compare', 'Build', 'Prompt'] as const
 export type Page = (typeof PAGES)[number]
 
 export function hashOf(page: Page): string {

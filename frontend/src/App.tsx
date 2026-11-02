@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 import Layout from './components/Layout.tsx'
 import Ask from './pages/Ask.tsx'
+import Build from './pages/Build.tsx'
 import Compare from './pages/Compare.tsx'
 import Evaluate from './pages/Evaluate.tsx'
 import Prompt from './pages/Prompt.tsx'
 import Story from './pages/Story.tsx'
 import { pageFor, type Page } from './route.ts'
 
-const PAGE_VIEWS: Record<Page, () => React.JSX.Element> = { Story, Ask, Evaluate, Compare, Prompt }
+const PAGE_VIEWS: Record<Page, () => React.JSX.Element> = { Story, Ask, Evaluate, Compare, Build, Prompt }
 
 export default function App() {
   const [page, setPage] = useState(pageFor(location.hash))
