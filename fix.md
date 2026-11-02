@@ -4,6 +4,14 @@ Add new bugs at the top. Status: `open` | `investigating` | `fixed`.
 
 ---
 
+## [2026-11-02] Step 9: Compare showed "-0.000", and its tooltip order worked by accident - `fixed`
+- **Symptom:** found by Antigravity (Gemini 3.8) reviewing the Compare page. (1) A change that is negative but rounds to zero, such as -0.0001, read "-0.000". (2) The bar tooltip's sorter read `item.value`, which on a tooltip is the score, not the series name.
+- **Reproduce:** (1) `(-0.0001).toFixed(3)` is `-0.000`; a new assertion in `compare.test.ts` failed before the fix. (2) In Recharts 3.10.1 the tooltip sorts by `name` by default (`Tooltip.js:63`), which is alphabetical and puts After first, as first seen in Edge. The sorter returned 1 for both entries, so the order only came from the series order in the code.
+- **Root cause (evidence):** (1) `signed` tested the sign on the raw value, not on the rounded one. (2) The legend and the tooltip carry the series name in different fields (`value` and `name`).
+- **Fix:** (1) `signed` rounds first and signs the rounded value. (2) The legend takes `itemSorter={null}`, which keeps the series order (`legendSelectors.js` skips sorting on null). The tooltip sorts on `name`. Antigravity's suggestion, which checked both fields in one function, was not used: each component has its own field.
+- **Verified by:** the test passes; deliberate breaks caught. In headless Edge, all three legends and the bar tooltip read Before, then After.
+- **Status:** fixed.
+
 ## [2026-11-01] Step 9: a slow estimate could let Evaluate start settings never estimated - `fixed`
 - **Symptom:** found by Antigravity (Gemini 3.8). Press Estimate, change a setting while the reply is on its way: the late reply showed the old estimate and enabled Evaluate, which then started the new settings.
 - **Reproduce:** `race.mjs` in headless Edge with the estimate reply delayed by 1 s and faked: before the fix, Evaluate stayed enabled and the estimate stayed shown.

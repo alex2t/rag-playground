@@ -177,6 +177,19 @@ export type RunReport = RunSummary & {
   categories: CategoryScores[] | null
 }
 
+export type PairedChange = Change & { verdict: 'better' | 'worse' | 'no real difference' }
+
+export type MovedQuestion = { test_id: string; category: string; question: string; before: number; after: number }
+
+export type QuestionChanges = { fixed: MovedQuestion[]; broken: MovedQuestion[]; both_pass: number; both_fail: number }
+
+export type Comparison = {
+  before: RunReport
+  after: RunReport
+  change: { accuracy: PairedChange; mrr: PairedChange }
+  questions: QuestionChanges | null
+}
+
 export type Estimate = { questions: number; estimate_usd: number; seconds: number; budget_left_usd: number }
 
 export type QuestionSet = 'dev' | 'heldout' | 'smoke'

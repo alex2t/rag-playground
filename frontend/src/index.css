@@ -12,6 +12,8 @@
   --color-warn: #a15c00;
   --color-stack-a: #2a78d6;
   --color-stack-b: #eb6834;
+  --color-before: #1baf7a;
+  --color-after: #6250d6;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -27,6 +29,8 @@
     --color-warn: #f2b45a;
     --color-stack-a: #3987e5;
     --color-stack-b: #d95926;
+    --color-before: #199e70;
+    --color-after: #9085e9;
   }
 }
 
