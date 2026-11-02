@@ -49,6 +49,7 @@ Status: `accepted` | `proposed` (default, needs review) | `open` | `superseded`.
   - In-process jobs are lost on restart and force a single API worker.
   - Production would use a job queue (Celery, RQ or arq with Redis) plus SSE.
 - **Built 2026-10-29 (`jobs.py`):** one worker thread, so jobs run one at a time (the budget guard counts spend only for one run in flight, T44). A job is an evaluation run; refusals (chunk set not indexed, over budget, held-out prompt not evaluated on dev) are raised when the job is submitted, before any run or job is stored. The worker opens its own SQLite connection and calls `execute` in its thread, so the spend listener records every paid call. A job moves forward only (queued, running, then done or failed; a database trigger). At startup, jobs left queued or running, and their runs, are marked failed with "interrupted: the app restarted". `GET /api/jobs/{id}` returns status, progress, message and error.
+- **Revision 2026-11-02:** a job is now one of four kinds: an evaluation run, a ladder step (T50), a build (D29) or a sweep (T58), all on the same single worker, so builds and runs never overlap. The jobs table upgrades itself at connect when it lacks a kind (D29, `store.upgrade_jobs`). Ladder steps and sweeps share one run loop (`jobs.run_all`).
 
 ### D08 - Caddy basic auth - `accepted`
 - **Why:** stops strangers from spending the API credits, with no application code.
@@ -97,6 +98,7 @@ Status: `accepted` | `proposed` (default, needs review) | `open` | `superseded`.
 - **Decision:** structured JSON logs (request id, route, latency, tokens, cost, error). The Ops page shows spend against budget, error rate, p95 latency and the app version.
 - **Why:** "how do you monitor it?" is a standard deployment question, and this answers it in the app itself.
 - **Not best practice:** no central log store, alerting or tracing. Production would use an observability stack (OpenTelemetry with Grafana/Loki, Datadog, or an LLM-tracing tool).
+- **Revision 2026-11-02 (D30):** the Ops page is built from stored jobs, runs and spend; how the error rate and answer times are measured is D30. The JSON logs come with Step 12.
 
 ### D15 - Global evaluation budget per environment - `accepted` 2026-10-28
 - **Decision:** `BUDGET_USD` caps all evaluation spend recorded in SQLite: $60 for prod and $5 for staging (CI gates). It replaces `SWEEP_BUDGET_USD`, because spend from the ladder, sweeps and held-out runs all counts against the $60.
@@ -221,6 +223,7 @@ Status: `accepted` | `proposed` (default, needs review) | `open` | `superseded`.
   - Combinations already run are skipped.
   - Hard stop at `BUDGET_USD`.
 - **Trade-off:** misses interactions between variables (for example, the best K may depend on chunk size). This must be stated as a limitation.
+- **Built 2026-11-02 (T58):** every guardrail above holds: one setting per sweep, Estimate then Confirm, values with a full dev run reused (oldest match), and the budget guard refusing a sweep estimated over what is left and stopping a run at the cap. The limitation is stated on the Sweep page.
 
 ### T16 - All reported results use the same fixed splits - `accepted`
 - **Decision:**
@@ -389,6 +392,7 @@ Status: `accepted` | `proposed` (default, needs review) | `open` | `superseded`.
 - **Why:** lets anyone using the dashboard try any configuration live, not only the precomputed grid.
 - **Ranges (custom choice):** 2,048 tokens stays far below both embedding models' context (OpenAI's 4,096-token chunk limit for vector store files, nomic's 8,192). Below 64 tokens a chunk rarely holds a full fact. 50% overlap is OpenAI's own default (800/400), the upper end of common practice.
 - **Revision 2026-10-29 (T45):** top-K is 1-8, not 1-20.
+- **Revision 2026-11-02 (D29):** a chunk set not yet built on a chosen stack is offered by the settings panel and built on the Build page, each with an estimate of its chunks and cost and a confirming click, and only on the stacks that lack it. No build time is shown: Stack A builds were never timed and Stack B was measured once (84 chunks in 81 s, model load included), so a time would be invented.
 - **Trade-off:** more chunk sets to store and index (each a few cents of OpenAI embedding cost and about a minute). Results outside the ladder are exploratory: only dev questions, and the paired bootstrap still decides what is an improvement.
 
 ### T36 - System prompt editable as named versions - `accepted` 2026-10-27
@@ -529,6 +533,7 @@ Status: `accepted` | `proposed` (default, needs review) | `open` | `superseded`.
 - **No cost shown before asking:** one question costs a fraction of a cent, guests should not confirm each one, and T54's check still refuses a question over the budget. The cost is shown with the answer. Every other paid action keeps its estimate and confirmation.
 - **Alternatives:** a fixed list of models in the page (breaks the one-place rule); loading `best_run` automatically (it can differ per stack and needs a choice between stacks; a later button on Story can do it).
 - **Limits:** the panel does not know which chunk sets are built, so an unbuilt one is refused after pressing Ask, with nothing paid; building from the panel comes with the Build backend. The values live in one browser: another browser opens with S0's.
+- **Revision 2026-11-02 (D29):** the panel now knows: it reads the built chunk sets (`GET /api/builds`), says which chosen stacks lack the panel's chunks, and offers to build them, showing any build of them already waiting or running.
 - **Best practice:** yes for one source of truth and validation at the API; browser storage is fine for a convenience.
 
 ### T54 - Questions on the Ask page - `accepted` 2026-11-01

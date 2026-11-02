@@ -116,7 +116,7 @@ The baseline is the framework's documented defaults, not a deliberately weak set
 | Setting | Range | Notes |
 |---|---|---|
 | Stack | A, B or both | With both, the same settings run on each stack and the results are shown side by side. |
-| Chunk size | 64-2,048 tokens | A chunk set that does not exist yet is built and indexed on both stacks after a cost estimate and a confirmation. |
+| Chunk size | 64-2,048 tokens | A chunk set that does not exist yet is built and indexed on the chosen stacks that lack it, after a cost estimate and a confirmation. |
 | Overlap | 0-50% of the chunk size | |
 | Top-K | 1-8 | The knowledge base is small (48 documents of about 730 tokens), so more than 8 chunks would hand the model a large share of it. |
 | Chunking method | fixed or LLM-enriched | |

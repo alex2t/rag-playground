@@ -444,7 +444,7 @@ Validate each step before starting the next one. Log bugs in `fix.md`. Record de
 - **Check:** pass/fail agreement ≥ 80%. If not, change the judge and repeat this step. Record the result in `decision.md` (T07).
 
 ### Step 9 - Frontend (time-boxed)
-- **Status (2026-11-01): in progress.** Done and reviewed: Story (ladder, T50, T52), Prompt, the shared settings panel (T55), Ask (T54), Evaluate (T56), Compare's backend (T57). Next: the Compare page, then Build, Sweep and Ops. S0 to S2 ran locally on both stacks; S3 onwards run on the VPS (user decision), after a way to carry over the database, Stack B's indexes and `var/chunk_sets` exists.
+- **Status (2026-11-02): pages done, checks left.** Built and reviewed: Story (ladder, T50, T52), Ask (T54), Evaluate (T56), Compare (T57), Build (D29), Prompt, Sweep (T58), Ops (D30), the shared settings panel (T55) and its offer to build missing chunks. Left: the checks below (click-through, one full dev run from the page, Ask gives the same chunks as a run). S0 to S2 ran locally on both stacks; S3 onwards run on the VPS (user decision), after a way to carry over the database, Stack B's indexes and `var/chunk_sets` exists.
 Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Sweep and Ops. Use one shared layout. Get it working before polishing.
 - **Story page:**
   - Run the ladder on one or both stacks.

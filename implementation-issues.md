@@ -296,3 +296,19 @@ Antigravity's review confirmed 5 of 6 findings:
 **Root causes and fixes:** the fee is now counted as spend, in estimates and in the budget (T53), matched to the bill to the cent. Saved values are checked like typed ones. An estimate is stored with the exact settings it was made for, so a late reply cannot stand for anything else. The speed comes from measured jobs.
 
 **Lesson:** the outside record is the test of the inside one: only the bill showed the missing cost. And a reviewer's finding can be right while its fix is wrong, so the finding and the fix each need checking on their own.
+
+## 20. Step 9: a free build refused, and pages that forgot (2026-11-02)
+
+**What we were doing:** finishing the dashboard: Compare, Build, the panel's offer to build chunks, Sweep and Ops, each reviewed by Antigravity before its commit.
+
+**What went wrong:**
+- Spend on the dev machine had passed the local budget ($6.96 of $5), so "what is left" was negative. The budget check refused anything whose cost was not above that negative number: even a build costing nothing was refused, with "estimated at $0.0000, but only $-1.9633 is left". The same check sat in the enrichment code, and later in the Sweep page's own budget line.
+- Two pages forgot work in progress. Leaving the page during a build and coming back offered the build again, which the server would refuse. Leaving the Sweep page during a sweep and coming back showed nothing at all, because the sweep's progress came only with an estimate the page no longer had.
+- When building on both stacks, a refusal on the first stack stopped the second from being sent.
+- The sweep plan's tests replaced the part that matches a setting to a stored run, the part most likely to go wrong.
+
+**First guesses:** the reviewer reported the build refusal and suggested fixing the one place it found; with only that, an already enriched chunk set would have been accepted and then failed inside the job. For the other three, the reviewer described the behaviour and called it correct. My own guess that a browser's `1` would miss a run stored as `1.0` was wrong: the server turns it into `1.0`, as a check on a copy of the real database showed.
+
+**Root causes and fixes:** a cost of zero is never refused, in every budget check, whatever is left. The build offer now shows any build of those chunks that is waiting or running, whoever started it, and does not start it again. The Sweep page reads each stack's latest sweep from its own route as soon as it opens. Each stack is now tried on its own. The sweep tests now use real stored runs read by the real code.
+
+**Lesson:** an empty or negative edge (nothing to pay, nothing left) breaks rules written for the normal case, so test it on purpose. A reviewer's description of how something behaves is evidence even when its verdict says "fine": three real flaws were found by reading its checks, not its findings. And a page is not done until it has been left and opened again.
