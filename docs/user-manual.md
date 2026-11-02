@@ -2,7 +2,7 @@
 
 How to use the RAG Playground dashboard: ask questions, run evaluations, compare set-ups and prepare the live demo.
 
-> **Status (2026-11-02):** Story, Ask, Evaluate, Compare and Prompt are built. Build, Sweep and Ops are not built yet, and neither is the settings panel's offer to build chunks; this manual describes them as designed.
+> **Status (2026-11-02):** Story, Ask, Evaluate, Compare, Build and Prompt are built. Sweep and Ops are not built yet, and neither is the settings panel's offer to build chunks; this manual describes them as designed.
 
 ## 1. What the app does
 
@@ -126,7 +126,7 @@ Write your own system prompts: start from the default or any saved version, edit
 For the ladder's prompt step (S6), choose up to 4 of your versions before the step runs; the best one is kept for the rest of the ladder and for the demo.
 
 ### Build: prepare chunks
-Choose the chunking method, chunk size, overlap and stacks, then press **Embed**. A green message confirms the chunks are stored on each stack; a red one says what failed.
+Choose the chunking method, chunk size, overlap and stacks, then press **Estimate**. It shows the chunk set, its number of chunks, the stacks that already have it, and the cost: only `llm_enriched` costs money, paid once for both stacks. Press **Embed** to build it on the stacks that do not have it yet. Each build is listed below: green once the chunks are stored, red with the reason if it failed. Stack B builds on this computer and needs Qdrant running; 84 chunks took about 80 seconds. Stack A uploads each chunk to OpenAI, whose storage fee is not counted in the budget.
 
 ### Sweep: try several values of one setting
 Pick a base configuration, the setting to vary (for example chunk size, K, a stack's search settings or prompt version) and its values. Press **Estimate**, then **Confirm**. Combinations already run are reused, not paid twice.
