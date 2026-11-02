@@ -224,6 +224,17 @@ export type SweepPlan = {
   budget_left_usd: number
 }
 
+export type OpsJob = { id: number; created_at: string; kind: string; stack: StackId | null; status: 'failed'; error: string; cause: 'fault' | 'budget' | 'restart' }
+
+export type OpsSummary = {
+  window_days: number
+  budget: { budget_usd: number; spent_usd: number; left_usd: number; in_runs_usd: number; outside_runs_usd: number }
+  jobs: { finished: number; active: number; faults: number; budget_stops: number; restarts: number; error_rate: number | null; failed: OpsJob[] }
+  latency: { stack: StackId; questions: number; p50_s: number; p95_s: number }[]
+  version: string
+  qdrant: string
+}
+
 export type Estimate = { questions: number; estimate_usd: number; seconds: number; budget_left_usd: number }
 
 export type QuestionSet = 'dev' | 'heldout' | 'smoke'

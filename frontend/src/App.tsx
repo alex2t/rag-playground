@@ -4,12 +4,13 @@ import Ask from './pages/Ask.tsx'
 import Build from './pages/Build.tsx'
 import Compare from './pages/Compare.tsx'
 import Evaluate from './pages/Evaluate.tsx'
+import Ops from './pages/Ops.tsx'
 import Prompt from './pages/Prompt.tsx'
 import Story from './pages/Story.tsx'
 import Sweep from './pages/Sweep.tsx'
 import { pageFor, type Page } from './route.ts'
 
-const PAGE_VIEWS: Record<Page, () => React.JSX.Element> = { Story, Ask, Evaluate, Compare, Build, Prompt, Sweep }
+const PAGE_VIEWS: Record<Page, () => React.JSX.Element> = { Story, Ask, Evaluate, Compare, Build, Prompt, Sweep, Ops }
 
 export default function App() {
   const [page, setPage] = useState(pageFor(location.hash))

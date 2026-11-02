@@ -15,7 +15,7 @@ from rag_playground.ask_requests import AskRequest, dev_questions
 from rag_playground.build_requests import BuildRequest, BuildSettings
 from rag_playground.calibration_requests import DbId, GradeRequest, OpenCalibration
 from rag_playground.prompt_requests import SavePrompt
-from rag_playground.rag import ask, builds, compare, evaluation, grading, prompts, sweeps
+from rag_playground.rag import ask, builds, compare, evaluation, grading, ops, prompts, sweeps
 from rag_playground.rag.pipeline import BudgetExceeded
 from rag_playground.run_requests import RunRequest, panel_options
 from rag_playground.scoring.judging import ACCURACY_RUBRIC
@@ -195,6 +195,17 @@ def start_sweep(request: SweepRequest) -> dict:
         raise HTTPException(status_code=404, detail=f"Not found: {exc.args[0]}")
     except (jobs.SweepRefused, BudgetExceeded) as exc:
         raise HTTPException(status_code=409, detail=str(exc))
+    finally:
+        conn.close()
+
+
+@app.get("/api/ops")
+def ops_summary() -> dict:
+    """Spend against the budget, failed jobs and answer times over the last OPS_WINDOW_DAYS (D30), the app version and
+    whether Qdrant answers."""
+    conn = store.connect()
+    try:
+        return ops.summary(conn) | {"version": settings.app_version, "qdrant": qdrant_status()}
     finally:
         conn.close()
 

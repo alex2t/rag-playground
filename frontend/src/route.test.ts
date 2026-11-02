@@ -13,7 +13,7 @@ test('a page keeps its address, so a saved link still works', () => {
 })
 
 test('the menu lists the built pages in order', () => {
-  assert.deepEqual(PAGES, ['Story', 'Ask', 'Evaluate', 'Compare', 'Build', 'Prompt', 'Sweep'])
+  assert.deepEqual(PAGES, ['Story', 'Ask', 'Evaluate', 'Compare', 'Build', 'Prompt', 'Sweep', 'Ops'])
   assert.equal(pageFor('#/evaluate'), 'Evaluate')
   assert.equal(pageFor('#/ask'), 'Ask')
 })
