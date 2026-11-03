@@ -682,7 +682,7 @@ Status: `accepted` | `proposed` (default, needs review) | `open` | `superseded`.
 - **Decisions (user, all as recommended):**
   - Q1: our own shared Tailwind components (Card, Button, Table, Guide, Badge); no component library.
   - Q2: a Home page that explains where to start and which page does what.
-  - Q3: Compare's verdict says "better" only when the paired bootstrap shows a real accuracy difference (the T08 rule already used by Story); otherwise "no real difference" and it points to the cheaper run. A custom wording of an existing rule, not a new statistic.
+  - Q3: Compare's verdict says "better" only when the paired bootstrap shows a real accuracy difference (the T08 rule already used by Story); otherwise "no real difference" and it points to the cheaper run. A custom wording of an existing rule, not a new statistic. Built 2026-11-03: the advice also applies T08's gates, as Story does: a run that fails a gate is never the one to keep, and when both fail, neither is advised (found by Antigravity reviewing increment 4).
   - Q4: failed logins rate-limited with fail2ban on Caddy's log (Step 10).
   - Q5: the whole site stays behind the password (D08), pages and API alike; no public read-only view. Guests at a live demo need the password too.
   - Q6: the redesign comes before Step 9's remaining checks, so the checks run on the final pages.

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import type { Comparison, RunReport, RunScores, RunSettings, RunSummary } from './api/types.ts'
-import { changeLine, chartLegend, comparable, depthNote, judgeRows, partners, rateRows, runChoice, runLine, runStatement, signed, tableRows } from './compare.ts'
+import { changeLine, chartLegend, comparable, costChange, depthNote, judgeRows, partners, rateRows, recommendation, runChoice, runLine, runStatement, settingDiffs, signed, tableRows } from './compare.ts'
 
 const SETTINGS: RunSettings = {
   chunking_method: 'fixed', chunk_size: 800, overlap: 200, chunk_set_id: 'x', top_k: 2, hybrid: true,
@@ -102,4 +102,83 @@ test('a saved chart states both runs, each beside its own colour', () => {
   assert.match(before.text, /^Before: run 5, Stack A, .*OpenAI ranker on/)
   assert.equal(after.swatch, '--color-after')
   assert.match(after.text, /^After: run 7, Stack B, .*hybrid on/)
+})
+
+const verdict = (v: 'better' | 'worse' | 'no real difference') => ({ low: 0, high: 0, real: v !== 'no real difference', verdict: v })
+const MOVED = { fixed: [{ test_id: 'q1', category: 'c', question: 'q', before: 2, after: 5 }], broken: [], both_pass: 150, both_fail: 41 }
+
+test('the cost change is in whole percent of Before, and a tiny one reads as the same', () => {
+  assert.equal(costChange(0.0012, 0.002), 'costs 67% more per question')
+  assert.equal(costChange(0.002, 0.001), 'costs 50% less per question')
+  assert.equal(costChange(0.0012, 0.001204), 'costs the same per question')
+})
+
+test('a real gain says so, with the gap, the cost and what it fixed and broke', () => {
+  const comparison = { ...COMPARISON, change: { accuracy: verdict('better'), mrr: CHANGE }, questions: MOVED }
+  assert.equal(recommendation(comparison),
+    "Run 7 is really better on accuracy (+0.25 on the 1 to 5 scale) and costs 67% more per question. Keep run 7's set-up. Run 7 fixed 1 question and broke 0.")
+})
+
+test('a real loss keeps the Before set-up', () => {
+  const worse = { ...COMPARISON, after: { ...LATER, scores: { ...SCORES, accuracy: 3.5 } }, change: { accuracy: verdict('worse'), mrr: CHANGE } }
+  assert.equal(recommendation(worse),
+    "Run 7 is really worse on accuracy (-0.50 on the 1 to 5 scale) and costs 67% more per question. Keep run 5's set-up.")
+})
+
+test('no real difference points to the cheaper run, whichever side it is on', () => {
+  assert.equal(recommendation(COMPARISON),
+    "No real difference in accuracy (+0.25 on the 1 to 5 scale): a gap this small can come from chance. Keep run 5's set-up, the cheaper one: it costs 40% less per question.")
+  const cheaperAfter = { ...COMPARISON, after: { ...LATER, cost_per_question: 0.0006 } }
+  assert.match(recommendation(cheaperAfter), /Keep run 7's set-up, the cheaper one: it costs 50% less per question\.$/)
+  const same = { ...COMPARISON, after: { ...LATER, cost_per_question: 0.0012 } }
+  assert.match(recommendation(same), /Both cost the same per question, so either set-up will do\.$/)
+})
+
+test('a real gain is not kept when its run fails a gate; the other run is', () => {
+  const failing = { ...COMPARISON, after: { ...LATER, failed_gates: ['mrr', 'faithfulness'] }, change: { accuracy: verdict('better'), mrr: CHANGE } }
+  assert.equal(recommendation(failing),
+    "Run 7 is really better on accuracy (+0.25 on the 1 to 5 scale) and costs 67% more per question. But run 7 fails MRR, Faithfulness, so it is not eligible: keep run 5's set-up.")
+})
+
+test('when both runs fail a gate, neither is advised', () => {
+  const both = { ...COMPARISON, before: { ...REPORT, failed_gates: ['recall'] }, after: { ...LATER, failed_gates: ['correct_refusal_rate'] } }
+  assert.match(recommendation(both), /Neither run is eligible as the best set-up: run 5 fails Recall@K, run 7 fails Correct refusal rate\.$/)
+})
+
+test('with no real difference, a cheaper run that fails a gate gives way to the other', () => {
+  const cheapFails = { ...COMPARISON, before: { ...REPORT, failed_gates: ['mrr'] } }
+  assert.match(recommendation(cheapFails), /But run 5 fails MRR, so it is not eligible: keep run 7's set-up\.$/)
+  const sameCost = { ...COMPARISON, after: { ...LATER, cost_per_question: 0.0012, failed_gates: ['recall'] } }
+  assert.match(recommendation(sameCost), /Keep run 5's set-up: the other fails Recall@K\.$/)
+  const sameCostBeforeFails = { ...COMPARISON, before: { ...REPORT, failed_gates: ['faithfulness'] }, after: { ...LATER, cost_per_question: 0.0012 } }
+  assert.match(recommendation(sameCostBeforeFails), /Keep run 7's set-up: the other fails Faithfulness\.$/)
+})
+
+test('a real verdict keeps the favoured run when only the other one fails a gate', () => {
+  const better = { ...COMPARISON, before: { ...REPORT, failed_gates: ['mrr'] }, change: { accuracy: verdict('better'), mrr: CHANGE } }
+  assert.match(recommendation(better), /Keep run 7's set-up\.$/)
+  const worse = { ...COMPARISON, after: { ...LATER, failed_gates: ['mrr'] }, change: { accuracy: verdict('worse'), mrr: CHANGE } }
+  assert.match(recommendation(worse), /Keep run 5's set-up\.$/)
+})
+
+test('a real loss on a run that fails a gate keeps After instead', () => {
+  const worse = { ...COMPARISON, before: { ...REPORT, failed_gates: ['recall'] }, change: { accuracy: verdict('worse'), mrr: CHANGE } }
+  assert.match(recommendation(worse), /But run 5 fails Recall@K, so it is not eligible: keep run 7's set-up\.$/)
+})
+
+test('only the settings the two runs do not share are listed', () => {
+  assert.deepEqual(settingDiffs(RUN, RUN), [])
+  const other = { ...RUN, settings: { ...SETTINGS, top_k: 4, prompt_name: 'strict' } }
+  assert.deepEqual(settingDiffs(RUN, other), [
+    { label: 'Top-K', before: '2', after: '4' },
+    { label: 'Prompt', before: 'default', after: 'strict' },
+  ])
+})
+
+test("runs on different stacks list the stack and each one's own search settings", () => {
+  const stackA = { ...RUN, stack: 'A' as const, settings: { ...SETTINGS, openai_ranking: RANKING } }
+  assert.deepEqual(settingDiffs(RUN, stackA), [
+    { label: 'Stack', before: 'B', after: 'A' },
+    { label: 'Search', before: 'hybrid on', after: 'OpenAI ranker on, weights 1:2, threshold 0' },
+  ])
 })

@@ -4,6 +4,14 @@ Add new bugs at the top. Status: `open` | `investigating` | `fixed`.
 
 ---
 
+## [2026-11-03] Step 9: Compare's advice could keep a run that fails a gate - `fixed`
+- **Symptom:** found by Antigravity (Gemini 3.8) reviewing redesign increment 4, before commit. The new "What this means" advice said "Keep run X's set-up" from the accuracy verdict and cost alone, even when run X failed a T08 gate (shown just below it as "Fails the gates").
+- **Reproduce:** a comparison where After is really better but fails MRR: the advice said to keep After.
+- **Root cause (evidence):** `recommendation` in `frontend/src/compare.ts` never read `failed_gates`, while T08 (`decision.md` T08, `scoring/selection.py` `pick_best`) keeps only runs that pass every gate. Antigravity rated it minor and optional; Claude treated it as a contradiction of the study's own rule.
+- **Fix:** `keepAdvice` applies the gates first: neither run is advised when both fail; the run the verdict favours gives way to the other when it fails; with no real difference and equal cost, the run that passes is kept. Gate keys shown with the page's labels. Recorded under D31 Q3.
+- **Verified by:** 6 new tests; 7 deliberate breaks of the gate logic all caught (2 only after tests Antigravity's case table showed missing). Antigravity confirmed the fix: all 36 verdict x gates x cost cases right. Its quote of `compare.test.ts:128-135` (`it(...)`, `sampleComparison`) and its test output (19 files) are invented; its conclusions were re-checked by Claude.
+- **Status:** fixed.
+
 ## [2026-11-03] Step 9: the pages look dated, and Evaluate does not guide the user to the report - `open`
 - **Symptom:** found by the user in the first real use of the dashboard (smoke test, run 25). (1) Every page looks old-fashioned, not like a modern web app. (2) Evaluate gives no instructions: the Evaluate button stays grey until Estimate is pressed, with nothing saying so. (3) The runs list is at the bottom of the page and does not look clickable, so the user could not find a run's report or its answers.
 - **Reproduce:** open Evaluate, run a smoke test, then look for its report.

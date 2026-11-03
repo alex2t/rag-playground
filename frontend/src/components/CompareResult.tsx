@@ -1,5 +1,5 @@
 import type { Comparison, MovedQuestion, PairedChange, RunReport } from '../api/types.ts'
-import { changeLine, depthNote, runLine, signed, tableRows } from '../compare.ts'
+import { changeLine, depthNote, recommendation, runLine, signed, tableRows } from '../compare.ts'
 import CompareCharts from './CompareCharts.tsx'
 
 const VERDICT_TEXT: Record<PairedChange['verdict'], string> = { better: 'text-good', worse: 'text-danger', 'no real difference': 'text-muted' }
@@ -48,7 +48,9 @@ function ScoresTable({ comparison }: { comparison: Comparison }) {
   )
 }
 
-function MovedList({ title, moved }: { title: string; moved: MovedQuestion[] }) {
+type OnOpen = ((testId: string) => void) | null
+
+function MovedList({ title, moved, onOpen }: { title: string; moved: MovedQuestion[]; onOpen: OnOpen }) {
   return (
     <div className="min-w-0">
       <h3 className="font-semibold">{title} ({moved.length})</h3>
@@ -58,6 +60,7 @@ function MovedList({ title, moved }: { title: string; moved: MovedQuestion[] }) 
           <li key={item.test_id} className="border-t border-line pt-2">
             <p className="[overflow-wrap:anywhere]">{item.question}</p>
             <p className="text-muted">{item.category}, accuracy {item.before} to {item.after}</p>
+            {onOpen && <button type="button" className="text-sm text-accent-text underline" onClick={() => onOpen(item.test_id)}>Open in Ask with After's settings</button>}
           </li>
         ))}
       </ul>
@@ -65,7 +68,7 @@ function MovedList({ title, moved }: { title: string; moved: MovedQuestion[] }) 
   )
 }
 
-function Questions({ comparison }: { comparison: Comparison }) {
+function Questions({ comparison, onOpen }: { comparison: Comparison; onOpen: OnOpen }) {
   const moved = comparison.questions
   if (moved === null) return <p className="text-sm text-muted">Held-out runs compare overall only: those questions stay out of tuning.</p>
   return (
@@ -75,19 +78,24 @@ function Questions({ comparison }: { comparison: Comparison }) {
         {' '}{moved.both_pass} passed in both runs, {moved.both_fail} failed in both.
       </p>
       <div className="grid gap-4 md:grid-cols-2">
-        <MovedList title="Fixed" moved={moved.fixed} />
-        <MovedList title="Broken" moved={moved.broken} />
+        <MovedList title="Fixed" moved={moved.fixed} onOpen={onOpen} />
+        <MovedList title="Broken" moved={moved.broken} onOpen={onOpen} />
       </div>
     </section>
   )
 }
 
 /** Whether After really differs from Before, what each run was, and the scores and questions behind it. */
-export default function CompareResult({ comparison }: { comparison: Comparison }) {
+export default function CompareResult({ comparison, onOpen }: { comparison: Comparison; onOpen: OnOpen }) {
   const { before, after, change } = comparison
   const depth = depthNote(comparison)
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+      <section aria-label="Advice" className="card border-accent bg-accent-soft/40 p-5">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-accent-text">What this means</h2>
+        <p className="mt-1 text-lg font-medium">{recommendation(comparison)}</p>
+        <p className="mt-2 text-sm text-muted">"Really" means the paired test on the same questions puts the whole 95% interval of the accuracy change on one side of zero, the rule Story uses to keep a step. As on Story, only a run that passes every gate (minimum MRR, Recall@K, faithfulness and correct refusal rate) can be kept.</p>
+      </section>
       <section aria-label="Result" className="min-w-0 space-y-3 card p-4">
         <div className="grid gap-2 md:grid-cols-2">
           <Verdict name="Accuracy" line={changeLine(before.scores.accuracy, after.scores.accuracy, change.accuracy)} change={change.accuracy} />
@@ -102,7 +110,7 @@ export default function CompareResult({ comparison }: { comparison: Comparison }
       </section>
       <CompareCharts comparison={comparison} />
       <ScoresTable comparison={comparison} />
-      <Questions comparison={comparison} />
+      <Questions comparison={comparison} onOpen={onOpen} />
     </div>
   )
 }

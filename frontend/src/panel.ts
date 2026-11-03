@@ -96,7 +96,8 @@ export function requestFor(values: PanelValues, stack: StackId): PanelRequest {
   return { stack, chunking_method, chunk_size, overlap, top_k, rerank, answer_model, prompt_name, ...search }
 }
 
-function searchLine(request: PanelRequest): string {
+/** A stack's own search settings in a few words (T12, T40). */
+export function searchLine(request: PanelRequest): string {
   if (request.openai_ranking) {
     const { ranker, embedding_weight, text_weight, score_threshold } = request.openai_ranking
     const label = ranker === 'auto' ? 'OpenAI ranker on' : 'ranker none'
