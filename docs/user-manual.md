@@ -125,6 +125,8 @@ The held-out confirmation opens when a stack's ladder is finished, and each conf
 ### Prompt: edit the instructions
 Write your own system prompts: start from the default or any saved version, edit it, and save it under a new name. A name cannot contain a comma, and the text must differ from every saved version. Save as many versions as you like; each can be picked in the settings panel on **Ask**, **Evaluate** and **Sweep**. A saved version never changes, and the page lists the runs that used each one.
 
+Under the editor, **Test on Evaluate** opens Evaluate with the selected version chosen and the 20-question smoke test selected; you still press Estimate, then Evaluate. **Try on Ask** opens Ask with the version chosen. Both test the saved text, so save your edits first. Each run that used the version has an **Open** button that shows its report on Evaluate.
+
 For the ladder's prompt step (S6), choose up to 4 of your versions before the step runs; the best one is kept for the rest of the ladder and for the demo.
 
 ### Build: prepare chunks
