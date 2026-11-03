@@ -492,6 +492,7 @@ Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Swe
   - The two environments do not share data.
 
 ### Step 11 - CI/CD with an evaluation gate
+- **Still to build (noted 2026-11-03):** `scripts/eval_gate.py` does not exist yet. Before writing it, agree with the user how its paid calls are funded: 20 questions on every deploy, about $0.02 on Stack B or $0.08 on Stack A at S0 (search fee included), more on the production configuration.
 - GitHub Actions on every push to `main`:
   1. Lint and unit tests.
   2. Build the image and push it to GHCR as `:<git-sha>`.
@@ -518,6 +519,7 @@ Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Swe
 - **Check:** all runs pass smoke tests, and spend stays within budget.
 
 ### Step 14 - Report
+- **Still to build (noted 2026-11-03):** `scripts/embedding_map.py` (T38) does not exist yet, and scikit-learn is not installed: add it with `uv add scikit-learn` (approved in T38) when the script is built. Stack A chunks need re-embedding with the vector store's OpenAI embedding model, a small paid call run by the user.
 - **Report outline:**
   1. **Problem:** RAG that looks fine but answers badly. How do you know, and how do you fix it safely?
   2. **Method:** controlled variables, gold labels, dev and held-out split, paired bootstrap, a calibrated judge.

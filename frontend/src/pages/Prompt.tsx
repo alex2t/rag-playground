@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { getPrompts, savePrompt } from '../api/client.ts'
 import type { PromptVersion } from '../api/types.ts'
 import Guide from '../components/Guide.tsx'
+import PageTitle from '../components/PageTitle.tsx'
 import { runCount, runLine, saveProblem } from '../prompts.ts'
 import { pageLink } from '../route.ts'
 
@@ -107,10 +108,7 @@ export default function Prompt() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Prompt</h1>
-        <p className="text-muted">Write your own instructions for the answer model, then test them.</p>
-      </div>
+      <PageTitle title="Prompt" about="Write your own instructions for the answer model, then test them." />
       <Guide page="Prompt" steps={STEPS}
         purpose="The system prompt tells the answer model how to answer: use only the retrieved passages, say when it cannot answer, and so on. Changing it is one of the study's steps (S6)." />
       <div className="grid gap-5 md:grid-cols-[16rem_minmax(0,1fr)]">

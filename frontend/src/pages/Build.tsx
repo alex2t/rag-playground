@@ -3,9 +3,16 @@ import { estimateBuild, getPanel, startBuild } from '../api/client.ts'
 import type { BuildJob, BuiltSet, PanelOptions } from '../api/types.ts'
 import { useBuilds } from '../api/useBuilds.ts'
 import { buildProblem, estimateFor, estimateLine, jobLine, jobTone, overBudget, settingsOf, startValues, toBuild, type BuildValues, type Estimated, type Tone } from '../build.ts'
+import Guide from '../components/Guide.tsx'
+import PageTitle from '../components/PageTitle.tsx'
 import type { StackChoice } from '../panel.ts'
 
 const BOX = 'mt-1 field'
+const STEPS = [
+  'Choose the stacks, the chunking method, the chunk size and the overlap.',
+  'Press Estimate: it shows the chunk set, its number of chunks, the stacks that already have it, and the cost.',
+  'Press Embed to build it on the stacks that do not have it yet. Each build is listed below: green once stored, red with the reason if it failed.',
+]
 const TONE_TEXT: Record<Tone, string> = { good: 'text-good', bad: 'text-danger', working: 'text-muted' }
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
@@ -110,7 +117,11 @@ export default function Build() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+      <PageTitle title="Build" about="Cut the documents into chunks and store them on a stack." />
+      <Guide page="Build" steps={STEPS}
+        purpose="Before a set-up can be asked or evaluated, its chunks must exist on the stack: the 48 documents cut into passages of the chosen size, turned into vectors and stored."
+        note="Fixed chunks are free. LLM-enriched chunks pay once for a headline and summary of every chunk, shared by both stacks. Stack B builds on this computer and needs Qdrant running. The settings box on Ask, Evaluate and Sweep also offers to build missing chunks." />
       <section aria-label="Build" className="min-w-0 space-y-3 card p-4 md:max-w-xl">
         <h2 className="font-semibold">Prepare chunks</h2>
         <div className="grid gap-3 sm:grid-cols-2">

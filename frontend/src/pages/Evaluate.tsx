@@ -4,6 +4,7 @@ import type { QuestionSet, RunSummary } from '../api/types.ts'
 import { usePanel } from '../api/usePanel.ts'
 import { useRuns } from '../api/useRuns.ts'
 import Guide from '../components/Guide.tsx'
+import PageTitle from '../components/PageTitle.tsx'
 import RunsPanel, { ShownRun } from '../components/RunsPanel.tsx'
 import SettingsPanel from '../components/SettingsPanel.tsx'
 import { askLink, estimateFor, estimateLine, linkedRunId, overBudget, questionSetOf, runOfJobs, shownRun, valuesOfRun, type Estimated } from '../evaluate.ts'
@@ -81,10 +82,7 @@ export default function Evaluate() {
   const over = estimates !== null && overBudget(estimates)
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Evaluate</h1>
-        <p className="text-muted">Score one set-up on many test questions, with a report you can trust.</p>
-      </div>
+      <PageTitle title="Evaluate" about="Score one set-up on many test questions, with a report you can trust." />
       <Guide page="Evaluate" steps={STEPS}
         purpose="Each test question is searched, answered by the answer model and graded by a separate judge model against its reference answer."
         note="Held-out questions are kept for confirming a final choice: do not use them to tune settings." />

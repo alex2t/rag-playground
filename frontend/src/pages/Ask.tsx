@@ -4,6 +4,8 @@ import type { AskQuestion, AskResult, StackId } from '../api/types.ts'
 import { usePanel } from '../api/usePanel.ts'
 import { byCategory, questionBody } from '../ask.ts'
 import AskResultCard from '../components/AskResultCard.tsx'
+import Guide from '../components/Guide.tsx'
+import PageTitle from '../components/PageTitle.tsx'
 import SettingsPanel from '../components/SettingsPanel.tsx'
 import { panelProblem, requestFor, saveValues, settingsLine, stacksOf, type PanelValues } from '../panel.ts'
 import { linkedParam, linkedTest } from '../route.ts'
@@ -51,6 +53,13 @@ function ReplyCard({ reply }: { reply: Reply }) {
 }
 
 /** One question with the panel's settings (T54), on one stack or both side by side. */
+const STEPS = [
+  'Choose the settings in the Settings box: the stack, the chunks, how many to search (top-K), the answer model and the prompt.',
+  'Type your own question, or pick one of the test questions.',
+  'Press Ask. The answer shows with the chunks it was given, its time and its cost.',
+  'For a test question you also see the reference answer, the documents that hold it (highlighted where they were found) and the judge\'s scores. A question you type has no reference answer, so it gets no scores.',
+]
+
 export default function Ask() {
   const { options, promptNames, values, setValues, error: panelError } = usePanel(linkedParam(location.hash, 'prompt'))
   const [questions, setQuestions] = useState<AskQuestion[]>([])
@@ -88,8 +97,12 @@ export default function Ask() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-[22rem_minmax(0,1fr)]">
+    <div className="space-y-5">
+      <PageTitle title="Ask" about="Try one question and see the passages the answer came from." />
+      <Guide page="Ask" steps={STEPS}
+        purpose="See how one set-up answers one question, and which passages of the documents it read to answer."
+        note="Each question runs at once, without an estimate: it costs under half a cent (about $0.001 on Stack B, $0.004 on Stack A with its search fee)." />
+      <div className="grid gap-5 md:grid-cols-[22rem_minmax(0,1fr)]">
         <SettingsPanel values={values} options={options} promptNames={promptNames} onChange={setValues} />
         <section aria-label="Question" className="min-w-0 space-y-3 self-start card p-4">
           <QuestionBox questions={questions} typed={typed} testId={testId}

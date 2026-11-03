@@ -4,6 +4,7 @@ import type { PanelOptions, SweepPlan, SweepValue } from '../api/types.ts'
 import { usePanel } from '../api/usePanel.ts'
 import type { LegendLine } from '../chartImage.ts'
 import Guide from '../components/Guide.tsx'
+import PageTitle from '../components/PageTitle.tsx'
 import LadderChart from '../components/LadderChart.tsx'
 import SettingsPanel from '../components/SettingsPanel.tsx'
 import { panelProblem, saveValues, stacksOf, type PanelValues } from '../panel.ts'
@@ -214,10 +215,7 @@ export default function Sweep() {
   const jobs = stacks.flatMap((stack) => (latest[stack] ? [{ stack, job: latest[stack] }] : []))
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Sweep</h1>
-        <p className="text-muted">See how one setting changes the scores, with everything else fixed.</p>
-      </div>
+      <PageTitle title="Sweep" about="See how one setting changes the scores, with everything else fixed." />
       <Guide page="Sweep" steps={STEPS}
         purpose="For example top-K = 2, 4, 6 and 8 with the rest of your set-up unchanged: one run per value on the 192 dev questions, side by side on one chart."
         note="Exploratory: a sweep picks no winner and uses dev questions only. To decide between two set-ups, use Compare.">

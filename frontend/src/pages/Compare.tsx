@@ -5,6 +5,7 @@ import { usePanel } from '../api/usePanel.ts'
 import { useRuns } from '../api/useRuns.ts'
 import CompareResult from '../components/CompareResult.tsx'
 import Guide from '../components/Guide.tsx'
+import PageTitle from '../components/PageTitle.tsx'
 import { comparable, partners, runChoice, settingDiffs } from '../compare.ts'
 import { askLink, valuesOfRun } from '../evaluate.ts'
 import { saveValues } from '../panel.ts'
@@ -76,10 +77,7 @@ export default function Compare() {
     : null
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Compare</h1>
-        <p className="text-muted">Is one set-up really better than another, or is the gap just chance?</p>
-      </div>
+      <PageTitle title="Compare" about="Is one set-up really better than another, or is the gap just chance?" />
       <Guide page="Compare" steps={STEPS}
         purpose="Two runs rarely score the same, even with one set-up, because the models vary. Compare tests whether a gap is bigger than that variation, on the very same questions, with the paired test Story uses. Free: it reads finished runs."
         note="Smoke tests and samples are not offered: 20 questions are too few to tell a real difference from chance. Start full runs on Evaluate." />

@@ -1,9 +1,17 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { getOps } from '../api/client.ts'
 import type { OpsSummary } from '../api/types.ts'
+import Guide from '../components/Guide.tsx'
+import PageTitle from '../components/PageTitle.tsx'
 import { apartLine, budgetLine, budgetTone, failureLine, leftLine, rateText, rateTone, seconds, splitLine, type Tone } from '../ops.ts'
 
 const TONE_TEXT: Record<Tone, string> = { good: 'text-good', warn: 'text-warn', bad: 'text-danger' }
+const STEPS = [
+  'Spend: what has been spent, what is left, and how it splits between runs and the rest (Ask, enrichment). Past the budget, paid work is refused until BUDGET_USD is raised.',
+  'Error rate: the share of background jobs finished in the last 7 days that failed through a fault. Budget stops and jobs cut off by an app restart are counted apart.',
+  'Answer time per stack: the typical time (p50) and the slowest 5% (p95) to search and answer one question.',
+  'Failed jobs, each with its message. Press Refresh to read the figures again.',
+]
 
 function Tile({ title, value, tone, children }: { title: string; value: string; tone?: Tone; children?: ReactNode }) {
   return (
@@ -48,9 +56,24 @@ export default function Ops() {
 
   useEffect(() => { load() }, [load])
 
-  if (summary === null) return <p className={`text-sm ${error ? 'text-danger' : 'text-muted'}`} role={error ? 'alert' : undefined}>{error ?? 'Loading...'}</p>
+  const top = (
+    <>
+      <PageTitle title="Ops" about="Spend against the budget, and whether anything failed." />
+      <Guide page="Ops" steps={STEPS} purpose="A health check of the app: free, it only reads what is stored." />
+    </>
+  )
+  if (summary === null) {
+    return (
+      <div className="space-y-5">
+        {top}
+        <p className={`text-sm ${error ? 'text-danger' : 'text-muted'}`} role={error ? 'alert' : undefined}>{error ?? 'Loading... (checking Qdrant takes a few seconds)'}</p>
+        {error && <button type="button" className="btn text-sm" onClick={load}>Try again</button>}
+      </div>
+    )
+  }
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+      {top}
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm text-muted">Failed jobs and answer times cover the last {summary.window_days} days; spend covers everything since the start.</p>
         <button type="button" className="shrink-0 btn text-sm" onClick={load}>Refresh</button>
