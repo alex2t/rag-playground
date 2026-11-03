@@ -61,6 +61,9 @@ If the chunks for your chunking method, chunk size and overlap are not built on 
 
 ## 5. The pages
 
+### Home: where to begin
+The app opens here. It says what the app does, shows the budget left and the latest finished run (with a link to its report), the usual path (Build, Ask, Evaluate, Compare), and a table of which page does what and what it costs.
+
 ### How an evaluation works
 Building and evaluating are two separate actions:
 
