@@ -2,7 +2,7 @@
 
 How to use the RAG Playground dashboard: ask questions, run evaluations, compare set-ups and prepare the live demo.
 
-> **Status (2026-11-02):** Story, Ask, Evaluate, Compare, Build, Prompt and Sweep are built. Ops is not built yet; this manual describes it as designed.
+> **Status (2026-11-03):** Every page is built.
 
 ## 1. What the app does
 
@@ -132,7 +132,7 @@ Choose the chunking method, chunk size, overlap and stacks, then press **Estimat
 The settings panel is the base configuration. Pick the one setting to vary and its values: type numbers separated by commas, or tick values from a list. At most 6 values, the base configuration's own value included, since every other value is compared with it. With both stacks, only settings both share can be varied; a stack's own search settings are swept on that stack alone. Press **Estimate** to see each value's run or cost, then **Confirm**. Each value runs on the 192 dev questions; values with a run already are reused, not paid twice. The charts show each value's accuracy and MRR with their 95% interval, and + or − where a value is really better or worse than the base. Sweeps are exploratory: no winner is picked.
 
 ### Ops: health and spend
-Spend against the budget, error rate, slowest-answer time (p95) and the app version.
+Spend so far against the budget, split into runs and the rest (Ask, enrichment); past the budget, it says by how much. The error rate is the share of background jobs (runs, ladder steps, builds, sweeps) finished in the last 7 days that failed through a fault; stops at the budget cap and jobs cut off by an app restart are counted apart. Answer time per stack: the median (p50) and the slowest 5% (p95) of the time to search and answer one question, over runs started in the last 7 days; grading and questions asked on **Ask** are not counted. Also the app version, whether Qdrant answers, and every failed job with its message. **Refresh** reloads the figures.
 
 ## 6. Common tasks
 
