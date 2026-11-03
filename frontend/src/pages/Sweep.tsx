@@ -11,7 +11,7 @@ import {
   sweepJobLine, variableOf, variablesFor, type Latest, type Planned,
 } from '../sweep.ts'
 
-const BOX = 'mt-1 w-full rounded border border-line bg-transparent px-2 py-1'
+const BOX = 'mt-1 field'
 const POLL_MS = 2000
 const NOTE = 'Exploratory: dev questions only. Bars show the 95% interval. + or - marks a real change against the base value. Many values tested at once can show a real-looking difference by luck.'
 const IMAGE_LEGEND: LegendLine[] = [
@@ -73,7 +73,7 @@ function Results({ plans, variable }: { plans: SweepPlan[]; variable: string }) 
             domain={[0, 1]} ticks={[0, 0.25, 0.5, 0.75, 1]} note={NOTE} imageLegend={IMAGE_LEGEND} connect={about.ordered} />
         </div>
       )}
-      <section aria-label="Sweep values" className="min-w-0 space-y-3 rounded-lg border border-line bg-panel p-4">
+      <section aria-label="Sweep values" className="min-w-0 space-y-3 card p-4">
         {plans.map((plan) => <PlanTable key={plan.stack} plan={plan} />)}
         <p className="text-xs text-muted">Exploratory: dev questions only, and no value is picked as the winner. Only one setting changes, so how settings interact is not shown.</p>
       </section>
@@ -182,7 +182,7 @@ export default function Sweep() {
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-[22rem_minmax(0,1fr)]">
         <SettingsPanel values={panel} options={options} promptNames={promptNames} onChange={setValues} />
-        <section aria-label="Sweep" className="min-w-0 space-y-3 self-start rounded-lg border border-line bg-panel p-4">
+        <section aria-label="Sweep" className="min-w-0 space-y-3 self-start card p-4">
           <p className="text-sm text-muted">The panel is the base configuration. One setting changes; every value runs on the 192 dev questions, and values with a run already are reused.</p>
           <label className="block text-sm">
             Setting to vary
@@ -193,9 +193,9 @@ export default function Sweep() {
           <ValuesInput variable={current} options={options} promptNames={promptNames} typed={typed} picked={picked} onType={setTyped} onPick={setPicked} />
           <p className="text-xs text-muted">At most 6 values, the base configuration's own value included: it is what the others are compared with.</p>
           <div className="flex gap-2">
-            <button type="button" className="rounded border border-line px-3 py-1 text-sm disabled:opacity-50" disabled={busy || problem !== null}
+            <button type="button" className="btn text-sm" disabled={busy || problem !== null}
               onClick={() => void estimate()}>Estimate</button>
-            <button type="button" className="rounded bg-accent px-3 py-1 text-sm font-medium text-white disabled:opacity-50"
+            <button type="button" className="btn-primary text-sm"
               disabled={busy || plans === null || runnable.length === 0 || over || working} onClick={() => void confirm()}>Confirm</button>
           </div>
           {problem && <p className="text-sm text-muted">{problem}</p>}

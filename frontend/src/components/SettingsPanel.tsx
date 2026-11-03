@@ -3,7 +3,7 @@ import type { OpenAIRanking, PanelOptions } from '../api/types.ts'
 import { stacksOf, type PanelValues, type StackChoice } from '../panel.ts'
 import BuildOffer from './BuildOffer.tsx'
 
-const BOX = 'mt-1 w-full rounded border border-line bg-transparent px-2 py-1'
+const BOX = 'mt-1 field'
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return <label className="block text-sm">{label}{children}</label>
@@ -52,7 +52,7 @@ export default function SettingsPanel({ values, options, promptNames, onChange }
   const change = (part: Partial<PanelValues>) => onChange({ ...values, ...part })
   const stacks = stacksOf(values.stacks)
   return (
-    <section aria-label="Settings" className="min-w-0 space-y-3 rounded-lg border border-line bg-panel p-4">
+    <section aria-label="Settings" className="min-w-0 space-y-3 card p-4">
       <h2 className="font-semibold">Settings</h2>
       <Field label="Stack">
         <select className={BOX} value={values.stacks} onChange={(e) => change({ stacks: e.target.value as StackChoice })}>

@@ -61,8 +61,8 @@ export default function BuildOffer({ values, options }: { values: PanelValues; o
       {missing.length > 0 && <p>These chunks are not built on {missing.map((stack) => `Stack ${stack}`).join(' and ')} yet, so the {missing.length > 1 ? 'stacks' : 'stack'} cannot answer.</p>}
       {missing.length > 0 && (
         <div className="flex gap-2">
-          <button type="button" className="rounded border border-line px-3 py-1 disabled:opacity-50" disabled={busy} onClick={() => void runEstimate()}>Estimate the build</button>
-          <button type="button" className="rounded border border-line px-3 py-1 font-medium disabled:opacity-50"
+          <button type="button" className="btn" disabled={busy} onClick={() => void runEstimate()}>Estimate the build</button>
+          <button type="button" className="btn-primary"
             disabled={busy || stacks.length === 0 || (estimate !== null && overBudget(estimate))} onClick={() => void build()}>Build them</button>
         </div>
       )}

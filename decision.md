@@ -676,3 +676,16 @@ Status: `accepted` | `proposed` (default, needs review) | `open` | `superseded`.
 - **Budget (built 2026-10-30):** enrichment counts toward `BUDGET_USD`, as plan.md 1.4 budgets it, with one `spend` row per call and no run id (T44). The estimate uses each chunk's real input tokens and the assumed output, for chunks not paid for yet (a custom formula, like T43). A build estimated over what is left is refused before any paid call, and each next chunk is sent only if its estimate fits. A chunk that costs more than estimated can pass the cap by that difference, a fraction of a cent. `scripts/enrich.py`, run by the user, does the build and the indexing.
 - **Alternatives:** the chunk alone (cheaper, but cannot add what the chunk leaves out); passing the summary to the answer model too (changes search and answers together); `gpt-4.1-nano` (about a quarter of the cost, weaker summaries).
 - **Best practice:** yes for the technique. Keeping the original text for answers is our own choice, to keep one variable per ladder step.
+
+### D31 - Dashboard redesign: guided pages and a shared style - `accepted` 2026-11-03 (user decisions)
+- **Why:** the first real use (run 25) showed every page confusing: no page said what it was for or what to do first, Evaluate's report could not be found, Prompt did not lead to a test, Sweep looked like Evaluate with no difference explained (top of `fix.md`). Full plan: `ux-redesign.md` (private).
+- **Decisions (user, all as recommended):**
+  - Q1: our own shared Tailwind components (Card, Button, Table, Guide, Badge); no component library.
+  - Q2: a Home page that explains where to start and which page does what.
+  - Q3: Compare's verdict says "better" only when the paired bootstrap shows a real accuracy difference (the T08 rule already used by Story); otherwise "no real difference" and it points to the cheaper run. A custom wording of an existing rule, not a new statistic.
+  - Q4: failed logins rate-limited with fail2ban on Caddy's log (Step 10).
+  - Q5: the whole site stays behind the password (D08), pages and API alike; no public read-only view. Guests at a live demo need the password too.
+  - Q6: the redesign comes before Step 9's remaining checks, so the checks run on the final pages.
+- **Access guards (Step 10):** basic auth on every request (D08); the app and Qdrant reachable only through Caddy, firewall open on 22, 80, 443 only; `BUDGET_USD`; a credit limit on the OpenRouter key and a monthly budget on the OpenAI project key; a post-deploy check that every page and API route answers 401 without the password.
+- **Alternatives:** shadcn/ui (polished faster, adds Radix and several packages); public read-only results with a password for paid actions only (needs login code in the app and a guard on every new paid route).
+- **Best practice:** guided pages and shared components are standard. Q5 keeps D08's limit: one shared password, no per-user identity; production would use single sign-on (OIDC).

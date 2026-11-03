@@ -4,6 +4,13 @@ Add new bugs at the top. Status: `open` | `investigating` | `fixed`.
 
 ---
 
+## [2026-11-03] Step 9: the pages look dated, and Evaluate does not guide the user to the report - `open`
+- **Symptom:** found by the user in the first real use of the dashboard (smoke test, run 25). (1) Every page looks old-fashioned, not like a modern web app. (2) Evaluate gives no instructions: the Evaluate button stays grey until Estimate is pressed, with nothing saying so. (3) The runs list is at the bottom of the page and does not look clickable, so the user could not find a run's report or its answers.
+- **Reproduce:** open Evaluate, run a smoke test, then look for its report.
+- **Root cause (evidence):** design, not code: the report and answers open only by clicking a plain text line in the Runs box (`components/RunsPanel.tsx:43`), below the settings; the page states only "Press Estimate to see the cost and the time." (`pages/Evaluate.tsx:89`). The look is a minimal Tailwind theme (`index.css`) with plain borders and system font.
+- **Fix:** to be agreed with the user.
+- **Status:** open.
+
 ## [2026-11-02] Step 9: the Sweep page lost a running sweep after leaving and coming back - `fixed`
 - **Symptom:** found by Claude while checking Antigravity's (Gemini 3.8) review of the Sweep page, which said polling resumes after leaving and returning. It did only after typing the same setting and values again and pressing Estimate: the latest sweep job came with the plan, the plan is kept only in the page, and typed values are not saved. So on return the page showed nothing of a running sweep.
 - **Reproduce:** in headless Edge, open Sweep while a sweep runs, with nothing estimated: before the fix no line about it.

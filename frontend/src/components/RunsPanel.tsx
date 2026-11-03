@@ -34,7 +34,7 @@ type Props = { runs: RunSummary[]; base: PanelValues; openId: number | null; onO
 export default function RunsPanel({ runs, base, openId, onOpen, onOpenQuestion }: Props) {
   const open = runs.find((run) => run.id === openId)
   return (
-    <section aria-label="Runs" className="min-w-0 space-y-3 rounded-lg border border-line bg-panel p-4">
+    <section aria-label="Runs" className="min-w-0 space-y-3 card p-4">
       <h2 className="font-semibold">Runs</h2>
       {runs.length === 0 && <p className="text-sm text-muted">No run yet.</p>}
       <ul className="max-h-64 overflow-y-auto text-sm">

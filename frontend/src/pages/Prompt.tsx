@@ -7,7 +7,7 @@ const LONG_NAME = '[overflow-wrap:anywhere]'
 
 function VersionList({ versions, selected, onPick }: { versions: PromptVersion[]; selected: PromptVersion; onPick: (version: PromptVersion) => void }) {
   return (
-    <nav aria-label="Saved versions" className="min-w-0 rounded-lg border border-line bg-panel p-2">
+    <nav aria-label="Saved versions" className="min-w-0 card p-2">
       {versions.map((version) => (
         <button key={version.name} type="button" aria-current={version.name === selected.name}
           className={`block w-full rounded px-2 py-1 text-left text-sm ${version.name === selected.name ? 'bg-page font-medium' : ''}`}
@@ -82,20 +82,20 @@ export default function Prompt() {
   return (
     <div className="grid gap-4 md:grid-cols-[16rem_minmax(0,1fr)]">
       <VersionList versions={versions} selected={selected} onPick={pick} />
-      <section aria-label="Edit a version" className="min-w-0 space-y-3 rounded-lg border border-line bg-panel p-4">
+      <section aria-label="Edit a version" className="min-w-0 space-y-3 card p-4">
         <h2 className={`font-semibold ${LONG_NAME}`}>Starting from {selected.name}</h2>
         <RunsUsing version={selected} />
         <label className="block text-sm">
           System prompt
-          <textarea rows={14} className="mt-1 w-full rounded border border-line bg-transparent px-2 py-1" value={text}
+          <textarea rows={14} className="mt-1 field" value={text}
             onChange={(e) => setText(e.target.value)} />
         </label>
         <label className="block text-sm">
           New version name
-          <input className="mt-1 w-full rounded border border-line bg-transparent px-2 py-1" value={name}
+          <input className="mt-1 field" value={name}
             onChange={(e) => setName(e.target.value)} />
         </label>
-        <button type="button" className="rounded bg-accent px-3 py-1 text-sm font-medium text-white disabled:opacity-50"
+        <button type="button" className="btn-primary text-sm"
           disabled={saving || problem !== null} onClick={() => void save()}>Save new version</button>
         <p className="text-sm text-muted">{problem ?? 'A saved version never changes.'}</p>
         {saved && <p role="status" className={`text-sm ${LONG_NAME}`}>{saved}</p>}

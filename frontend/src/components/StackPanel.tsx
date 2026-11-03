@@ -59,7 +59,7 @@ export default function StackPanel({ stack, ladder }: { stack: StackId; ladder: 
   const final = state && finalStep(state)
   const best = state && bestSoFar(state)
   return (
-    <section aria-label={`Stack ${stack}`} className="min-w-0 rounded-lg border border-line bg-panel p-4">
+    <section aria-label={`Stack ${stack}`} className="min-w-0 card p-4">
       <h2 className="font-semibold">Stack {stack}</h2>
       <p className="mb-3 text-sm text-muted">{SEARCH[stack]}</p>
       {state === null && !error && <p className="text-sm text-muted">Loading...</p>}
@@ -73,13 +73,13 @@ export default function StackPanel({ stack, ladder }: { stack: StackId; ladder: 
                   <label className="mb-2 block">
                     Prompt versions for S6, separated by commas (at most 4; empty skips S6)
                     <span className="mt-1 flex gap-2">
-                      <input className="w-full rounded border border-line bg-transparent px-2 py-1" value={prompts}
+                      <input className="field" value={prompts}
                         onChange={(e) => setPrompts(e.target.value)} />
-                      <button type="button" className="rounded border border-line px-3 py-1" onClick={() => void preview()}>Estimate</button>
+                      <button type="button" className="btn" onClick={() => void preview()}>Estimate</button>
                     </span>
                   </label>
                 )}
-                <button type="button" className="rounded bg-accent px-3 py-1 font-medium text-white disabled:opacity-50"
+                <button type="button" className="btn-primary"
                   disabled={busy || estimateIsStale(state, prompts, estimated)} onClick={runStep}>
                   {state.missing.length === 0
                     ? 'Skip S6'
@@ -109,7 +109,7 @@ export default function StackPanel({ stack, ladder }: { stack: StackId; ladder: 
           {state.steps.length > 0 && (
             <details className="mt-3">
               <summary className="cursor-pointer text-sm">Every option tried</summary>
-              <button type="button" className="mt-2 rounded border border-line px-3 py-1 text-sm"
+              <button type="button" className="mt-2 btn text-sm"
                 onClick={() => downloadCsv(stack, stepsCsv(state))}>Download CSV</button>
               <div className="mt-2 overflow-x-auto"><StepsTable steps={state.steps} /></div>
             </details>

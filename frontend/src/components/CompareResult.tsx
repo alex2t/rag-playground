@@ -27,7 +27,7 @@ function RunCard({ name, report }: { name: string; report: RunReport }) {
 
 function ScoresTable({ comparison }: { comparison: Comparison }) {
   return (
-    <section className="min-w-0 overflow-x-auto rounded-lg border border-line bg-panel p-4">
+    <section className="min-w-0 overflow-x-auto card p-4">
       <table className="w-full text-left text-sm tabular-nums">
         <caption className="mb-1 text-left font-medium">All scores</caption>
         <thead className="text-muted">
@@ -69,7 +69,7 @@ function Questions({ comparison }: { comparison: Comparison }) {
   const moved = comparison.questions
   if (moved === null) return <p className="text-sm text-muted">Held-out runs compare overall only: those questions stay out of tuning.</p>
   return (
-    <section aria-label="Questions that changed" className="min-w-0 space-y-3 rounded-lg border border-line bg-panel p-4">
+    <section aria-label="Questions that changed" className="min-w-0 space-y-3 card p-4">
       <p className="text-sm">
         A question is fixed or broken when its accuracy crosses the pass mark of 4.
         {' '}{moved.both_pass} passed in both runs, {moved.both_fail} failed in both.
@@ -88,7 +88,7 @@ export default function CompareResult({ comparison }: { comparison: Comparison }
   const depth = depthNote(comparison)
   return (
     <div className="space-y-4">
-      <section aria-label="Result" className="min-w-0 space-y-3 rounded-lg border border-line bg-panel p-4">
+      <section aria-label="Result" className="min-w-0 space-y-3 card p-4">
         <div className="grid gap-2 md:grid-cols-2">
           <Verdict name="Accuracy" line={changeLine(before.scores.accuracy, after.scores.accuracy, change.accuracy)} change={change.accuracy} />
           <Verdict name="MRR" line={changeLine(before.scores.mrr, after.scores.mrr, change.mrr)} change={change.mrr} />

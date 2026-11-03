@@ -21,12 +21,12 @@ function QuestionBox({ questions, typed, testId, onType, onPick }: {
     <>
       <label className="block text-sm">
         Your question
-        <textarea rows={3} className="mt-1 w-full rounded border border-line bg-transparent px-2 py-1" value={typed}
+        <textarea rows={3} className="mt-1 field" value={typed}
           onChange={(e) => onType(e.target.value)} />
       </label>
       <label className="block text-sm">
         Or a test question
-        <select className="mt-1 w-full rounded border border-line bg-transparent px-2 py-1" value={testId} onChange={(e) => onPick(e.target.value)}>
+        <select className="mt-1 field" value={testId} onChange={(e) => onPick(e.target.value)}>
           <option value="">None</option>
           {byCategory(questions).map(([category, items]) => (
             <optgroup key={category} label={category}>
@@ -41,7 +41,7 @@ function QuestionBox({ questions, typed, testId, onType, onPick }: {
 
 function ReplyCard({ reply }: { reply: Reply }) {
   return (
-    <section aria-label={`Stack ${reply.stack}`} className="min-w-0 rounded-lg border border-line bg-panel p-4">
+    <section aria-label={`Stack ${reply.stack}`} className="min-w-0 card p-4">
       <h3 className="mb-2 font-semibold">Stack {reply.stack}</h3>
       {reply.result
         ? <AskResultCard line={reply.line} result={reply.result} />
@@ -91,11 +91,11 @@ export default function Ask() {
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-[22rem_minmax(0,1fr)]">
         <SettingsPanel values={values} options={options} promptNames={promptNames} onChange={setValues} />
-        <section aria-label="Question" className="min-w-0 space-y-3 self-start rounded-lg border border-line bg-panel p-4">
+        <section aria-label="Question" className="min-w-0 space-y-3 self-start card p-4">
           <QuestionBox questions={questions} typed={typed} testId={testId}
             onType={(text) => { setTyped(text); setTestId('') }}
             onPick={(id) => { setTestId(id); setTyped('') }} />
-          <button type="button" className="rounded bg-accent px-3 py-1 text-sm font-medium text-white disabled:opacity-50"
+          <button type="button" className="btn-primary text-sm"
             disabled={asking || problem !== null} onClick={() => void send(values, body!)}>{asking ? 'Asking...' : 'Ask'}</button>
           {problem && <p className="text-sm text-muted">{problem}</p>}
         </section>

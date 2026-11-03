@@ -31,7 +31,7 @@ export default function HeldoutPanel({ heldout, busy, onRun }: { heldout: Heldou
       )}
       <p className="mt-1 text-muted">With 48 questions these intervals are wide.</p>
       {heldout.missing.length > 0 && (
-        <button type="button" className="mt-2 rounded border border-line px-3 py-1 disabled:opacity-50" disabled={busy} onClick={onRun}>
+        <button type="button" className="mt-2 btn" disabled={busy} onClick={onRun}>
           Confirm on held-out questions ({money(heldout.estimate_usd)})
         </button>
       )}

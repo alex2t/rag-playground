@@ -444,6 +444,7 @@ Validate each step before starting the next one. Log bugs in `fix.md`. Record de
 - **Check:** pass/fail agreement ≥ 80%. If not, change the judge and repeat this step. Record the result in `decision.md` (T07).
 
 ### Step 9 - Frontend (time-boxed)
+- **Redesign (D31, 2026-11-03, user decision): before the checks below.** Every page opens with a guide (what it is for, when to use it, numbered steps); a shared style and components (no new library); a Home page; Evaluate opens a finished run's report at the top with the runs as a table; Prompt leads to a test on Evaluate; Compare gives a plain verdict (T08 rule); Sweep explains how it differs from Evaluate and Story. Plan: `ux-redesign.md` (private).
 - **Status (2026-11-02): pages done, checks left.** Built and reviewed: Story (ladder, T50, T52), Ask (T54), Evaluate (T56), Compare (T57), Build (D29), Prompt, Sweep (T58), Ops (D30), the shared settings panel (T55) and its offer to build missing chunks. Left: the checks below (click-through, one full dev run from the page, Ask gives the same chunks as a run). S0 to S2 ran locally on both stacks; S3 onwards run on the VPS (user decision), after a way to carry over the database, Stack B's indexes and `var/chunk_sets` exists.
 Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Sweep and Ops. Use one shared layout. Get it working before polishing.
 - **Story page:**
@@ -486,6 +487,7 @@ Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Swe
 - `deploy/edge`: Caddy with TLS for `staging.<domain>` and `<domain>`, basic auth, and a reverse proxy to each environment.
 - **Check:**
   - Both environments are up with HTTPS and login.
+  - Without the password, every page and API route answers 401; the app and Qdrant ports are refused from outside; failed logins are rate-limited (fail2ban); the OpenRouter key has a credit limit and the OpenAI project a monthly budget (D31).
   - Data survives a restart.
   - The two environments do not share data.
 

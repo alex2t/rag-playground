@@ -68,19 +68,19 @@ export default function Evaluate() {
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-[22rem_minmax(0,1fr)]">
         <SettingsPanel values={current} options={options} promptNames={promptNames} onChange={setValues} />
-        <section aria-label="Evaluate" className="min-w-0 space-y-3 self-start rounded-lg border border-line bg-panel p-4">
+        <section aria-label="Evaluate" className="min-w-0 space-y-3 self-start card p-4">
           <label className="block text-sm">
             Question set
-            <select className="mt-1 w-full rounded border border-line bg-transparent px-2 py-1" value={questions}
+            <select className="mt-1 field" value={questions}
               onChange={(e) => setQuestions(e.target.value as QuestionSet)}>
               {QUESTION_SETS.map((set) => <option key={set.value} value={set.value}>{set.label}</option>)}
             </select>
           </label>
           {questions === 'heldout' && <p className="text-sm text-muted">Held-out questions confirm a final choice. Do not use them to tune.</p>}
           <div className="flex gap-2">
-            <button type="button" className="rounded border border-line px-3 py-1 text-sm disabled:opacity-50" disabled={busy || problem !== null}
+            <button type="button" className="btn text-sm" disabled={busy || problem !== null}
               onClick={() => void estimate()}>Estimate</button>
-            <button type="button" className="rounded bg-accent px-3 py-1 text-sm font-medium text-white disabled:opacity-50" disabled={busy || estimates === null || over}
+            <button type="button" className="btn-primary text-sm" disabled={busy || estimates === null || over}
               onClick={() => void evaluate()}>Evaluate</button>
           </div>
           {problem && <p className="text-sm text-muted">{problem}</p>}

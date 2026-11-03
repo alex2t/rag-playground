@@ -3,6 +3,30 @@
 export const PAGES = ['Story', 'Ask', 'Evaluate', 'Compare', 'Build', 'Prompt', 'Sweep', 'Ops'] as const
 export type Page = (typeof PAGES)[number]
 
+export type MenuItem = { page: Page; about: string }
+
+/** The pages grouped by what the user is doing, each with a one-line description. */
+export const MENU: { title: string; items: MenuItem[] }[] = [
+  { title: 'Explore', items: [{ page: 'Ask', about: 'Try one question' }] },
+  {
+    title: 'Measure',
+    items: [
+      { page: 'Evaluate', about: 'Score one configuration' },
+      { page: 'Compare', about: 'Is one run really better?' },
+      { page: 'Sweep', about: 'Try values of one setting' },
+      { page: 'Story', about: 'The study, step by step' },
+    ],
+  },
+  {
+    title: 'Prepare',
+    items: [
+      { page: 'Build', about: 'Cut and store chunks' },
+      { page: 'Prompt', about: 'Write answer instructions' },
+    ],
+  },
+  { title: 'Monitor', items: [{ page: 'Ops', about: 'Spend and health' }] },
+]
+
 export function hashOf(page: Page): string {
   return `#/${page.toLowerCase()}`
 }

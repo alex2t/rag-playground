@@ -11,7 +11,7 @@ function RunPicker({ label, runs, value, onChange }: PickerProps) {
   return (
     <label className="block min-w-0 text-sm">
       {label}
-      <select className="mt-1 w-full rounded border border-line bg-transparent px-2 py-1" value={value ?? ''}
+      <select className="mt-1 field" value={value ?? ''}
         onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}>
         <option value="">Choose a run</option>
         {runs.map((run) => <option key={run.id} value={run.id}>{runChoice(run)}</option>)}
@@ -35,7 +35,7 @@ export default function Compare() {
   const waiting = before !== null && after !== null && !comparison && !error
   return (
     <div className="space-y-4">
-      <section aria-label="Choose two runs" className="min-w-0 space-y-3 rounded-lg border border-line bg-panel p-4">
+      <section aria-label="Choose two runs" className="min-w-0 space-y-3 card p-4">
         <div className="grid gap-3 md:grid-cols-2">
           <RunPicker label="Before" runs={offered} value={before} onChange={setBefore} />
           <RunPicker label="After" runs={choices} value={after} onChange={setPicked} />

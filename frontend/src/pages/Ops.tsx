@@ -7,7 +7,7 @@ const TONE_TEXT: Record<Tone, string> = { good: 'text-good', warn: 'text-warn', 
 
 function Tile({ title, value, tone, children }: { title: string; value: string; tone?: Tone; children?: ReactNode }) {
   return (
-    <section aria-label={title} className="min-w-0 rounded-lg border border-line bg-panel p-4">
+    <section aria-label={title} className="min-w-0 card p-4">
       <h2 className="text-sm text-muted">{title}</h2>
       <p className={`text-xl font-semibold [overflow-wrap:anywhere] ${tone ? TONE_TEXT[tone] : ''}`}>{value}</p>
       <div className="mt-1 space-y-0.5 text-sm text-muted">{children}</div>
@@ -17,7 +17,7 @@ function Tile({ title, value, tone, children }: { title: string; value: string; 
 
 function Latency({ summary }: { summary: OpsSummary }) {
   return (
-    <section className="min-w-0 overflow-x-auto rounded-lg border border-line bg-panel p-4">
+    <section className="min-w-0 overflow-x-auto card p-4">
       <table className="w-full text-left text-sm tabular-nums">
         <caption className="mb-1 text-left font-semibold">Time to search and answer one question, last {summary.window_days} days</caption>
         <thead className="text-muted">
@@ -53,7 +53,7 @@ export default function Ops() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm text-muted">Failed jobs and answer times cover the last {summary.window_days} days; spend covers everything since the start.</p>
-        <button type="button" className="shrink-0 rounded border border-line px-3 py-1 text-sm" onClick={load}>Refresh</button>
+        <button type="button" className="shrink-0 btn text-sm" onClick={load}>Refresh</button>
       </div>
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
       <div className="grid gap-4 md:grid-cols-3">
@@ -69,7 +69,7 @@ export default function Ops() {
         </Tile>
       </div>
       <Latency summary={summary} />
-      <section aria-label="Failed jobs" className="min-w-0 space-y-2 rounded-lg border border-line bg-panel p-4">
+      <section aria-label="Failed jobs" className="min-w-0 space-y-2 card p-4">
         <h2 className="font-semibold">Failed jobs, last {summary.window_days} days</h2>
         {summary.jobs.failed.length === 0 && <p className="text-sm text-muted">None.</p>}
         <ul className="max-h-80 space-y-1 overflow-y-auto text-sm">

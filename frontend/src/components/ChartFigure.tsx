@@ -14,7 +14,7 @@ export default function ChartFigure({ title, legend, note, children }: Props) {
   }
 
   return (
-    <figure ref={figure} className="min-w-0 rounded-lg border border-line bg-panel p-4">
+    <figure ref={figure} className="min-w-0 card p-4">
       <figcaption className="mb-2 flex items-start justify-between gap-2 text-sm font-medium">
         <span>{title}</span>
         <button type="button" className="shrink-0 rounded border border-line px-2 py-0.5 text-xs font-normal"

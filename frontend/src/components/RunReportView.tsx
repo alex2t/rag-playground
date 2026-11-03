@@ -67,7 +67,7 @@ export default function RunReportView({ report, line }: { report: RunReport; lin
         {' '}${report.cost_per_question.toFixed(4)} per question, {report.latency_s.toFixed(1)} s per answer.
       </p>
       <Categories report={report} />
-      <button type="button" className="rounded border border-line px-3 py-1 text-sm" onClick={() => downloadCsv(report)}>Download CSV</button>
+      <button type="button" className="btn text-sm" onClick={() => downloadCsv(report)}>Download CSV</button>
     </div>
   )
 }

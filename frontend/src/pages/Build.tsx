@@ -5,7 +5,7 @@ import { useBuilds } from '../api/useBuilds.ts'
 import { buildProblem, estimateFor, estimateLine, jobLine, jobTone, overBudget, settingsOf, startValues, toBuild, type BuildValues, type Estimated, type Tone } from '../build.ts'
 import type { StackChoice } from '../panel.ts'
 
-const BOX = 'mt-1 w-full rounded border border-line bg-transparent px-2 py-1'
+const BOX = 'mt-1 field'
 const TONE_TEXT: Record<Tone, string> = { good: 'text-good', bad: 'text-danger', working: 'text-muted' }
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
@@ -22,7 +22,7 @@ function NumberField({ label, value, onChange }: { label: string; value: number;
 
 function Jobs({ jobs }: { jobs: BuildJob[] }) {
   return (
-    <section aria-label="Builds" className="min-w-0 space-y-2 rounded-lg border border-line bg-panel p-4">
+    <section aria-label="Builds" className="min-w-0 space-y-2 card p-4">
       <h2 className="font-semibold">Builds</h2>
       {jobs.length === 0 && <p className="text-sm text-muted">No build from this page yet.</p>}
       <ul className="max-h-64 space-y-1 overflow-y-auto text-sm">
@@ -38,7 +38,7 @@ function Jobs({ jobs }: { jobs: BuildJob[] }) {
 
 function Built({ built }: { built: BuiltSet[] }) {
   return (
-    <section className="min-w-0 overflow-x-auto rounded-lg border border-line bg-panel p-4">
+    <section className="min-w-0 overflow-x-auto card p-4">
       <table className="w-full text-left text-sm tabular-nums">
         <caption className="mb-1 text-left font-semibold">Built chunk sets</caption>
         <thead className="text-muted">
@@ -111,7 +111,7 @@ export default function Build() {
 
   return (
     <div className="space-y-4">
-      <section aria-label="Build" className="min-w-0 space-y-3 rounded-lg border border-line bg-panel p-4 md:max-w-xl">
+      <section aria-label="Build" className="min-w-0 space-y-3 card p-4 md:max-w-xl">
         <h2 className="font-semibold">Prepare chunks</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Stack">
@@ -131,9 +131,9 @@ export default function Build() {
           <NumberField label="Overlap (tokens)" value={current.overlap} onChange={(overlap) => change({ overlap })} />
         </div>
         <div className="flex gap-2">
-          <button type="button" className="rounded border border-line px-3 py-1 text-sm disabled:opacity-50" disabled={busy || problem !== null}
+          <button type="button" className="btn text-sm" disabled={busy || problem !== null}
             onClick={() => void runEstimate()}>Estimate</button>
-          <button type="button" className="rounded bg-accent px-3 py-1 text-sm font-medium text-white disabled:opacity-50"
+          <button type="button" className="btn-primary text-sm"
             disabled={busy || missing.length === 0 || over} onClick={() => void embed()}>Embed</button>
         </div>
         {problem && <p className="text-sm text-muted">{problem}</p>}
