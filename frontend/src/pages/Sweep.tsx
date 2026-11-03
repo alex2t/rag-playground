@@ -3,9 +3,11 @@ import { getLatestSweep, planSweep, startSweep } from '../api/client.ts'
 import type { PanelOptions, SweepPlan, SweepValue } from '../api/types.ts'
 import { usePanel } from '../api/usePanel.ts'
 import type { LegendLine } from '../chartImage.ts'
+import Guide from '../components/Guide.tsx'
 import LadderChart from '../components/LadderChart.tsx'
 import SettingsPanel from '../components/SettingsPanel.tsx'
 import { panelProblem, saveValues, stacksOf, type PanelValues } from '../panel.ts'
+import { pageLink } from '../route.ts'
 import {
   bodyFor, chartRows, choicesFor, fromKey, isWorking, overBudget, parseNumbers, planKey, planLine, plansFor, toRun, valueText,
   sweepJobLine, variableOf, variablesFor, type Latest, type Planned,
@@ -20,6 +22,38 @@ const IMAGE_LEGEND: LegendLine[] = [
   { text: 'Exploratory: dev questions only. Bars: 95% interval.' },
   { text: '+ or -: real change against the base value.' },
 ]
+
+const STEPS = [
+  'Set the base set-up in the Settings box: every value is compared with it.',
+  'Choose the one setting to vary, and its values: at most 6, the base set-up\'s own value included.',
+  'Press Estimate: each value shows its stored run, or its cost if it still has to run. Values with a run already cost nothing.',
+  'Press Confirm to run the missing values on the 192 dev questions. You can leave the page and come back.',
+  'Read the charts: each value\'s accuracy and MRR with its 95% interval; + or - marks a real change against the base value. Open any value\'s run on Evaluate.',
+]
+
+const PAGES_COMPARED = [
+  ['Evaluate', 'One set-up you choose', 'You read its report'],
+  ['Sweep', 'Several values of one setting, the rest of your set-up fixed', 'Nobody: exploratory, no winner'],
+  ['Story', 'The study\'s fixed ladder of steps, S0 to S7', 'A rule set in advance (T08)'],
+]
+
+function PagesCompared() {
+  return (
+    <div className="mt-3 min-w-0 overflow-x-auto">
+      <table className="w-full text-left text-sm">
+        <caption className="mb-1 text-left font-semibold">Sweep, Evaluate or Story?</caption>
+        <thead className="text-xs uppercase tracking-wide text-muted">
+          <tr><th className="py-1 pr-3">Page</th><th className="pr-3">What it measures</th><th>Who picks the winner</th></tr>
+        </thead>
+        <tbody>
+          {PAGES_COMPARED.map(([page, measures, picks]) => (
+            <tr key={page} className="border-t border-line"><td className="py-1 pr-3 font-medium">{page}</td><td className="pr-3">{measures}</td><td>{picks}</td></tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
 
 function Picks({ choices, picked, onChange }: { choices: SweepValue[]; picked: SweepValue[]; onChange: (picked: SweepValue[]) => void }) {
   return (
@@ -48,7 +82,7 @@ function PlanTable({ plan }: { plan: SweepPlan }) {
           {plan.items.map((item) => (
             <tr key={String(item.value)} className="border-t border-line">
               <td className="pr-3 [overflow-wrap:anywhere]">{valueText(item.value)}{item.base && ' (base)'}</td>
-              <td className="pr-3">{item.run ? `run ${item.run.run_id}` : `to run, $${item.estimate_usd!.toFixed(4)}${item.built ? '' : ', chunks to build'}`}</td>
+              <td className="pr-3 whitespace-nowrap">{item.run ? <a className="text-accent-text underline" href={pageLink('Evaluate', { run: String(item.run.run_id) })}>run {item.run.run_id}</a> : `to run, $${item.estimate_usd!.toFixed(4)}${item.built ? '' : ', chunks to build'}`}</td>
               <td className="pr-3">{item.run ? `${item.run.accuracy.toFixed(3)} (${item.run.accuracy_ci[0].toFixed(2)} to ${item.run.accuracy_ci[1].toFixed(2)})` : ''}</td>
               <td className="pr-3">{item.run ? `${item.run.mrr.toFixed(3)} (${item.run.mrr_ci[0].toFixed(2)} to ${item.run.mrr_ci[1].toFixed(2)})` : ''}</td>
               <td>{item.run?.change ? `accuracy ${item.run.change.accuracy.verdict}, MRR ${item.run.change.mrr.verdict}` : ''}</td>
@@ -179,11 +213,21 @@ export default function Sweep() {
 
   const jobs = stacks.flatMap((stack) => (latest[stack] ? [{ stack, job: latest[stack] }] : []))
   return (
-    <div className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-[22rem_minmax(0,1fr)]">
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Sweep</h1>
+        <p className="text-muted">See how one setting changes the scores, with everything else fixed.</p>
+      </div>
+      <Guide page="Sweep" steps={STEPS}
+        purpose="For example top-K = 2, 4, 6 and 8 with the rest of your set-up unchanged: one run per value on the 192 dev questions, side by side on one chart."
+        note="Exploratory: a sweep picks no winner and uses dev questions only. To decide between two set-ups, use Compare.">
+        <PagesCompared />
+      </Guide>
+      <div className="grid gap-5 md:grid-cols-[22rem_minmax(0,1fr)]">
         <SettingsPanel values={panel} options={options} promptNames={promptNames} onChange={setValues} />
-        <section aria-label="Sweep" className="min-w-0 space-y-3 self-start card p-4">
-          <p className="text-sm text-muted">The panel is the base configuration. One setting changes; every value runs on the 192 dev questions, and values with a run already are reused.</p>
+        <section aria-label="Sweep" className="min-w-0 space-y-3 self-start card p-5">
+          <h2 className="font-semibold">What to vary</h2>
+          <p className="text-sm text-muted">The Settings box is the base set-up. Only the setting chosen here changes.</p>
           <label className="block text-sm">
             Setting to vary
             <select className={BOX} value={current} onChange={(e) => { setVariable(e.target.value); setPicked([]); setTyped('') }}>
@@ -194,14 +238,15 @@ export default function Sweep() {
           <p className="text-xs text-muted">At most 6 values, the base configuration's own value included: it is what the others are compared with.</p>
           <div className="flex gap-2">
             <button type="button" className="btn text-sm" disabled={busy || problem !== null}
-              onClick={() => void estimate()}>Estimate</button>
+              onClick={() => void estimate()}>1. Estimate</button>
             <button type="button" className="btn-primary text-sm"
-              disabled={busy || plans === null || runnable.length === 0 || over || working} onClick={() => void confirm()}>Confirm</button>
+              disabled={busy || plans === null || runnable.length === 0 || over || working} onClick={() => void confirm()}>2. Confirm</button>
           </div>
           {problem && <p className="text-sm text-muted">{problem}</p>}
           {plans && <p className="text-sm">{planLine(plans)}</p>}
           {over && <p role="alert" className="text-sm text-danger">Only ${plans[0].budget_left_usd.toFixed(4)} of the budget is left.</p>}
-          {!plans && !problem && <p className="text-sm text-muted">Press Estimate to see each value's run or cost.</p>}
+          {!plans && !problem && <p className="text-sm text-muted">Confirm turns on once you press Estimate, which shows each value's run or cost.</p>}
+          {plans && runnable.length === 0 && !working && <p className="text-sm text-muted">Nothing to pay: the results are below.</p>}
           {jobs.map(({ stack, job }) => (
             <p key={stack} role={job.status === 'failed' ? 'alert' : undefined}
               className={`text-sm [overflow-wrap:anywhere] ${job.status === 'failed' ? 'text-danger' : 'text-muted'}`}>

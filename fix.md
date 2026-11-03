@@ -4,6 +4,13 @@ Add new bugs at the top. Status: `open` | `investigating` | `fixed`.
 
 ---
 
+## [2026-11-03] Step 9: a Sweep cost lost its dollar sign in an edit script - `fixed`
+- **Symptom:** found by Antigravity (Gemini 3.8) reviewing redesign increment 5, before commit: a value still to run showed "to run, 0.2500" instead of "to run, $0.2500" (`pages/Sweep.tsx:85`).
+- **Root cause (evidence):** Claude's Node edit script passed the new line to `String.prototype.replace` as a string, where `$$` means one literal `$`, so the template's `$${...}` became `${...}`. The replaced line was meant to change only the run cell's link.
+- **Fix:** the `$` restored. Every change since `7f98f33` and every scratch edit script was searched for `$$`, `$&`, `` $` `` and `$'`: this was the only case.
+- **Verified by:** git diff shows the line now differs from the original only by the link; 147 tests pass. Lesson: an edit script must pass a function as the replacement (`t.replace(a, () => b)`), or use the Edit tool.
+- **Status:** fixed.
+
 ## [2026-11-03] Step 9: Compare's advice could keep a run that fails a gate - `fixed`
 - **Symptom:** found by Antigravity (Gemini 3.8) reviewing redesign increment 4, before commit. The new "What this means" advice said "Keep run X's set-up" from the accuracy verdict and cost alone, even when run X failed a T08 gate (shown just below it as "Fails the gates").
 - **Reproduce:** a comparison where After is really better but fails MRR: the advice said to keep After.

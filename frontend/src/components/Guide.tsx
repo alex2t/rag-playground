@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 
 function storedOpen(key: string): boolean {
   try {
@@ -16,10 +16,11 @@ function storeOpen(key: string, open: boolean) {
   }
 }
 
-type Props = { page: string; purpose: string; steps: string[]; note?: string }
+type Props = { page: string; purpose: string; steps: string[]; note?: string; children?: ReactNode }
 
-/** The box at the top of a page: what it is for and what to do, in order. Closing it is remembered on this browser. */
-export default function Guide({ page, purpose, steps, note }: Props) {
+/** The box at the top of a page: what it is for and what to do, in order, then any extra explanation.
+Closing it is remembered on this browser. */
+export default function Guide({ page, purpose, steps, note, children }: Props) {
   const key = `guide:${page}`
   const [open, setOpen] = useState(() => storedOpen(key))
 
@@ -37,6 +38,7 @@ export default function Guide({ page, purpose, steps, note }: Props) {
         {steps.map((step) => <li key={step}>{step}</li>)}
       </ol>
       {note && <p className="mt-2 text-sm text-muted">{note}</p>}
+      {children}
     </details>
   )
 }
