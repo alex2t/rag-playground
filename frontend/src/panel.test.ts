@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import type { PanelOptions } from './api/types.ts'
-import { panelProblem, requestFor, restoredValues, settingsLine, stacksOf, startValues } from './panel.ts'
+import { panelProblem, requestFor, restoredValues, settingsLine, stacksOf, startValues, withPrompt } from './panel.ts'
 
 const OPTIONS: PanelOptions = {
   min_chunk_size: 64,
@@ -111,4 +111,11 @@ test('a result states every setting, with the search settings of its own stack',
     'Stack B, 1024 tokens, overlap 200, fixed, K=2, hybrid on, reranked, openai/nano, prompt default')
   const none = { ...START, openai_ranking: { ...START.openai_ranking, ranker: 'none' as const } }
   assert.match(settingsLine(requestFor(none, 'A')), /ranker none, weights 1:1/)
+})
+
+test('a linked prompt is chosen only if that version exists, and nothing else changes', () => {
+  const values = { ...START, top_k: 4 }
+  assert.deepEqual(withPrompt(values, 'strict', ['default', 'strict']), { ...values, prompt_name: 'strict' })
+  assert.deepEqual(withPrompt(values, 'gone', ['default', 'strict']), values)
+  assert.deepEqual(withPrompt(values, '', ['default', 'strict']), values)
 })

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { hashOf, linkedTest, MENU, pageFor, PAGES } from './route.ts'
+import { hashOf, linkedParam, linkedTest, MENU, pageFor, pageLink, PAGES } from './route.ts'
 
 test('every page is reached from its own hash', () => {
   for (const page of PAGES) assert.equal(pageFor(hashOf(page)), page)
@@ -33,4 +33,13 @@ test('the sidebar lists every page exactly once, each with a description', () =>
   const listed = MENU.flatMap((group) => group.items)
   assert.deepEqual(listed.map((item) => item.page).toSorted(), [...PAGES].toSorted())
   for (const item of listed) assert.ok(item.about.trim().length > 0, item.page)
+})
+
+test('a link passes values to its page, and reading them back gives the same text', () => {
+  const link = pageLink('Evaluate', { prompt: 'short, strict & v2', questions: 'smoke' })
+  assert.equal(pageFor(link), 'Evaluate')
+  assert.equal(linkedParam(link, 'prompt'), 'short, strict & v2')
+  assert.equal(linkedParam(link, 'questions'), 'smoke')
+  assert.equal(linkedParam(link, 'run'), '')
+  assert.equal(linkedParam('#/evaluate', 'prompt'), '')
 })

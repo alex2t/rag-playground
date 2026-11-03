@@ -43,6 +43,11 @@ export function restoredValues(saved: string | null, options: PanelOptions, prom
   return panelProblem(values, options) ? start : values
 }
 
+/** The values with the prompt a link asked for, if that version exists; otherwise unchanged. */
+export function withPrompt(values: PanelValues, name: string, promptNames: string[]): PanelValues {
+  return promptNames.includes(name) ? { ...values, prompt_name: name } : values
+}
+
 export function loadSaved(): string | null {
   try {
     return localStorage.getItem(STORE_KEY)

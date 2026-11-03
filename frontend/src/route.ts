@@ -37,7 +37,17 @@ export function pageFor(hash: string): Page {
   return PAGES.find((page) => hashOf(page) === address) ?? PAGES[0]
 }
 
+/** One value a link passes to its page (after the '?'), or an empty string. */
+export function linkedParam(hash: string, key: string): string {
+  return new URLSearchParams(hash.split('?')[1]).get(key) ?? ''
+}
+
 /** The test question a link to Ask asks for, or an empty string. */
 export function linkedTest(hash: string): string {
-  return new URLSearchParams(hash.split('?')[1]).get('test') ?? ''
+  return linkedParam(hash, 'test')
+}
+
+/** A link to a page that passes it values, for example the prompt to choose. */
+export function pageLink(page: Page, params: Record<string, string>): string {
+  return `${hashOf(page)}?${new URLSearchParams(params)}`
 }

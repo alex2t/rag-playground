@@ -12,15 +12,17 @@ import { pageFor, type Page } from './route.ts'
 
 const PAGE_VIEWS: Record<Page, () => React.JSX.Element> = { Story, Ask, Evaluate, Compare, Build, Prompt, Sweep, Ops }
 
+/** Picks the page from the address. A new address builds the page again, so a link's values (prompt, run, ...) are read. */
 export default function App() {
-  const [page, setPage] = useState(pageFor(location.hash))
+  const [hash, setHash] = useState(location.hash)
 
   useEffect(() => {
-    const follow = () => setPage(pageFor(location.hash))
+    const follow = () => setHash(location.hash)
     addEventListener('hashchange', follow)
     return () => removeEventListener('hashchange', follow)
   }, [])
 
+  const page = pageFor(hash)
   const View = PAGE_VIEWS[page]
-  return <Layout page={page}><View /></Layout>
+  return <Layout page={page}><View key={hash} /></Layout>
 }

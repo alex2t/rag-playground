@@ -6,8 +6,9 @@ import { useRuns } from '../api/useRuns.ts'
 import Guide from '../components/Guide.tsx'
 import RunsPanel, { ShownRun } from '../components/RunsPanel.tsx'
 import SettingsPanel from '../components/SettingsPanel.tsx'
-import { askLink, estimateFor, estimateLine, overBudget, runOfJobs, shownRun, valuesOfRun, type Estimated } from '../evaluate.ts'
+import { askLink, estimateFor, estimateLine, linkedRunId, overBudget, questionSetOf, runOfJobs, shownRun, valuesOfRun, type Estimated } from '../evaluate.ts'
 import { panelProblem, requestFor, saveValues, stacksOf } from '../panel.ts'
+import { linkedParam } from '../route.ts'
 
 const QUESTION_SETS: { value: QuestionSet; label: string }[] = [
   { value: 'dev', label: 'Dev (192 questions)' },
@@ -23,15 +24,16 @@ const STEPS = [
   'To read an older run, press Open on its row in the table.',
 ]
 
-/** Scores one configuration on many questions (T56): Estimate, then Evaluate; the run opens at once and shows its report when done. */
+/** Scores one configuration on many questions (T56): Estimate, then Evaluate; the run opens at once and shows its report when done.
+A link can choose the prompt version, the question set and the run to show. */
 export default function Evaluate() {
-  const { options, promptNames, values, setValues, error: panelError } = usePanel()
+  const { options, promptNames, values, setValues, error: panelError } = usePanel(linkedParam(location.hash, 'prompt'))
   const { runs, error: runsError, reload } = useRuns()
-  const [questions, setQuestions] = useState<QuestionSet>('dev')
+  const [questions, setQuestions] = useState<QuestionSet>(() => questionSetOf(linkedParam(location.hash, 'questions')))
   const [estimated, setEstimated] = useState<Estimated | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [openId, setOpenId] = useState<number | null>(null)
+  const [openId, setOpenId] = useState<number | null>(() => linkedRunId(linkedParam(location.hash, 'run')))
 
   if (panelError) return <p role="alert" className="text-sm text-danger">{panelError}</p>
   if (options === null || values === null || runs === null) return <p className="text-sm text-muted">{runsError ?? 'Loading...'}</p>

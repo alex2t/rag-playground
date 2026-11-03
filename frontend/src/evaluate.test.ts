@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import type { RunReport, RunScores, RunSettings, RunSummary } from './api/types.ts'
-import { askLink, bandOf, estimateFor, estimateLine, hasAnswers, isWorking, overBudget, questionsLine, questionsShort, reportCsv, runOfJobs, settingsShort, shownRun, statusLine, statusTone, valuesOfRun } from './evaluate.ts'
+import { askLink, bandOf, linkedRunId, questionSetOf, estimateFor, estimateLine, hasAnswers, isWorking, overBudget, questionsLine, questionsShort, reportCsv, runOfJobs, settingsShort, shownRun, statusLine, statusTone, valuesOfRun } from './evaluate.ts'
 import type { PanelValues } from './panel.ts'
 
 const SETTINGS: RunSettings = {
@@ -168,4 +168,21 @@ test('the short question set names the split, whether it is a sample, and the co
   assert.equal(questionsShort(RUN), 'dev (192)')
   assert.equal(questionsShort({ ...RUN, split: 'heldout', questions: 48 }), 'held-out (48)')
   assert.equal(questionsShort({ ...RUN, full: false, questions: 20 }), 'dev sample (20)')
+})
+
+test('a link picks the smoke test or held-out set, anything else is dev', () => {
+  assert.equal(questionSetOf('smoke'), 'smoke')
+  assert.equal(questionSetOf('heldout'), 'heldout')
+  assert.equal(questionSetOf('dev'), 'dev')
+  assert.equal(questionSetOf(''), 'dev')
+  assert.equal(questionSetOf('Smoke'), 'dev')
+})
+
+test('a linked run id is a positive whole number, anything else is none', () => {
+  assert.equal(linkedRunId('25'), 25)
+  assert.equal(linkedRunId(''), null)
+  assert.equal(linkedRunId('0'), null)
+  assert.equal(linkedRunId('2.5'), null)
+  assert.equal(linkedRunId('-3'), null)
+  assert.equal(linkedRunId('25x'), null)
 })

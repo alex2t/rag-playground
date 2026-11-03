@@ -55,6 +55,16 @@ export function isWorking(runs: RunSummary[]): boolean {
 
 export type Tone = 'queued' | 'running' | 'done' | 'failed'
 
+/** The question set a link asks for; an unknown or missing one gives dev. */
+export function questionSetOf(text: string): QuestionSet {
+  return text === 'smoke' || text === 'heldout' ? text : 'dev'
+}
+
+/** The run a link asks to show, or null. */
+export function linkedRunId(text: string): number | null {
+  return /^[1-9][0-9]*$/.test(text) ? Number(text) : null
+}
+
 /** The colour family of a run's status badge. */
 export function statusTone(run: RunSummary): Tone {
   return run.job_status === 'queued' ? 'queued' : run.status

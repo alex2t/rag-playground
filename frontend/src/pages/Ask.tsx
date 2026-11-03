@@ -6,7 +6,7 @@ import { byCategory, questionBody } from '../ask.ts'
 import AskResultCard from '../components/AskResultCard.tsx'
 import SettingsPanel from '../components/SettingsPanel.tsx'
 import { panelProblem, requestFor, saveValues, settingsLine, stacksOf, type PanelValues } from '../panel.ts'
-import { linkedTest } from '../route.ts'
+import { linkedParam, linkedTest } from '../route.ts'
 
 type Reply = { stack: StackId; line: string; result?: AskResult; error?: string }
 
@@ -52,7 +52,7 @@ function ReplyCard({ reply }: { reply: Reply }) {
 
 /** One question with the panel's settings (T54), on one stack or both side by side. */
 export default function Ask() {
-  const { options, promptNames, values, setValues, error: panelError } = usePanel()
+  const { options, promptNames, values, setValues, error: panelError } = usePanel(linkedParam(location.hash, 'prompt'))
   const [questions, setQuestions] = useState<AskQuestion[]>([])
   const [typed, setTyped] = useState('')
   const [testId, setTestId] = useState(linkedTest(location.hash))
