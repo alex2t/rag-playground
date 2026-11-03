@@ -81,7 +81,9 @@ You see the answer, its settings, time and cost, the chunks it was given (docume
 Use it to measure a configuration on many questions.
 1. Choose the settings and the question set: **dev** (192), **held-out** (48), or the 20-question **smoke test**.
 2. Press **Estimate** to see the number of questions, the cost and the time.
-3. Press **Evaluate**. Progress updates while it runs (for example "12 of 192 questions"); you can leave the page. Runs go one at a time: a second run waits as **queued** until the first finishes.
+3. Press **Evaluate** (it turns on only after Estimate). The new run opens at once under **All runs**, with a progress bar (for example "12 of 192 questions"); you can leave the page. Runs go one at a time: a second run waits as **queued** until the first finishes.
+
+**All runs** lists every run, newest first: its stack, question set, main settings, status and date. Press **Open** on a row to show that run under the table; the newest run is shown when the page opens. The box at the top of the page repeats these steps; close it once you know them.
 
 The result shows 4 headline tiles (MRR, Recall@K, Accuracy, Faithfulness), a **show all** switch for the other metrics, refusal rates, scores by question category, and a table of every question that opens it in **Ask**. Export it as CSV. A **held-out** run shows its overall scores only, with no category scores and no question table: those questions stay out of tuning.
 
