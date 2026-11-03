@@ -13,7 +13,7 @@ test('a page keeps its address, so a saved link still works', () => {
 })
 
 test('the menu lists the built pages in order', () => {
-  assert.deepEqual(PAGES, ['Story', 'Ask', 'Evaluate', 'Compare', 'Build', 'Prompt', 'Sweep', 'Ops'])
+  assert.deepEqual(PAGES, ['Home', 'Story', 'Ask', 'Evaluate', 'Compare', 'Build', 'Prompt', 'Sweep', 'Ops'])
   assert.equal(pageFor('#/evaluate'), 'Evaluate')
   assert.equal(pageFor('#/ask'), 'Ask')
 })
@@ -24,9 +24,10 @@ test('a link to Ask opens Ask and names its test question', () => {
   assert.equal(linkedTest('#/ask'), '')
 })
 
-test('an empty or unknown hash opens Story', () => {
-  assert.equal(pageFor(''), 'Story')
-  assert.equal(pageFor('#/nowhere'), 'Story')
+test('an empty or unknown hash opens Home', () => {
+  assert.equal(pageFor(''), 'Home')
+  assert.equal(pageFor('#/nowhere'), 'Home')
+  assert.equal(pageFor('#/story'), 'Story')
 })
 
 test('the sidebar lists every page exactly once, each with a description', () => {

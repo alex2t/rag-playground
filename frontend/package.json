@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "test": "node --test src/story.test.ts src/chartImage.test.ts src/prompts.test.ts src/route.test.ts src/panel.test.ts src/ask.test.ts src/evaluate.test.ts src/compare.test.ts src/build.test.ts src/sweep.test.ts src/ops.test.ts src/api/client.test.ts",
+    "test": "node --test src/story.test.ts src/chartImage.test.ts src/prompts.test.ts src/route.test.ts src/panel.test.ts src/ask.test.ts src/evaluate.test.ts src/compare.test.ts src/build.test.ts src/sweep.test.ts src/ops.test.ts src/home.test.ts src/api/client.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {

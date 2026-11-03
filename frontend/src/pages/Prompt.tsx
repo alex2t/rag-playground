@@ -11,7 +11,7 @@ const STEPS = [
   'Pick the version to start from under Saved versions. The default is the one the study uses from S0 to S5.',
   'Edit the text in the editor.',
   'Type a new name and press Save new version. A saved version never changes: to change it, save another one.',
-  'Test it: Test on Evaluate opens Evaluate with this version chosen and the 20-question smoke test selected (about $0.02 per stack, shown before you pay). Try on Ask asks one question with it.',
+  'Test it: Test on Evaluate opens Evaluate with this version chosen and the 20-question smoke test selected (about $0.02 on Stack B and $0.08 on Stack A, whose search fee is included; shown before you pay). Try on Ask asks one question with it.',
   'For the study\'s prompt step (S6 on Story), type the names of up to 4 versions there.',
 ]
 

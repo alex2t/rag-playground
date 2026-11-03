@@ -1,12 +1,13 @@
 /** Pages are chosen by the address's hash, so a refresh or a link keeps the page. */
 
-export const PAGES = ['Story', 'Ask', 'Evaluate', 'Compare', 'Build', 'Prompt', 'Sweep', 'Ops'] as const
+export const PAGES = ['Home', 'Story', 'Ask', 'Evaluate', 'Compare', 'Build', 'Prompt', 'Sweep', 'Ops'] as const
 export type Page = (typeof PAGES)[number]
 
 export type MenuItem = { page: Page; about: string }
 
 /** The pages grouped by what the user is doing, each with a one-line description. */
 export const MENU: { title: string; items: MenuItem[] }[] = [
+  { title: 'Start', items: [{ page: 'Home', about: 'Where to begin' }] },
   { title: 'Explore', items: [{ page: 'Ask', about: 'Try one question' }] },
   {
     title: 'Measure',
