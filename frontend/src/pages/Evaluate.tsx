@@ -3,9 +3,10 @@ import { estimateRun, startRun } from '../api/client.ts'
 import type { QuestionSet, RunSummary } from '../api/types.ts'
 import { usePanel } from '../api/usePanel.ts'
 import { useRuns } from '../api/useRuns.ts'
-import RunsPanel from '../components/RunsPanel.tsx'
+import Guide from '../components/Guide.tsx'
+import RunsPanel, { ShownRun } from '../components/RunsPanel.tsx'
 import SettingsPanel from '../components/SettingsPanel.tsx'
-import { askLink, estimateFor, estimateLine, overBudget, valuesOfRun, type Estimated } from '../evaluate.ts'
+import { askLink, estimateFor, estimateLine, overBudget, runOfJobs, shownRun, valuesOfRun, type Estimated } from '../evaluate.ts'
 import { panelProblem, requestFor, saveValues, stacksOf } from '../panel.ts'
 
 const QUESTION_SETS: { value: QuestionSet; label: string }[] = [
@@ -14,7 +15,15 @@ const QUESTION_SETS: { value: QuestionSet; label: string }[] = [
   { value: 'heldout', label: 'Held-out (48 questions)' },
 ]
 
-/** Scores one configuration on many questions (T56): Estimate, then Evaluate, then read the run below. */
+const STEPS = [
+  'Choose the settings in the Settings box: the stack, how the documents are cut into chunks, how many chunks to search (top-K), the answer model and the prompt.',
+  'Choose the question set: the smoke test (20 questions) checks that a set-up works; dev (192) measures it.',
+  'Press Estimate to see the cost and the time. Nothing is spent yet.',
+  'Press Evaluate to start. The new run opens below the table of runs, with its progress, then its report and every answer.',
+  'To read an older run, press Open on its row in the table.',
+]
+
+/** Scores one configuration on many questions (T56): Estimate, then Evaluate; the run opens at once and shows its report when done. */
 export default function Evaluate() {
   const { options, promptNames, values, setValues, error: panelError } = usePanel()
   const { runs, error: runsError, reload } = useRuns()
@@ -30,6 +39,8 @@ export default function Evaluate() {
   const current = values
   const problem = panelProblem(current, options)
   const estimates = estimateFor(estimated, current, questions)
+  const shownId = shownRun(runs, openId)
+  const shown = runs.find((run) => run.id === shownId)
 
   async function estimate() {
     setBusy(true)
@@ -48,14 +59,16 @@ export default function Evaluate() {
     setBusy(true)
     setError(null)
     saveValues(current)
+    const jobIds: number[] = []
     try {
-      for (const stack of stacksOf(current.stacks)) await startRun(requestFor(current, stack), questions)
+      for (const stack of stacksOf(current.stacks)) jobIds.push(await startRun(requestFor(current, stack), questions))
     } catch (e) {
       setError((e as Error).message)
     }
     setEstimated(null)
     setBusy(false)
-    await reload()
+    const fresh = await reload()
+    if (fresh) setOpenId(runOfJobs(fresh, jobIds) ?? openId)
   }
 
   function openQuestion(run: RunSummary, testId: string) {
@@ -65,33 +78,44 @@ export default function Evaluate() {
 
   const over = estimates !== null && overBudget(estimates)
   return (
-    <div className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-[22rem_minmax(0,1fr)]">
-        <SettingsPanel values={current} options={options} promptNames={promptNames} onChange={setValues} />
-        <section aria-label="Evaluate" className="min-w-0 space-y-3 self-start card p-4">
-          <label className="block text-sm">
-            Question set
-            <select className="mt-1 field" value={questions}
-              onChange={(e) => setQuestions(e.target.value as QuestionSet)}>
-              {QUESTION_SETS.map((set) => <option key={set.value} value={set.value}>{set.label}</option>)}
-            </select>
-          </label>
-          {questions === 'heldout' && <p className="text-sm text-muted">Held-out questions confirm a final choice. Do not use them to tune.</p>}
-          <div className="flex gap-2">
-            <button type="button" className="btn text-sm" disabled={busy || problem !== null}
-              onClick={() => void estimate()}>Estimate</button>
-            <button type="button" className="btn-primary text-sm" disabled={busy || estimates === null || over}
-              onClick={() => void evaluate()}>Evaluate</button>
-          </div>
-          {problem && <p className="text-sm text-muted">{problem}</p>}
-          {estimates && <p className="text-sm">{estimateLine(estimates)}</p>}
-          {over && <p role="alert" className="text-sm text-danger">Only ${estimates[0].budget_left_usd.toFixed(4)} of the budget is left.</p>}
-          {!estimates && !problem && <p className="text-sm text-muted">Press Estimate to see the cost and the time.</p>}
-          {error && <p role="alert" className="text-sm text-danger [overflow-wrap:anywhere]">{error}</p>}
-        </section>
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Evaluate</h1>
+        <p className="text-muted">Score one set-up on many test questions, with a report you can trust.</p>
       </div>
-      {runsError && <p role="alert" className="text-sm text-danger">{runsError}</p>}
-      <RunsPanel runs={runs} base={current} openId={openId} onOpen={setOpenId} onOpenQuestion={openQuestion} />
+      <Guide page="Evaluate" steps={STEPS}
+        purpose="Each test question is searched, answered by the answer model and graded by a separate judge model against its reference answer."
+        note="Held-out questions are kept for confirming a final choice: do not use them to tune settings." />
+      <div className="grid gap-5 md:grid-cols-[22rem_minmax(0,1fr)]">
+        <SettingsPanel values={current} options={options} promptNames={promptNames} onChange={setValues} />
+        <div className="min-w-0 space-y-5">
+          <section aria-label="Start a run" className="space-y-3 card p-5">
+            <h2 className="font-semibold">Start a run</h2>
+            <label className="block text-sm">
+              Question set
+              <select className="mt-1 field" value={questions}
+                onChange={(e) => setQuestions(e.target.value as QuestionSet)}>
+                {QUESTION_SETS.map((set) => <option key={set.value} value={set.value}>{set.label}</option>)}
+              </select>
+            </label>
+            {questions === 'heldout' && <p className="text-sm text-muted">Held-out questions confirm a final choice. Do not use them to tune.</p>}
+            <div className="flex gap-2">
+              <button type="button" className="btn text-sm" disabled={busy || problem !== null}
+                onClick={() => void estimate()}>1. Estimate</button>
+              <button type="button" className="btn-primary text-sm" disabled={busy || estimates === null || over}
+                onClick={() => void evaluate()}>2. Evaluate</button>
+            </div>
+            {problem && <p className="text-sm text-muted">{problem}</p>}
+            {estimates && <p className="text-sm">{estimateLine(estimates)}</p>}
+            {over && <p role="alert" className="text-sm text-danger">Only ${estimates[0].budget_left_usd.toFixed(4)} of the budget is left.</p>}
+            {!estimates && !problem && <p className="text-sm text-muted">Evaluate turns on once you press Estimate, which shows the cost and the time.</p>}
+            {error && <p role="alert" className="text-sm text-danger [overflow-wrap:anywhere]">{error}</p>}
+          </section>
+          {runsError && <p role="alert" className="text-sm text-danger">{runsError}</p>}
+          <RunsPanel runs={runs} openId={shownId} onOpen={setOpenId} />
+          {shown && <ShownRun key={shown.id} run={shown} base={current} onOpenQuestion={openQuestion} />}
+        </div>
+      </div>
     </div>
   )
 }

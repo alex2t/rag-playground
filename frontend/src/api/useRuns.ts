@@ -10,12 +10,15 @@ export function useRuns() {
   const [runs, setRuns] = useState<RunSummary[] | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const reload = useCallback(async () => {
+  const reload = useCallback(async (): Promise<RunSummary[] | null> => {
     try {
-      setRuns(await getRuns())
+      const fresh = await getRuns()
+      setRuns(fresh)
       setError(null)
+      return fresh
     } catch (e) {
       setError(`Cannot read the runs, still trying: ${(e as Error).message}`)
+      return null
     }
   }, [])
 

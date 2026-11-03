@@ -37,6 +37,12 @@ export function questionsLine(run: RunSummary): string {
   return run.full ? `${set}, ${run.questions} questions` : `${set} sample, ${run.questions} questions`
 }
 
+/** The question set in a few words, for one table cell. */
+export function questionsShort(run: RunSummary): string {
+  const set = run.split === 'heldout' ? 'held-out' : 'dev'
+  return run.full ? `${set} (${run.questions})` : `${set} sample (${run.questions})`
+}
+
 export function statusLine(run: RunSummary): string {
   if (run.job_status === 'queued') return 'queued'
   if (run.status === 'running') return `${run.done} of ${run.questions} questions`
@@ -45,6 +51,37 @@ export function statusLine(run: RunSummary): string {
 
 export function isWorking(runs: RunSummary[]): boolean {
   return runs.some((run) => run.job_id !== null)
+}
+
+export type Tone = 'queued' | 'running' | 'done' | 'failed'
+
+/** The colour family of a run's status badge. */
+export function statusTone(run: RunSummary): Tone {
+  return run.job_status === 'queued' ? 'queued' : run.status
+}
+
+/** The settings that tell runs apart, short enough for one table cell. */
+export function settingsShort(settings: RunSettings): string {
+  const parts = [`${settings.chunk_size}/${settings.overlap}`, `K=${settings.top_k}`, settings.answer_model.split('/').at(-1) ?? '']
+  if (settings.chunking_method === 'llm_enriched') parts.push('enriched')
+  if (settings.rerank) parts.push('reranked')
+  if (settings.hybrid) parts.push('hybrid')
+  if (settings.prompt_name !== 'default') parts.push(`prompt ${settings.prompt_name}`)
+  return parts.join(', ')
+}
+
+/** The run whose report is shown: the one chosen if it still exists, else the newest. */
+export function shownRun(runs: RunSummary[], openId: number | null): number | null {
+  return runs.some((run) => run.id === openId) ? openId : runs[0]?.id ?? null
+}
+
+/** The run started by the first of these jobs, so a new run opens as soon as it is stored. */
+export function runOfJobs(runs: RunSummary[], jobIds: number[]): number | null {
+  for (const jobId of jobIds) {
+    const run = runs.find((item) => item.job_id === jobId)
+    if (run) return run.id
+  }
+  return null
 }
 
 export function hasAnswers(run: RunSummary): boolean {

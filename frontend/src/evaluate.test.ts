@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import type { RunReport, RunScores, RunSettings, RunSummary } from './api/types.ts'
-import { askLink, bandOf, estimateFor, estimateLine, hasAnswers, isWorking, overBudget, questionsLine, reportCsv, statusLine, valuesOfRun } from './evaluate.ts'
+import { askLink, bandOf, estimateFor, estimateLine, hasAnswers, isWorking, overBudget, questionsLine, questionsShort, reportCsv, runOfJobs, settingsShort, shownRun, statusLine, statusTone, valuesOfRun } from './evaluate.ts'
 import type { PanelValues } from './panel.ts'
 
 const SETTINGS: RunSettings = {
@@ -131,4 +131,41 @@ test('the CSV has overall and category rows at full precision', () => {
 test('a held-out CSV has overall rows only', () => {
   const rows = reportCsv({ ...REPORT, split: 'heldout', categories: null }).split('\r\n')
   assert.ok(rows.slice(1).filter(Boolean).every((row) => row.startsWith('overall,')))
+})
+
+test('a status badge is queued only while its job waits, else the run status', () => {
+  assert.equal(statusTone(RUN), 'done')
+  assert.equal(statusTone({ ...RUN, status: 'running', job_id: 3, job_status: 'queued' }), 'queued')
+  assert.equal(statusTone({ ...RUN, status: 'running', job_id: 3, job_status: 'running' }), 'running')
+  assert.equal(statusTone({ ...RUN, status: 'failed', error: 'Budget reached' }), 'failed')
+})
+
+test('the short settings name size, overlap, K and model, then only what differs from the baseline', () => {
+  assert.equal(settingsShort(SETTINGS), '800/200, K=4, sol, enriched, reranked, hybrid, prompt mine')
+  const plain = { ...SETTINGS, chunking_method: 'fixed' as const, rerank: false, hybrid: false, prompt_name: 'default', answer_model: 'openai/gpt-4.1-nano' }
+  assert.equal(settingsShort(plain), '800/200, K=4, gpt-4.1-nano')
+  assert.equal(settingsShort({ ...plain, rerank: true }), '800/200, K=4, gpt-4.1-nano, reranked')
+  assert.equal(settingsShort({ ...plain, hybrid: true }), '800/200, K=4, gpt-4.1-nano, hybrid')
+})
+
+test('the shown run is the chosen one while it exists, else the newest, else none', () => {
+  const runs = [{ ...RUN, id: 9 }, { ...RUN, id: 8 }]
+  assert.equal(shownRun(runs, 8), 8)
+  assert.equal(shownRun(runs, null), 9)
+  assert.equal(shownRun(runs, 42), 9)
+  assert.equal(shownRun([], null), null)
+})
+
+test('a new run opens by its job, the first started job first', () => {
+  const runs = [{ ...RUN, id: 11, job_id: 6 }, { ...RUN, id: 10, job_id: 5 }, { ...RUN, id: 9, job_id: null }]
+  assert.equal(runOfJobs(runs, [5, 6]), 10)
+  assert.equal(runOfJobs(runs, [7, 6]), 11)
+  assert.equal(runOfJobs(runs, [7]), null)
+  assert.equal(runOfJobs(runs, []), null)
+})
+
+test('the short question set names the split, whether it is a sample, and the count', () => {
+  assert.equal(questionsShort(RUN), 'dev (192)')
+  assert.equal(questionsShort({ ...RUN, split: 'heldout', questions: 48 }), 'held-out (48)')
+  assert.equal(questionsShort({ ...RUN, full: false, questions: 20 }), 'dev sample (20)')
 })
