@@ -21,6 +21,7 @@ test('"Which page do I need?" names every page but Home once, each with a cost',
   for (const need of NEEDS) assert.ok(need.want && need.cost, need.page)
 })
 
-test('the usual path goes Build, Ask, Evaluate, Compare', () => {
-  assert.deepEqual(PATH.map((step) => step.page), ['Build', 'Ask', 'Evaluate', 'Compare'])
+test('the recommended order explores on Sweep before deciding on Compare, then repeats', () => {
+  assert.deepEqual(PATH.map((step) => step.page), ['Build', 'Ask', 'Evaluate', 'Sweep', 'Compare', 'Sweep'])
+  assert.equal(PATH.at(-1)!.title, 'Repeat')
 })

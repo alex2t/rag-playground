@@ -20,12 +20,14 @@ export const NEEDS: Need[] = [
 
 export type Step = { page: Page; title: string; text: string }
 
-/** The usual path through the app, in order. */
+/** The recommended order through the app: explore one setting on Sweep, decide on Compare, repeat. */
 export const PATH: Step[] = [
-  { page: 'Build', title: 'Build', text: 'Cut the 48 documents into chunks and store them on a stack.' },
-  { page: 'Ask', title: 'Ask', text: 'Try one question and see the chunks the answer came from.' },
-  { page: 'Evaluate', title: 'Evaluate', text: 'Score a set-up on the test questions, graded by a judge model.' },
-  { page: 'Compare', title: 'Compare', text: 'Check whether a change really helped, or was chance.' },
+  { page: 'Build', title: 'Build', text: 'Make the chunk sets you want to test.' },
+  { page: 'Ask', title: 'Ask', text: 'Try a few questions by eye to spot obvious problems. It decides nothing.' },
+  { page: 'Evaluate', title: 'Evaluate', text: 'Score your starting set-up on the 192 dev questions: it is your reference.' },
+  { page: 'Sweep', title: 'Sweep', text: 'Try several values of one setting at once, to see which look promising.' },
+  { page: 'Compare', title: 'Compare', text: 'Test the most promising value against your base: is the gain real? The winner becomes the new base.' },
+  { page: 'Sweep', title: 'Repeat', text: 'Steps 4 and 5 for the next setting, in this order: chunk size, overlap, top-K, enrichment, reranking, prompt, then the answer model.' },
 ]
 
 /** The newest run that finished, for the "latest result" link, or null. */

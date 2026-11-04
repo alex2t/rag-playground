@@ -63,7 +63,7 @@ If the chosen chunk set is not built on a chosen stack, the panel says so under 
 ## 5. The pages
 
 ### Home: where to begin
-The app opens here. It says what the app does, shows the budget left and the latest finished run (with a link to its report), the usual path (Build, Ask, Evaluate, Compare), and a table of which page does what and what it costs.
+The app opens here. It says what the app does, shows the budget left and the latest finished run (with a link to its report), a recommended order (Build, Ask, Evaluate, Sweep, Compare, then repeat Sweep and Compare for each setting: chunk size, overlap, top-K, enrichment, reranking, prompt, and the answer model last), the rules behind it (tune the search before the answer, change one setting at a time and make each winner the new base), and a table of which page does what and what it costs.
 
 ### How an evaluation works
 Building and evaluating are two separate actions:
@@ -143,7 +143,7 @@ Choose the chunking method, chunk size, overlap and stacks, then press **Estimat
 ### Sweep: try several values of one setting
 Use it to see how one setting changes the scores with everything else fixed, for example top-K = 2, 4, 6 and 8. Evaluate measures one set-up you choose; Story runs the study's fixed ladder, where a rule set in advance picks each step's winner; a sweep picks no winner. To decide between two set-ups, use **Compare**.
 
-The settings panel is the base configuration. Pick the one setting to vary and its values: type numbers separated by commas, or tick values from a list. At most 6 values, the base configuration's own value included, since every other value is compared with it. With both stacks, only settings both share can be varied; a stack's own search settings are swept on that stack alone. Press **Estimate** to see each value's run or cost, then **Confirm**. Each value runs on the 192 dev questions; values with a run already are reused, not paid twice. The charts show each value's accuracy and MRR with their 95% interval, and + or − where a value is really better or worse than the base. Sweeps are exploratory: no winner is picked.
+The settings panel is the base configuration. Pick the one setting to vary and its values: type numbers separated by commas, or tick values from a list. At most 6 values, the base configuration's own value included, since every other value is compared with it. With both stacks, only settings both share can be varied; a stack's own search settings are swept on that stack alone. Press **Estimate** to see each value's run or cost, then **Confirm**. Each value runs on the 192 dev questions; values with a run already are reused, not paid twice. The charts show each value's accuracy and MRR with their 95% interval, and + or − where a value is really better or worse than the base. Sweeps are exploratory: no winner is picked. Varying a setting never changes the settings panel: each run is the panel's set-up with only that setting replaced. To vary the system prompt, save the versions on **Prompt** first. Once a sweep has run, test its most promising value against your base on **Compare**; if the gain is real, choose that value in the panel, and it becomes your new base.
 
 **Confirm** turns on only after **Estimate**, and stays off when every value already has a run. Each value's run number opens its report on **Evaluate**.
 

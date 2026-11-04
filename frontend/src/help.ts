@@ -37,6 +37,10 @@ export const HELP = {
     + 'faithfulness at least 4.0 and correct refusal rate at least 0.80. Among eligible set-ups, the highest accuracy wins. '
     + 'These thresholds are this project\'s own choice, not an industry standard. The colours are a guide of the same '
     + 'kind: green from 0.9 (or 4.5 out of 5), amber from 0.75 (or 4), red below.',
+  sweepVariable: 'Sweep makes one run per value you pick, on the 192 dev questions. Each run is the set-up in the Settings '
+    + 'box with only this setting replaced; the Settings box itself does not change. The base\'s own value is always one '
+    + 'of the runs, since every other value is compared with it. Example: pick prompt versions default, v2 and v3 to see '
+    + 'whether a new prompt helps on your current search set-up. Prompt versions must be saved on the Prompt page first.',
 } as const
 
 /** What each score of a run means and how it is computed (docs/evaluation.md section 4). */

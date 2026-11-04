@@ -5,12 +5,14 @@ import { useBuilds } from '../api/useBuilds.ts'
 import { usePanel } from '../api/usePanel.ts'
 import type { LegendLine } from '../chartImage.ts'
 import Guide from '../components/Guide.tsx'
+import { InfoLabel } from '../components/Info.tsx'
+import { HELP } from '../help.ts'
 import PageTitle from '../components/PageTitle.tsx'
 import LadderChart from '../components/LadderChart.tsx'
 import SettingsPanel from '../components/SettingsPanel.tsx'
 import { chunksProblem } from '../chunks.ts'
 import { panelProblem, saveValues, stacksOf, type PanelValues } from '../panel.ts'
-import { pageLink } from '../route.ts'
+import { hashOf, pageLink } from '../route.ts'
 import {
   bodyFor, chartRows, choicesFor, fromKey, isWorking, overBudget, parseNumbers, planKey, planLine, plansFor, toRun, valueText,
   sweepJobLine, variableOf, variablesFor, type Latest, type Planned,
@@ -113,6 +115,9 @@ function Results({ plans, variable }: { plans: SweepPlan[]; variable: string }) 
       <section aria-label="Sweep values" className="min-w-0 space-y-3 card p-4">
         {plans.map((plan) => <PlanTable key={plan.stack} plan={plan} />)}
         <p className="text-xs text-muted">Exploratory: dev questions only, and no value is picked as the winner. Only one setting changes, so how settings interact is not shown.</p>
+        <p className="text-sm"><strong>Next step:</strong> test the most promising value against your base on{' '}
+          <a className="text-accent-text underline" href={hashOf('Compare')}>Compare</a>. If the gain is real, choose that value in the
+          Settings box: it becomes your new base for the next setting.</p>
       </section>
     </div>
   )
@@ -230,12 +235,12 @@ export default function Sweep() {
         <section aria-label="Sweep" className="min-w-0 space-y-3 card p-5">
           <h2 className="font-semibold">What to vary</h2>
           <p className="text-sm text-muted">The Settings box is the base set-up. Only the setting chosen here changes.</p>
-          <label className="block text-sm">
-            Setting to vary
-            <select className={BOX} value={current} onChange={(e) => { setVariable(e.target.value); setPicked([]); setTyped('') }}>
+          <div>
+            <InfoLabel label="Setting to vary" info={HELP.sweepVariable} htmlFor="sweep-variable" />
+            <select id="sweep-variable" className={BOX} value={current} onChange={(e) => { setVariable(e.target.value); setPicked([]); setTyped('') }}>
               {offered.map((v) => <option key={v.key} value={v.key}>{v.label}</option>)}
             </select>
-          </label>
+          </div>
           <ValuesInput variable={current} options={options} promptNames={promptNames} typed={typed} picked={picked} onType={setTyped} onPick={setPicked} />
           <p className="text-xs text-muted">At most 6 values, the base configuration's own value included: it is what the others are compared with.</p>
           <div className="flex gap-2">

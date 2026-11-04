@@ -38,11 +38,11 @@ function Status() {
 
 function Path() {
   return (
-    <section aria-label="The usual path" className="space-y-3">
-      <h2 className="text-lg font-semibold">The usual path</h2>
-      <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <section aria-label="Recommended order" className="space-y-3">
+      <h2 className="text-lg font-semibold">Recommended order</h2>
+      <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {PATH.map((step, index) => (
-          <li key={step.page}>
+          <li key={step.title}>
             <a href={hashOf(step.page)} className="block h-full card p-5 hover:border-accent">
               <span className="text-xs font-semibold uppercase tracking-wide text-accent-text">Step {index + 1}</span>
               <span className="mt-1 block text-lg font-semibold">{step.title}</span>
@@ -51,11 +51,16 @@ function Path() {
           </li>
         ))}
       </ol>
-      <p className="text-sm text-muted">
-        Beyond that: <a className="underline" href={hashOf('Story')}>Story</a> runs the study itself, one step per click;{' '}
-        <a className="underline" href={hashOf('Prompt')}>Prompt</a> and <a className="underline" href={hashOf('Sweep')}>Sweep</a> are for your own experiments;{' '}
-        <a className="underline" href={hashOf('Ops')}>Ops</a> watches spend and failures.
-      </p>
+      <div className="card space-y-2 p-5 text-sm">
+        <p><strong>Search first, answer last.</strong> An answer can only be as good as the chunks it is given, so tune the
+          search before the prompt. Test the answer model last: a stronger model usually helps but costs more per question,
+          so it is a cost trade-off rather than a RAG technique.</p>
+        <p><strong>One setting at a time.</strong> Change one thing per test, so you know what made the difference, and make
+          each winner the new base before testing the next setting.</p>
+        <p className="text-muted"><a className="underline" href={hashOf('Story')}>Story</a> runs this whole ladder for you, with
+          rules fixed in advance, then confirms the final choice on the 48 held-out questions. Write prompt versions on{' '}
+          <a className="underline" href={hashOf('Prompt')}>Prompt</a> before sweeping them; <a className="underline" href={hashOf('Ops')}>Ops</a> watches spend and failures.</p>
+      </div>
     </section>
   )
 }
