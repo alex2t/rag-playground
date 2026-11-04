@@ -51,7 +51,7 @@ function Changes({ before, after }: { before: RunSummary; after: RunSummary }) {
           ))}
         </tbody>
       </table>
-      {diffs.length > 1 && <p className="mt-2 text-sm text-warn">{diffs.length} settings differ: a difference cannot be put down to any one of them.</p>}
+      {diffs.length > 1 && <p className="mt-2 text-sm text-warn">{diffs.length} settings differ. Compare still tells you which set-up is better, which is what you need to pick the best one, but not which of these settings made the difference. To measure one setting, compare two runs that differ in that setting only.</p>}
     </div>
   )
 }

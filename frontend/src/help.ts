@@ -64,6 +64,17 @@ export const METRIC_HELP: Record<string, string> = {
     + 'instead of inventing an answer. Higher is better. Gate: at least 0.80.',
   false_refusal_rate: 'The share of answerable questions that the system refused. Lower is better. It is shown with the '
     + 'correct refusal rate, because a system that refuses everything would score perfectly on that one alone.',
+  cost_per_question: 'What one question cost on average, in US dollars: the answer model, the reranker if on, the judge, '
+    + 'and Stack A\'s search fee. Lower is better.',
+  latency_s: 'The average time to search and answer one question, in seconds; grading by the judge is not counted. Lower is better.',
+}
+
+/** What the verdict tiles of Compare test. */
+export function changeHelp(score: string): string {
+  return `Is After's ${score} really different from Before's? Both runs answered the same questions, so the test looks at `
+    + 'the difference question by question and resamples those differences 1,000 times (a paired bootstrap) to get a '
+    + '95% interval for the true change. "After is better" or "After is worse" only when the whole interval is on one side '
+    + 'of zero; otherwise the gap could come from chance and the verdict is "No real difference".'
 }
 
 /** What each question category tests (docs/evaluation.md section 2). */

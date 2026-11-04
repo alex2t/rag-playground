@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import type { Comparison, RunReport, RunScores, RunSettings, RunSummary } from './api/types.ts'
+import { METRIC_HELP } from './help.ts'
 import { changeLine, chartLegend, comparable, costChange, depthNote, judgeRows, partners, rateRows, recommendation, runChoice, runLine, runStatement, settingDiffs, signed, tableRows } from './compare.ts'
 
 const SETTINGS: RunSettings = {
@@ -73,8 +74,12 @@ test('the table has every score, the cost and the time, and marks what should fa
   assert.equal(rows.length, Object.keys(SCORES).length + 2)
   assert.deepEqual(rows.filter((row) => row.lowerIsBetter).map(({ label }) => label),
     ['False refusal rate', 'Cost per question ($)', 'Seconds per answer'])
-  assert.deepEqual(rows.at(-2), { label: 'Cost per question ($)', before: 0.0012, after: 0.002, digits: 4, lowerIsBetter: true })
-  assert.deepEqual(rows.at(-1), { label: 'Seconds per answer', before: 2.25, after: 3, digits: 1, lowerIsBetter: true })
+  assert.deepEqual(rows.at(-2), { key: 'cost_per_question', label: 'Cost per question ($)', before: 0.0012, after: 0.002, digits: 4, lowerIsBetter: true })
+  assert.deepEqual(rows.at(-1), { key: 'latency_s', label: 'Seconds per answer', before: 2.25, after: 3, digits: 1, lowerIsBetter: true })
+})
+
+test('every row of the table has an explanation for its i button', () => {
+  for (const row of tableRows(COMPARISON)) assert.ok(METRIC_HELP[row.key], row.key)
 })
 
 test('a change carries its sign, and a change that rounds to nothing has none', () => {
@@ -86,7 +91,7 @@ test('a change carries its sign, and a change that rounds to nothing has none', 
 })
 
 test('a paired change reads as both means, the change and its interval', () => {
-  assert.equal(changeLine(4, 4.25, CHANGE), '4.000 to 4.250, +0.250 (95% interval -0.100 to +0.200)')
+  assert.equal(changeLine(4, 4.25, CHANGE), 'Before 4.000, After 4.250: +0.250 (95% interval -0.100 to +0.200)')
 })
 
 test('runs at different K carry a warning, and only those', () => {

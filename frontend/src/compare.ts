@@ -6,7 +6,7 @@ import { searchLine, settingsLine } from './panel.ts'
 
 type Side = Pick<RunSummary, 'stack' | 'settings'>
 export type ScoreRow = { label: string; before: number; after: number }
-export type TableRow = ScoreRow & { digits: number; lowerIsBetter: boolean }
+export type TableRow = ScoreRow & { key: string; digits: number; lowerIsBetter: boolean }
 
 const JUDGE_SCALE = new Set<keyof RunScores>(['accuracy', 'completeness', 'relevance', 'faithfulness'])
 const ALL_METRICS: Metric[] = [...HEADLINE, ...OTHER, ...TRUST]
@@ -127,10 +127,10 @@ export function rateRows(comparison: Comparison): ScoreRow[] {
 export function tableRows(comparison: Comparison): TableRow[] {
   const { before, after } = comparison
   const scores = rows(comparison, ALL_METRICS).map((row, index) =>
-    ({ ...row, digits: 3, lowerIsBetter: ALL_METRICS[index].key === 'false_refusal_rate' }))
+    ({ ...row, key: ALL_METRICS[index].key, digits: 3, lowerIsBetter: ALL_METRICS[index].key === 'false_refusal_rate' }))
   return [...scores,
-    { label: 'Cost per question ($)', before: before.cost_per_question, after: after.cost_per_question, digits: 4, lowerIsBetter: true },
-    { label: 'Seconds per answer', before: before.latency_s, after: after.latency_s, digits: 1, lowerIsBetter: true }]
+    { key: 'cost_per_question', label: 'Cost per question ($)', before: before.cost_per_question, after: after.cost_per_question, digits: 4, lowerIsBetter: true },
+    { key: 'latency_s', label: 'Seconds per answer', before: before.latency_s, after: after.latency_s, digits: 1, lowerIsBetter: true }]
 }
 
 /** A change with its sign; one that rounds to nothing has none, either way. */
@@ -142,7 +142,7 @@ export function signed(value: number, digits: number): string {
 
 /** The paired change as read on the page: the mean change, with its interval. */
 export function changeLine(before: number, after: number, change: PairedChange): string {
-  return `${before.toFixed(3)} to ${after.toFixed(3)}, ${signed(after - before, 3)} (95% interval ${signed(change.low, 3)} to ${signed(change.high, 3)})`
+  return `Before ${before.toFixed(3)}, After ${after.toFixed(3)}: ${signed(after - before, 3)} (95% interval ${signed(change.low, 3)} to ${signed(change.high, 3)})`
 }
 
 /** Search scores count K results, so a different K changes what they measure. */

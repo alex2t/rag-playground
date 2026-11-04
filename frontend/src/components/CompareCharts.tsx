@@ -63,10 +63,10 @@ function CostChart({ comparison }: { comparison: Comparison }) {
 export default function CompareCharts({ comparison }: { comparison: Comparison }) {
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      <ScoreBars title="Judge scores (1 to 5)" note="Higher is better." rows={judgeRows(comparison)} domain={[1, 5]} ticks={[1, 2, 3, 4, 5]} comparison={comparison} />
+      <ScoreBars title="Judge scores (1 to 5)" note="Higher is better. Each score is explained by its i button in All scores, below." rows={judgeRows(comparison)} domain={[1, 5]} ticks={[1, 2, 3, 4, 5]} comparison={comparison} />
       <CostChart comparison={comparison} />
       <div className="md:col-span-2">
-        <ScoreBars title="Search scores and refusal rates (0 to 1)" note="Higher is better, except the false refusal rate."
+        <ScoreBars title="Search scores and refusal rates (0 to 1)" note="Higher is better, except the false refusal rate. Each score is explained by its i button in All scores, below."
           rows={rateRows(comparison)} domain={[0, 1]} ticks={[0, 0.25, 0.5, 0.75, 1]} comparison={comparison} />
       </div>
     </div>
