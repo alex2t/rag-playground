@@ -47,7 +47,7 @@ Each stack runs independently: you set each one's search settings yourself. The 
 The **Ask**, **Evaluate** and **Sweep** pages share one settings panel:
 
 1. **Stack:** A, B, or both side by side.
-2. **Chunk size** (64 to 2,048 tokens), **overlap** (0 to 50% of the chunk size) and **chunking method**.
+2. **Chunks:** a chunk set already built, shown as size / overlap in tokens, grouped by chunking method, with the stacks that hold it. To get another one, use **Build a new chunk set**, which opens the Build page.
 3. **Top-K** (1 to 8).
 4. **Search settings of each selected stack:**
    - Stack A: ranker (`auto` = OpenAI's own re-ranking, `none` = off), the semantic and keyword weights, and the score threshold.
@@ -58,7 +58,7 @@ The **Ask**, **Evaluate** and **Sweep** pages share one settings panel:
 
 The panel opens with the last values you used on this browser, or with the S0 baseline the first time.
 
-If the chunks for your chunking method, chunk size and overlap are not built on a chosen stack yet, the panel says so. **Estimate the build** shows the number of chunks and the cost; **Build them** builds them on the stacks that lack them, and the panel shows each build until it is done or failed.
+If the chosen chunk set is not built on a chosen stack, the panel says so under the list, and the page will not ask or start a run until you pick another set or another stack. Each setting has an **i** button: click it for what the setting does and why you would change it.
 
 ## 5. The pages
 
@@ -80,6 +80,8 @@ Use it to see how one configuration answers.
 3. Press **Ask**.
 
 You see the answer, its settings, time and cost, the chunks it was given (document, rank and score), and for a test question also the reference answer, the documents that hold the answer (highlighted where they were retrieved) and the judge's scores. A question you type yourself has no reference answer, so it shows no scores.
+
+A box at the top of the page, always shown, says where the answers come from: both stacks search the same chunks and the same model writes the answer; only the search engine differs (Stack A: OpenAI's vector store; Stack B: nomic embeddings in Qdrant, run by this app). Type in the filter box above the test questions to shorten the list.
 
 ### Evaluate: score one configuration
 Use it to measure a configuration on many questions.
@@ -196,5 +198,5 @@ On Stack B, most of the cost of an evaluation is the judge. On Stack A, the larg
 | A run ends **failed** with another error | A model or a stack did not respond. | Check **Ops**, then start a new run (a finished run is never re-run). |
 | A run ends **failed** with "interrupted: the app restarted" | The app restarted while the run was queued or running. Its finished questions are kept. | Start a new run. |
 | "Not found: ..." with a prompt name | No saved prompt version has that name. | Pick a saved version on **Prompt**. |
-| "Not found: ... is not indexed on Stack ..." | The chunks for this configuration are not built on that stack. | Build them on **Build**, or accept the offer in the settings panel. |
+| "Not found: ... is not indexed on Stack ..." | The chunks for this configuration are not built on that stack. | Build them on **Build**, or pick a chunk set built on that stack. |
 | "Held-out runs use the default prompt or a version evaluated on dev questions" | This prompt version has no finished dev run. | Evaluate it on dev questions first. |

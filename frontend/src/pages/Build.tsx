@@ -121,7 +121,7 @@ export default function Build() {
       <PageTitle title="Build" about="Cut the documents into chunks and store them on a stack." />
       <Guide page="Build" steps={STEPS}
         purpose="Before a set-up can be asked or evaluated, its chunks must exist on the stack: the 48 documents cut into passages of the chosen size, turned into vectors and stored."
-        note="Fixed chunks are free. LLM-enriched chunks pay once for a headline and summary of every chunk, shared by both stacks. Stack B builds on this computer and needs Qdrant running. The settings box on Ask, Evaluate and Sweep also offers to build missing chunks." />
+        note="Fixed chunks are free. LLM-enriched chunks pay once for a headline and summary of every chunk, shared by both stacks. Stack B builds on this computer and needs Qdrant running." />
       <section aria-label="Build" className="min-w-0 space-y-3 card p-4 md:max-w-xl">
         <h2 className="font-semibold">Prepare chunks</h2>
         <div className="grid gap-3 sm:grid-cols-2">

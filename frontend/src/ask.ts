@@ -8,6 +8,14 @@ export function byCategory(questions: AskQuestion[]): [string, AskQuestion[]][] 
   return [...groups]
 }
 
+/** The test questions whose text or category holds `filter` (any case); the picked one always stays, so the list
+ * never hides what is selected. */
+export function filtered(questions: AskQuestion[], filter: string, pickedId: string): AskQuestion[] {
+  const words = filter.trim().toLowerCase()
+  if (!words) return questions
+  return questions.filter((item) => item.id === pickedId || `${item.category} ${item.question}`.toLowerCase().includes(words))
+}
+
 /** What to send: the picked test question, or the typed text. Null when there is nothing to ask. */
 export function questionBody(typed: string, testId: string): { question: string } | { test_id: string } | null {
   if (testId) return { test_id: testId }

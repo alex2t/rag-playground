@@ -2,45 +2,25 @@
 
 @theme {
   --font-sans: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
-  --color-page: #f5f6f8;
-  --color-panel: #ffffff;
-  --color-line: #e3e5ea;
-  --color-ink: #151821;
-  --color-muted: #5d6475;
-  --color-accent: #4f46e5;
-  --color-accent-soft: #eef0ff;
-  --color-accent-text: #4338ca;
-  --color-danger: #b42318;
-  --color-good: #17794a;
-  --color-warn: #a15c00;
-  --color-stack-a: #2a78d6;
-  --color-stack-b: #eb6834;
-  --color-before: #1baf7a;
-  --color-after: #6250d6;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-page: #0e1015;
-    --color-panel: #171a21;
-    --color-line: #2b303b;
-    --color-ink: #eceef3;
-    --color-muted: #a3aab8;
-    --color-accent: #5b54e8;
-    --color-accent-soft: #23234a;
-    --color-accent-text: #b4bcff;
-    --color-danger: #ff8a7a;
-    --color-good: #5fd39a;
-    --color-warn: #f2b45a;
-    --color-stack-a: #3987e5;
-    --color-stack-b: #d95926;
-    --color-before: #199e70;
-    --color-after: #9085e9;
-  }
+  --color-page: #000000;
+  --color-panel: #121419;
+  --color-line: #2a2f3a;
+  --color-ink: #eceef3;
+  --color-muted: #a3aab8;
+  --color-accent: #5b54e8;
+  --color-accent-soft: #23234a;
+  --color-accent-text: #b4bcff;
+  --color-danger: #ff8a7a;
+  --color-good: #5fd39a;
+  --color-warn: #f2b45a;
+  --color-stack-a: #3987e5;
+  --color-stack-b: #e0652f;
+  --color-before: #199e70;
+  --color-after: #9085e9;
 }
 
 :root {
-  color-scheme: light dark;
+  color-scheme: dark;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
@@ -88,4 +68,23 @@ body {
   background: var(--color-panel);
   padding: 0.4rem 0.6rem;
   &:focus { outline: 2px solid var(--color-accent); outline-offset: -1px; }
+}
+
+@utility info-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  border: 1px solid var(--color-muted);
+  border-radius: 9999px;
+  color: var(--color-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  font-style: italic;
+  font-family: Georgia, serif;
+  line-height: 1;
+  transition: color 120ms, border-color 120ms, background-color 120ms;
+  &:hover, &[aria-expanded='true'] { color: var(--color-accent-text); border-color: var(--color-accent-text); background: var(--color-accent-soft); }
+  &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
 }

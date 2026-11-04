@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { estimateRun, startRun } from '../api/client.ts'
 import type { QuestionSet, RunSummary } from '../api/types.ts'
+import { useBuilds } from '../api/useBuilds.ts'
 import { usePanel } from '../api/usePanel.ts'
 import { useRuns } from '../api/useRuns.ts'
 import Guide from '../components/Guide.tsx'
@@ -8,6 +9,7 @@ import PageTitle from '../components/PageTitle.tsx'
 import RunsPanel, { ShownRun } from '../components/RunsPanel.tsx'
 import SettingsPanel from '../components/SettingsPanel.tsx'
 import { askLink, estimateFor, estimateLine, linkedRunId, overBudget, questionSetOf, runOfJobs, shownRun, valuesOfRun, type Estimated } from '../evaluate.ts'
+import { chunksProblem } from '../chunks.ts'
 import { panelProblem, requestFor, saveValues, stacksOf } from '../panel.ts'
 import { linkedParam } from '../route.ts'
 
@@ -29,6 +31,7 @@ const STEPS = [
 A link can choose the prompt version, the question set and the run to show. */
 export default function Evaluate() {
   const { options, promptNames, values, setValues, error: panelError } = usePanel(linkedParam(location.hash, 'prompt'))
+  const { builds } = useBuilds()
   const { runs, error: runsError, reload } = useRuns()
   const [questions, setQuestions] = useState<QuestionSet>(() => questionSetOf(linkedParam(location.hash, 'questions')))
   const [estimated, setEstimated] = useState<Estimated | null>(null)
@@ -40,7 +43,7 @@ export default function Evaluate() {
   if (options === null || values === null || runs === null) return <p className="text-sm text-muted">{runsError ?? 'Loading...'}</p>
 
   const current = values
-  const problem = panelProblem(current, options)
+  const problem = panelProblem(current, options) ?? chunksProblem(builds?.built ?? null, current)
   const estimates = estimateFor(estimated, current, questions)
   const shownId = shownRun(runs, openId)
   const shown = runs.find((run) => run.id === shownId)
@@ -87,7 +90,7 @@ export default function Evaluate() {
         purpose="Each test question is searched, answered by the answer model and graded by a separate judge model against its reference answer."
         note="Held-out questions are kept for confirming a final choice: do not use them to tune settings." />
       <div className="grid gap-5 md:grid-cols-[22rem_minmax(0,1fr)]">
-        <SettingsPanel values={current} options={options} promptNames={promptNames} onChange={setValues} />
+        <SettingsPanel values={current} options={options} promptNames={promptNames} built={builds?.built ?? null} onChange={setValues} />
         <div className="min-w-0 space-y-5">
           <section aria-label="Start a run" className="space-y-3 card p-5">
             <h2 className="font-semibold">Start a run</h2>

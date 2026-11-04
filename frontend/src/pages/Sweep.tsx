@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { getLatestSweep, planSweep, startSweep } from '../api/client.ts'
 import type { PanelOptions, SweepPlan, SweepValue } from '../api/types.ts'
+import { useBuilds } from '../api/useBuilds.ts'
 import { usePanel } from '../api/usePanel.ts'
 import type { LegendLine } from '../chartImage.ts'
 import Guide from '../components/Guide.tsx'
 import PageTitle from '../components/PageTitle.tsx'
 import LadderChart from '../components/LadderChart.tsx'
 import SettingsPanel from '../components/SettingsPanel.tsx'
+import { chunksProblem } from '../chunks.ts'
 import { panelProblem, saveValues, stacksOf, type PanelValues } from '../panel.ts'
 import { pageLink } from '../route.ts'
 import {
@@ -101,7 +103,7 @@ function Results({ plans, variable }: { plans: SweepPlan[]; variable: string }) 
   return (
     <div className="space-y-4">
       {anyRun && (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 xl:grid-cols-2">
           <LadderChart title={`Accuracy by ${about.label.toLowerCase()} (1 to 5, 192 dev questions)`} rows={chartRows(plans, about, 'accuracy')}
             domain={[1, 5]} ticks={[1, 2, 3, 4, 5]} note={NOTE} imageLegend={IMAGE_LEGEND} connect={about.ordered} />
           <LadderChart title={`MRR by ${about.label.toLowerCase()} (0 to 1, answerable dev questions)`} rows={chartRows(plans, about, 'mrr')}
@@ -132,6 +134,7 @@ function ValuesInput({ variable, options, promptNames, typed, picked, onType, on
 /** One setting over several values on the dev questions (T58): Estimate, then Confirm, then follow it below. */
 export default function Sweep() {
   const { options, promptNames, values, setValues, error: panelError } = usePanel()
+  const { builds } = useBuilds()
   const [variable, setVariable] = useState('chunk_size')
   const [typed, setTyped] = useState('')
   const [picked, setPicked] = useState<SweepValue[]>([])
@@ -177,7 +180,7 @@ export default function Sweep() {
   if (options === null || values === null) return <p className="text-sm text-muted">Loading...</p>
 
   const panel: PanelValues = values
-  const problem = panelProblem(panel, options) ?? ('problem' in parsed ? parsed.problem : list!.length === 0 ? 'Tick at least one value.' : null)
+  const problem = panelProblem(panel, options) ?? chunksProblem(builds?.built ?? null, panel) ?? ('problem' in parsed ? parsed.problem : list!.length === 0 ? 'Tick at least one value.' : null)
   const stacks = stacksOf(panel.stacks)
   const runnable = plans ? toRun(plans) : []
   const over = plans !== null && overBudget(plans)
@@ -222,8 +225,9 @@ export default function Sweep() {
         <PagesCompared />
       </Guide>
       <div className="grid gap-5 md:grid-cols-[22rem_minmax(0,1fr)]">
-        <SettingsPanel values={panel} options={options} promptNames={promptNames} onChange={setValues} />
-        <section aria-label="Sweep" className="min-w-0 space-y-3 self-start card p-5">
+        <SettingsPanel values={panel} options={options} promptNames={promptNames} built={builds?.built ?? null} onChange={setValues} />
+        <div className="min-w-0 space-y-5">
+        <section aria-label="Sweep" className="min-w-0 space-y-3 card p-5">
           <h2 className="font-semibold">What to vary</h2>
           <p className="text-sm text-muted">The Settings box is the base set-up. Only the setting chosen here changes.</p>
           <label className="block text-sm">
@@ -253,8 +257,10 @@ export default function Sweep() {
           ))}
           {error && <p role="alert" className="text-sm text-danger [overflow-wrap:anywhere]">{error}</p>}
         </section>
+        {plans && <Results plans={plans} variable={current} />}
+        </div>
       </div>
-      {plans && <Results plans={plans} variable={current} />}
+
     </div>
   )
 }

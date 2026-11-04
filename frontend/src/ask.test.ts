@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import type { AskChunk, AskResult } from './api/types.ts'
-import { byCategory, chunkLine, missedSources, money, questionBody, warnings } from './ask.ts'
+import { byCategory, chunkLine, filtered, missedSources, money, questionBody, warnings } from './ask.ts'
 
 const CHUNK: AskChunk = { rank: 1, source: 'a.md', score: 0.12345, text: 'Text.', gold: false }
 const RESULT: AskResult = {
@@ -9,8 +9,11 @@ const RESULT: AskResult = {
   chunks: [CHUNK], reference_answer: null, gold_sources: [], judgement: null,
 }
 
+function q(id: string, category: string, question = id) {
+  return { id, category, question }
+}
+
 test('questions group by category, keeping their order', () => {
-  const q = (id: string, category: string) => ({ id, category, question: id })
   const groups = byCategory([q('1', 'x'), q('2', 'y'), q('3', 'x')])
   assert.deepEqual(groups.map(([category, items]) => [category, items.map((item) => item.id)]), [['x', ['1', '3']], ['y', ['2']]])
 })
@@ -45,4 +48,18 @@ test('uncontrolled temperature and a repaired ranking are labelled', () => {
   assert.deepEqual(warnings(RESULT), [])
   assert.deepEqual(warnings({ ...RESULT, temperature_controlled: false }), ['Temperature not controlled.'])
   assert.equal(warnings({ ...RESULT, rerank_repaired: true }).length, 1)
+})
+
+test('the filter keeps questions whose text or category holds the words, in any case', () => {
+  const items = [q('1', 'temporal', 'When did Shield start?'), q('2', 'multi_doc', 'Who owns Atlas?'), q('3', 'temporal', 'Who signed?')]
+  assert.deepEqual(filtered(items, 'shield', '').map(({ id }) => id), ['1'])
+  assert.deepEqual(filtered(items, '  WHO ', '').map(({ id }) => id), ['2', '3'])
+  assert.deepEqual(filtered(items, 'multi_doc', '').map(({ id }) => id), ['2'])
+})
+
+test('an empty filter keeps every question; the picked one stays whatever the filter', () => {
+  const items = [q('1', 'x', 'Alpha?'), q('2', 'x', 'Beta?')]
+  assert.equal(filtered(items, '   ', '').length, 2)
+  assert.deepEqual(filtered(items, 'beta', '1').map(({ id }) => id), ['1', '2'])
+  assert.deepEqual(filtered(items, 'zzz', '').map(({ id }) => id), [])
 })

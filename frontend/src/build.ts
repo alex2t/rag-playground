@@ -1,7 +1,7 @@
 /** Pure logic of the Build page (D29). */
 
 import type { BuildEstimate, BuildJob, BuildSettings, BuiltSet, PanelOptions, StackId } from './api/types.ts'
-import { chunkProblem, stacksOf, type PanelValues, type StackChoice } from './panel.ts'
+import { chunkProblem, stacksOf, type StackChoice } from './panel.ts'
 
 export type BuildValues = BuildSettings & { stacks: StackChoice }
 export type Estimated = { values: BuildValues; estimate: BuildEstimate }
@@ -40,9 +40,9 @@ function costLine(method: BuildSettings['chunking_method'], usd: number): string
   return usd > 0 ? `Enrichment about $${usd.toFixed(4)}, paid once for both stacks.` : 'Already enriched: nothing to pay.'
 }
 
-/** What pressing Embed would do: which set, how many chunks, which stacks, and what it costs. `missing` is the stacks
- * it would build, when fewer than those lacking the set (a build already running is not started again). */
-export function estimateLine(estimate: BuildEstimate, values: BuildValues, missing = toBuild(estimate, values.stacks)): string {
+/** What pressing Embed would do: which set, how many chunks, which stacks, and what it costs. */
+export function estimateLine(estimate: BuildEstimate, values: BuildValues): string {
+  const missing = toBuild(estimate, values.stacks)
   const have = stacksOf(values.stacks).filter((stack) => estimate.built.includes(stack))
   const parts = [`${estimate.chunk_set_id}: ${estimate.chunks} chunks.`]
   if (have.length) parts.push(`Already built on ${have.map((stack) => `Stack ${stack}`).join(' and ')}.`)
@@ -61,11 +61,6 @@ export function jobTone(job: BuildJob): Tone {
   return job.status === 'done' ? 'good' : job.status === 'failed' ? 'bad' : 'working'
 }
 
-/** The chunk set and stacks the settings panel asks for. */
-export function buildValuesOf({ chunking_method, chunk_size, overlap, stacks }: PanelValues): BuildValues {
-  return { chunking_method, chunk_size, overlap, stacks }
-}
-
 /** The chosen stacks with no built chunk set of this method, size and overlap. */
 function sameSet(row: BuildSettings, values: BuildSettings): boolean {
   return row.chunking_method === values.chunking_method && row.chunk_size === values.chunk_size && row.overlap === values.overlap
@@ -73,19 +68,6 @@ function sameSet(row: BuildSettings, values: BuildSettings): boolean {
 
 export function missingStacks(built: BuiltSet[], values: BuildValues): StackId[] {
   return stacksOf(values.stacks).filter((stack) => !built.some((row) => row.stack === stack && sameSet(row, values)))
-}
-
-/** The jobs the offer shows: those it started, and any build of these chunks on a chosen stack still waiting or
- * running, whoever started it, so returning to the page shows the build instead of offering it again. */
-export function offerJobs(jobs: BuildJob[], values: BuildValues, started: number[]): BuildJob[] {
-  const stacks = stacksOf(values.stacks)
-  return jobs.filter((job) => started.includes(job.id)
-    || (isWorking([job]) && stacks.includes(job.stack) && sameSet(job, values)))
-}
-
-/** Stacks with no build of theirs still waiting or running among `jobs`: starting one again would be refused. */
-export function notBuilding(stacks: StackId[], jobs: BuildJob[]): StackId[] {
-  return stacks.filter((stack) => !jobs.some((job) => job.stack === stack && isWorking([job])))
 }
 
 export function isWorking(jobs: BuildJob[]): boolean {
