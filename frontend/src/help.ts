@@ -30,4 +30,51 @@ export const HELP = {
   test: 'One of the 192 prepared dev questions, each with a reference answer. The answer is scored by the judge model '
     + '(accuracy, completeness, relevance, faithfulness, from 1 to 5), and the documents that hold the answer are highlighted. '
     + 'Type in the filter box to shorten the list.',
+  questionSet: 'Smoke test: 20 dev questions, to check that a set-up works; it stays out of Compare, Story and the findings. '
+    + 'Dev: the 192 questions used to choose settings. Held-out: 48 questions never used to choose anything, run only to '
+    + 'confirm a final choice; their report shows overall scores only, so they cannot leak into tuning.',
+  gates: 'A set-up is eligible as the best only if it passes every gate: MRR at least 0.75, Recall@K at least 0.80, '
+    + 'faithfulness at least 4.0 and correct refusal rate at least 0.80. Among eligible set-ups, the highest accuracy wins. '
+    + 'These thresholds are this project\'s own choice, not an industry standard. The colours are a guide of the same '
+    + 'kind: green from 0.9 (or 4.5 out of 5), amber from 0.75 (or 4), red below.',
 } as const
+
+/** What each score of a run means and how it is computed (docs/evaluation.md section 4). */
+export const METRIC_HELP: Record<string, string> = {
+  mrr: 'Mean reciprocal rank: how high the first chunk from a document holding the answer came. Rank 1 scores 1, rank 2 '
+    + 'scores 0.5, rank 4 scores 0.25, not found scores 0, averaged over the answerable questions. Computed by code against '
+    + 'each question\'s known source documents, with no model involved. Gate: at least 0.75.',
+  recall: 'Recall@K: the share of the documents holding the answer that appear among the top K chunks; 1 means all were '
+    + 'found. It matters most for questions that need two documents. Computed by code, no model. Gate: at least 0.80.',
+  accuracy: 'Is the answer factually correct compared with the reference answer? Graded 1 to 5 by the judge model, from '
+    + 'another model family than the answer models. Any wrong fact scores 1; for an unanswerable question, refusing scores 5. '
+    + 'The main score: an answer passes at 4 or more, and the best set-up is the eligible one with the highest accuracy.',
+  faithfulness: 'Is every claim in the answer supported by the retrieved chunks? Graded 1 to 5 by the judge in a separate '
+    + 'request that does not see the reference answer. A correct answer taken from the model\'s own knowledge scores low: '
+    + 'it was a lucky guess the system cannot be trusted to repeat. Gate: at least 4.0.',
+  ndcg: 'nDCG@K: how well the retrieved chunks are ordered. A chunk from a right document at position i earns '
+    + '1 / log2(i + 1), and the total is divided by the best possible, so 1 is a perfect order. Computed by code.',
+  hit: 'Hit@K: 1 if at least one chunk from a document holding the answer is among the top K, otherwise 0, averaged. '
+    + 'Computed by code.',
+  keyword_recall: 'The share of the answer\'s key values (names, numbers, commands copied from the right documents) found in '
+    + 'the retrieved chunks. A weaker cross-check: a chunk can contain "2015" without answering the question.',
+  completeness: 'Does the answer cover everything in the reference answer? Graded 1 to 5 by the judge.',
+  relevance: 'Does the answer address only what was asked, without padding? Graded 1 to 5 by the judge.',
+  correct_refusal_rate: 'The share of unanswerable questions (the answer is not in the documents) that the system refused '
+    + 'instead of inventing an answer. Higher is better. Gate: at least 0.80.',
+  false_refusal_rate: 'The share of answerable questions that the system refused. Lower is better. It is shown with the '
+    + 'correct refusal rate, because a system that refuses everything would score perfectly on that one alone.',
+}
+
+/** What each question category tests (docs/evaluation.md section 2). */
+export const CATEGORY_HELP: Record<string, string> = {
+  direct_fact: 'Find one fact stated in one document. Example: which API is used for the full Account load in a data migration runbook.',
+  numerical: 'Find an exact number, such as a price, a duration or a count. Example: the typical duration of a service (16 weeks).',
+  temporal: 'Handle dates, the order of events and elapsed time. Example: the date an employee started at an office.',
+  exact_term: 'Return an exact name, command or error message. Example: the command to log in again after an expired token error.',
+  multi_doc: 'Combine one value from each of two documents. Example: an article count from a client document and the cap '
+    + 'from a service document, to work out the difference. Retrieval must find both documents.',
+  comparative: 'Compare two things, such as two services, runbooks or people. Example: which of two runbooks needs more hands-on time (120 vs 85 minutes).',
+  unanswerable: 'The answer is not in the documents; the right response is to say so. Example: how many people work in an '
+    + 'office that does not exist. Scored by refusing (5) or inventing (1).',
+}

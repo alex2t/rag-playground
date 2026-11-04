@@ -85,6 +85,8 @@ A box at the top of the page, always shown, says where the answers come from: bo
 
 ### Evaluate: score one configuration
 Use it to measure a configuration on many questions.
+
+A box at the top, always shown, explains why the scores can be trusted: known answers, search and answer scored separately, a judge checked against a human, settings chosen on dev questions only, refusals counted, every run reproducible, and gates set in advance. It also states the limits. Every score, the gates line, the question set and each question category have an **i** button: click it for what it means and how it is computed.
 1. Choose the settings and the question set: **dev** (192), **held-out** (48), or the 20-question **smoke test**.
 2. Press **Estimate** to see the number of questions, the cost and the time.
 3. Press **Evaluate** (it turns on only after Estimate). The new run opens at once under **All runs**, with a progress bar (for example "12 of 192 questions"); you can leave the page. Runs go one at a time: a second run waits as **queued** until the first finishes.

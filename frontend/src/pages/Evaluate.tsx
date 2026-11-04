@@ -5,6 +5,9 @@ import { useBuilds } from '../api/useBuilds.ts'
 import { usePanel } from '../api/usePanel.ts'
 import { useRuns } from '../api/useRuns.ts'
 import Guide from '../components/Guide.tsx'
+import { InfoLabel } from '../components/Info.tsx'
+import SoundEvaluation from '../components/SoundEvaluation.tsx'
+import { HELP } from '../help.ts'
 import PageTitle from '../components/PageTitle.tsx'
 import RunsPanel, { ShownRun } from '../components/RunsPanel.tsx'
 import SettingsPanel from '../components/SettingsPanel.tsx'
@@ -89,18 +92,19 @@ export default function Evaluate() {
       <Guide page="Evaluate" steps={STEPS}
         purpose="Each test question is searched, answered by the answer model and graded by a separate judge model against its reference answer."
         note="Held-out questions are kept for confirming a final choice: do not use them to tune settings." />
+      <SoundEvaluation />
       <div className="grid gap-5 md:grid-cols-[22rem_minmax(0,1fr)]">
         <SettingsPanel values={current} options={options} promptNames={promptNames} built={builds?.built ?? null} onChange={setValues} />
         <div className="min-w-0 space-y-5">
           <section aria-label="Start a run" className="space-y-3 card p-5">
             <h2 className="font-semibold">Start a run</h2>
-            <label className="block text-sm">
-              Question set
-              <select className="mt-1 field" value={questions}
+            <div>
+              <InfoLabel label="Question set" info={HELP.questionSet} htmlFor="evaluate-questions" />
+              <select id="evaluate-questions" className="mt-1 field" value={questions}
                 onChange={(e) => setQuestions(e.target.value as QuestionSet)}>
                 {QUESTION_SETS.map((set) => <option key={set.value} value={set.value}>{set.label}</option>)}
               </select>
-            </label>
+            </div>
             {questions === 'heldout' && <p className="text-sm text-muted">Held-out questions confirm a final choice. Do not use them to tune.</p>}
             <div className="flex gap-2">
               <button type="button" className="btn text-sm" disabled={busy || problem !== null}

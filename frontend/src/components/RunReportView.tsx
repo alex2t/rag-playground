@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import type { RunReport, RunScores } from '../api/types.ts'
 import { bandOf, HEADLINE, OTHER, reportCsv, TRUST, type Band, type Metric } from '../evaluate.ts'
+import { CATEGORY_HELP, HELP, METRIC_HELP } from '../help.ts'
+import { InfoLabel } from './Info.tsx'
 
 const BAND_TEXT: Record<Band, string> = { good: 'text-good', fair: 'text-warn', poor: 'text-danger' }
 
@@ -17,7 +19,7 @@ function Tile({ metric, scores }: { metric: Metric; scores: RunScores }) {
   const band = bandOf(metric.key, value)
   return (
     <div className="rounded border border-line p-2">
-      <p className="text-sm text-muted">{metric.label}</p>
+      <InfoLabel label={metric.label} info={METRIC_HELP[metric.key]} className="text-sm text-muted" />
       <p className={`text-xl font-semibold ${band ? BAND_TEXT[band] : ''}`}>{value.toFixed(3)}</p>
       {band && <p className={`text-xs ${BAND_TEXT[band]}`}>{band}</p>}
     </div>
@@ -25,7 +27,7 @@ function Tile({ metric, scores }: { metric: Metric; scores: RunScores }) {
 }
 
 function Tiles({ metrics, scores }: { metrics: Metric[]; scores: RunScores }) {
-  return <div className="grid grid-cols-2 gap-2 md:grid-cols-4">{metrics.map((metric) => <Tile key={metric.key} metric={metric} scores={scores} />)}</div>
+  return <div className="grid grid-cols-2 items-start gap-2 md:grid-cols-4">{metrics.map((metric) => <Tile key={metric.key} metric={metric} scores={scores} />)}</div>
 }
 
 function Categories({ report }: { report: RunReport }) {
@@ -40,7 +42,9 @@ function Categories({ report }: { report: RunReport }) {
         <tbody>
           {report.categories.map((row) => (
             <tr key={row.category} className="border-t border-line">
-              <td className="pr-3">{row.category}</td><td className="pr-3">{row.questions}</td>
+              <td className="max-w-64 py-1 pr-3 align-top">
+                {CATEGORY_HELP[row.category] ? <InfoLabel label={row.category} info={CATEGORY_HELP[row.category]} /> : row.category}
+              </td><td className="pr-3">{row.questions}</td>
               <td className="pr-3">{row.accuracy.toFixed(2)}</td><td className="pr-3">{row.completeness.toFixed(2)}</td>
               <td className="pr-3">{row.relevance.toFixed(2)}</td><td>{row.faithfulness.toFixed(2)}</td>
             </tr>
@@ -62,10 +66,9 @@ export default function RunReportView({ report, line }: { report: RunReport; lin
       <button type="button" className="text-sm underline" aria-expanded={all} onClick={() => setAll(!all)}>{all ? 'Show fewer' : 'Show all'}</button>
       {all && <Tiles metrics={OTHER} scores={report.scores} />}
       <Tiles metrics={TRUST} scores={report.scores} />
-      <p className="text-sm">
-        {report.failed_gates.length ? `Fails the gates: ${report.failed_gates.join(', ')}.` : 'Passes every gate.'}
-        {' '}${report.cost_per_question.toFixed(4)} per question, {report.latency_s.toFixed(1)} s per answer.
-      </p>
+      <InfoLabel label={report.failed_gates.length ? `Fails the gates: ${report.failed_gates.join(', ')}.` : 'Passes every gate.'}
+        about="the gates" info={HELP.gates} />
+      <p className="text-sm">${report.cost_per_question.toFixed(4)} per question, {report.latency_s.toFixed(1)} s per answer.</p>
       <Categories report={report} />
       <button type="button" className="btn text-sm" onClick={() => downloadCsv(report)}>Download CSV</button>
     </div>
