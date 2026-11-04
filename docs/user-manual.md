@@ -128,7 +128,7 @@ Each step keeps the winner of the step before. The ladder decides this by itself
 
 This doesn't work for held-out runs, because those questions are kept separate from tuning.
 
-The held-out confirmation opens when a stack's ladder is finished, and each configuration is confirmed once. At S6, type at most 4 prompt versions and press **Estimate**, and press it again if you change them; leaving the box empty skips S6. The choice is final for that stack.
+The held-out confirmation opens when a stack's ladder is finished, and each configuration is confirmed once. At S6, tick at most 4 of the prompt versions saved on **Prompt** (besides `default`, which the ladder already uses) and press **Estimate**, and press it again if you change them; ticking none skips S6. A box at the top of the page, always shown, explains why the ladder is a sound study and what each step changes, with the options it tries and how its winner is chosen. The choice is final for that stack.
 
 ### Prompt: edit the instructions
 Write your own system prompts: start from the default or any saved version, edit it, and save it under a new name. A name cannot contain a comma, and the text must differ from every saved version. Save as many versions as you like; each can be picked in the settings panel on **Ask**, **Evaluate** and **Sweep**. A saved version never changes, and the page lists the runs that used each one.

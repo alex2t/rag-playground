@@ -107,3 +107,16 @@ export function money(usd: number): string {
 export function promptList(text: string): string[] {
   return text.split(',').map((name) => name.trim()).filter(Boolean)
 }
+
+export const MAX_S6_PROMPTS = 4
+
+/** The saved versions S6 can add: every one but `default`, which the ladder already uses up to S6. */
+export function s6Choices(names: string[]): string[] {
+  return names.filter((name) => name !== 'default')
+}
+
+/** The picked versions after a tick or untick, in the order they were saved; a fifth tick is ignored. */
+export function togglePrompt(picked: string[], name: string, saved: string[]): string[] {
+  const next = picked.includes(name) ? picked.filter((item) => item !== name) : [...picked, name]
+  return next.length > MAX_S6_PROMPTS ? picked : saved.filter((item) => next.includes(item))
+}

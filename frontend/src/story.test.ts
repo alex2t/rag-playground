@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import type { Config, LadderState, Option, Step } from './api/types.ts'
-import { bestSoFar, changeMark, chartRows, choosingPrompts, estimateIsStale, finalStep, heldoutLabel, jobLine, keptOption, money, promptList, stepsCsv, tradeOff } from './story.ts'
+import { bestSoFar, changeMark, chartRows, choosingPrompts, estimateIsStale, finalStep, heldoutLabel, jobLine, keptOption, money, promptList, s6Choices, stepsCsv, togglePrompt, tradeOff } from './story.ts'
 
 test('a queued job says it is waiting, a running one says how far it is', () => {
   const job = { id: 1, kind: 'ladder_step', run_id: null, error: null, message: 'S1 on Stack B: preparing', progress: 0 }
@@ -139,4 +139,18 @@ test('money keeps small estimates readable', () => {
 test('a prompt list ignores spaces and blanks, and an empty text means none', () => {
   assert.deepEqual(promptList(' v2, v3 ,, '), ['v2', 'v3'])
   assert.deepEqual(promptList('  '), [])
+})
+
+test('S6 offers every saved version but default, which the ladder already uses', () => {
+  assert.deepEqual(s6Choices(['default', 'v2', 'short']), ['v2', 'short'])
+  assert.deepEqual(s6Choices(['default']), [])
+})
+
+test('ticking keeps the saved order, unticking removes, and a fifth tick is ignored', () => {
+  const saved = ['a', 'b', 'c', 'd', 'e']
+  assert.deepEqual(togglePrompt([], 'c', saved), ['c'])
+  assert.deepEqual(togglePrompt(['c'], 'a', saved), ['a', 'c'])
+  assert.deepEqual(togglePrompt(['a', 'c'], 'a', saved), ['c'])
+  assert.deepEqual(togglePrompt(['a', 'b', 'c', 'd'], 'e', saved), ['a', 'b', 'c', 'd'])
+  assert.deepEqual(togglePrompt(['a', 'b', 'c', 'd'], 'd', saved), ['a', 'b', 'c'])
 })

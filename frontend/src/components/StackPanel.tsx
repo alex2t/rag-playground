@@ -1,8 +1,9 @@
-import { useState } from 'react'
-import { getLadder, startHeldout, startStep } from '../api/client.ts'
+import { useEffect, useState } from 'react'
+import { getLadder, getPrompts, startHeldout, startStep } from '../api/client.ts'
 import type { StackId } from '../api/types.ts'
 import type { useLadder } from '../api/useLadder.ts'
-import { bestSoFar, choosingPrompts, describe, estimateIsStale, finalStep, jobLine, money, promptList, stepsCsv } from '../story.ts'
+import { hashOf } from '../route.ts'
+import { bestSoFar, choosingPrompts, describe, estimateIsStale, finalStep, jobLine, MAX_S6_PROMPTS, money, promptList, s6Choices, stepsCsv, togglePrompt } from '../story.ts'
 import HeldoutPanel from './HeldoutPanel.tsx'
 import StepsTable from './StepsTable.tsx'
 
@@ -19,13 +20,36 @@ function downloadCsv(stack: StackId, text: string) {
   setTimeout(() => URL.revokeObjectURL(link.href), 1000)
 }
 
+/** S6's choice: tick at most 4 saved prompt versions besides default; none ticked skips S6. */
+function PromptPicks({ saved, picked, onChange }: { saved: string[]; picked: string[]; onChange: (picked: string[]) => void }) {
+  return (
+    <fieldset className="mb-2 space-y-1">
+      <legend className="mb-1">Prompt versions to try at S6, besides default (at most {MAX_S6_PROMPTS}; none skips S6)</legend>
+      {saved.length === 0 && <p className="text-muted">No version saved yet besides default. Write some on <a className="text-accent-text underline" href={hashOf('Prompt')}>Prompt</a> first, or skip S6.</p>}
+      {saved.map((name) => (
+        <label key={name} className="flex items-center gap-2">
+          <input type="checkbox" checked={picked.includes(name)} disabled={!picked.includes(name) && picked.length >= MAX_S6_PROMPTS}
+            onChange={() => onChange(togglePrompt(picked, name, saved))} />{name}
+        </label>
+      ))}
+    </fieldset>
+  )
+}
+
 /** One stack: its next step with the estimate, the running job, its results and its held-out panel. */
 export default function StackPanel({ stack, ladder }: { stack: StackId; ladder: ReturnType<typeof useLadder> }) {
   const { state, job, running, error, setError, follow, setState } = ladder
-  const [prompts, setPrompts] = useState('')
+  const [picked, setPicked] = useState<string[]>([])
+  const [saved, setSaved] = useState<string[]>([])
+  const prompts = picked.join(',')
   const [estimated, setEstimated] = useState('')
   const [starting, setStarting] = useState(false)
   const busy = running || starting
+  const choosing = state !== null && choosingPrompts(state)
+
+  useEffect(() => {
+    if (choosing) getPrompts().then((versions) => setSaved(s6Choices(versions.map((v) => v.name)))).catch((e: Error) => setError(e.message))
+  }, [choosing, setError])
 
   async function start(run: () => Promise<number>) {
     setStarting(true)
@@ -70,14 +94,10 @@ export default function StackPanel({ stack, ladder }: { stack: StackId; ladder: 
             : (
               <div className="text-sm">
                 {choosingPrompts(state) && (
-                  <label className="mb-2 block">
-                    Prompt versions for S6, separated by commas (at most 4; empty skips S6)
-                    <span className="mt-1 flex gap-2">
-                      <input className="field" value={prompts}
-                        onChange={(e) => setPrompts(e.target.value)} />
-                      <button type="button" className="btn" onClick={() => void preview()}>Estimate</button>
-                    </span>
-                  </label>
+                  <>
+                    <PromptPicks saved={saved} picked={picked} onChange={setPicked} />
+                    <button type="button" className="btn mb-2" onClick={() => void preview()}>Estimate</button>
+                  </>
                 )}
                 <button type="button" className="btn-primary"
                   disabled={busy || estimateIsStale(state, prompts, estimated)} onClick={runStep}>
