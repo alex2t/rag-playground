@@ -4,6 +4,8 @@ review-queue.md
 private-notes.md
 Ladder.md
 ux-redesign.md
+start-backend.cmd
+start-frontend.cmd
 
 # Secrets
 .env

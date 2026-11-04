@@ -5,7 +5,9 @@ from contextlib import asynccontextmanager
 from dataclasses import asdict
 from typing import Annotated
 
-from fastapi import FastAPI, HTTPException, Query, Response
+import httpx
+from fastapi import FastAPI, HTTPException, Query, Request, Response
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from openai import OpenAIError
 from qdrant_client.http.exceptions import ApiException
@@ -36,6 +38,14 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="RAG Playground", version=settings.app_version, lifespan=lifespan)
 SERVICE_ERRORS = (OpenAIError, ApiException)  # both LLM providers use the openai client; Stack B's is Qdrant's
+
+
+@app.exception_handler(httpx.HTTPError)
+def model_list_unreachable(request: Request, exc: httpx.HTTPError) -> JSONResponse:
+    """OpenRouter's model list (prices and model versions, read by most routes) could not be fetched: the only direct
+    httpx call is `llm/models.model_catalog`, the openai and Qdrant clients raise their own errors. A 502 that says so,
+    instead of a bare 500."""
+    return JSONResponse(status_code=502, content={"detail": f"Cannot reach OpenRouter's model list: {type(exc).__name__}: {exc}"})
 
 
 def qdrant_status() -> str:
