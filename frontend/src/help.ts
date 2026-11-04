@@ -43,6 +43,20 @@ export const HELP = {
     + 'whether a new prompt helps on your current search set-up. Prompt versions must be saved on the Prompt page first.',
 } as const
 
+/** What each field of the Build page does. */
+export const BUILD_HELP = {
+  stack: 'Where the chunks are stored. Stack A: uploaded to an OpenAI vector store, one file per chunk, and OpenAI turns '
+    + 'them into vectors. Stack B: turned into vectors on this computer with the nomic model and stored in Qdrant, which '
+    + 'must be running. Both: the same chunks on each, so the two stacks can be compared on identical text.',
+  method: 'Fixed: the documents are cut into pieces and each piece is stored as it is. LLM-enriched: the same pieces, plus '
+    + 'a headline and a short summary written by a model for each one, to help the search find it. See the box below.',
+  size: 'The length of each chunk in tokens (a token is about three quarters of a word). Small chunks are precise but can '
+    + 'cut a fact away from its context; large ones keep context but bring more unrelated text. Most documents here are '
+    + 'about 730 tokens long, so the largest sizes often hold a whole document.',
+  overlap: 'How many tokens neighbouring chunks repeat, so a fact cut at a border still appears whole in one of them. '
+    + 'At most half the chunk size. About 20% of the size is LlamaIndex\'s default (200 for 1,024).',
+} as const
+
 /** What each score of a run means and how it is computed (docs/evaluation.md section 4). */
 export const METRIC_HELP: Record<string, string> = {
   mrr: 'Mean reciprocal rank: how high the first chunk from a document holding the answer came. Rank 1 scores 1, rank 2 '

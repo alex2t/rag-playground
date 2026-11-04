@@ -1,9 +1,12 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useId, useState, type ReactNode } from 'react'
 import { estimateBuild, getPanel, startBuild } from '../api/client.ts'
 import type { BuildJob, BuiltSet, PanelOptions } from '../api/types.ts'
 import { useBuilds } from '../api/useBuilds.ts'
 import { buildProblem, estimateFor, estimateLine, jobLine, jobTone, overBudget, settingsOf, startValues, toBuild, type BuildValues, type Estimated, type Tone } from '../build.ts'
 import Guide from '../components/Guide.tsx'
+import { AfterBuilding, MethodsCompared } from '../components/BuildExplained.tsx'
+import { InfoLabel } from '../components/Info.tsx'
+import { BUILD_HELP } from '../help.ts'
 import PageTitle from '../components/PageTitle.tsx'
 import type { StackChoice } from '../panel.ts'
 
@@ -15,14 +18,15 @@ const STEPS = [
 ]
 const TONE_TEXT: Record<Tone, string> = { good: 'text-good', bad: 'text-danger', working: 'text-muted' }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
-  return <label className="block text-sm">{label}{children}</label>
+function Field({ label, info, children }: { label: string; info: string; children: (id: string) => ReactNode }) {
+  const id = useId()
+  return <div><InfoLabel label={label} info={info} htmlFor={id} />{children(id)}</div>
 }
 
-function NumberField({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) {
+function NumberField({ label, info, value, onChange }: { label: string; info: string; value: number; onChange: (value: number) => void }) {
   return (
-    <Field label={label}>
-      <input type="number" className={BOX} value={Number.isNaN(value) ? '' : value} onChange={(e) => onChange(e.target.valueAsNumber)} />
+    <Field label={label} info={info}>
+      {(id) => <input id={id} type="number" className={BOX} value={Number.isNaN(value) ? '' : value} onChange={(e) => onChange(e.target.valueAsNumber)} />}
     </Field>
   )
 }
@@ -122,24 +126,29 @@ export default function Build() {
       <Guide page="Build" steps={STEPS}
         purpose="Before a set-up can be asked or evaluated, its chunks must exist on the stack: the 48 documents cut into passages of the chosen size, turned into vectors and stored."
         note="Fixed chunks are free. LLM-enriched chunks pay once for a headline and summary of every chunk, shared by both stacks. Stack B builds on this computer and needs Qdrant running." />
-      <section aria-label="Build" className="min-w-0 space-y-3 card p-4 md:max-w-xl">
+      <div className="grid items-start gap-5 xl:grid-cols-2">
+      <section aria-label="Build" className="min-w-0 space-y-3 card p-4">
         <h2 className="font-semibold">Prepare chunks</h2>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Stack">
-            <select className={BOX} value={current.stacks} onChange={(e) => change({ stacks: e.target.value as StackChoice })}>
-              <option value="both">Both</option>
-              <option value="A">Stack A</option>
-              <option value="B">Stack B</option>
-            </select>
+          <Field label="Stack" info={BUILD_HELP.stack}>
+            {(id) => (
+              <select id={id} className={BOX} value={current.stacks} onChange={(e) => change({ stacks: e.target.value as StackChoice })}>
+                <option value="both">Both</option>
+                <option value="A">Stack A (OpenAI)</option>
+                <option value="B">Stack B (Qdrant)</option>
+              </select>
+            )}
           </Field>
-          <Field label="Chunking method">
-            <select className={BOX} value={current.chunking_method} onChange={(e) => change({ chunking_method: e.target.value as BuildValues['chunking_method'] })}>
-              <option value="fixed">fixed</option>
-              <option value="llm_enriched">llm_enriched</option>
-            </select>
+          <Field label="Chunking method" info={BUILD_HELP.method}>
+            {(id) => (
+              <select id={id} className={BOX} value={current.chunking_method} onChange={(e) => change({ chunking_method: e.target.value as BuildValues['chunking_method'] })}>
+                <option value="fixed">fixed</option>
+                <option value="llm_enriched">llm_enriched</option>
+              </select>
+            )}
           </Field>
-          <NumberField label={`Chunk size (${options.min_chunk_size} to ${options.max_chunk_size})`} value={current.chunk_size} onChange={(chunk_size) => change({ chunk_size })} />
-          <NumberField label="Overlap (tokens)" value={current.overlap} onChange={(overlap) => change({ overlap })} />
+          <NumberField label={`Chunk size (${options.min_chunk_size} to ${options.max_chunk_size})`} info={BUILD_HELP.size} value={current.chunk_size} onChange={(chunk_size) => change({ chunk_size })} />
+          <NumberField label="Overlap (tokens)" info={BUILD_HELP.overlap} value={current.overlap} onChange={(overlap) => change({ overlap })} />
         </div>
         <div className="flex gap-2">
           <button type="button" className="btn text-sm" disabled={busy || problem !== null}
@@ -154,6 +163,9 @@ export default function Build() {
         {current.stacks !== 'B' && <p className="text-xs text-muted">Stack A uploads each chunk to OpenAI; its storage fee is not counted in the budget.</p>}
         {error && <p role="alert" className="text-sm text-danger [overflow-wrap:anywhere]">{error}</p>}
       </section>
+      <MethodsCompared />
+      </div>
+      <AfterBuilding />
       {buildsError && <p role="alert" className="text-sm text-danger">{buildsError}</p>}
       <Jobs jobs={builds.jobs} />
       <Built built={builds.built} />
