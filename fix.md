@@ -4,6 +4,14 @@ Add new bugs at the top. Status: `open` | `investigating` | `fixed`.
 
 ---
 
+## [2026-11-04] Step 9: Ops' error rate counted jobs by start date, not finish date - `fixed`
+- **Symptom:** found by Antigravity (Gemini 3.8) reviewing the Ops "i" buttons, as a low note. D30, the docstring of `ops.failures`, the Ops guide and the manual say "jobs finished in the last 7 days", but the query filtered on `created_at`.
+- **Reproduce:** a job created 8 days ago and finished 6 days ago was left out of the rate; a job queued for more than 7 days was not counted as active.
+- **Root cause (evidence):** `rag/ops.py:33` read `WHERE created_at >= {SINCE}` and then kept the finished rows. Jobs take minutes, so the two dates almost always fall in the same window; they differ only at the window's edge or for a job that waited long in the queue.
+- **Fix:** `WHERE finished_at >= {SINCE} OR finished_at IS NULL`: finished jobs by their finish date, every job still waiting or running as active. `finished_at` is written by `jobs.set_status` with `datetime('now')`, the same format as `SINCE`.
+- **Verified by:** a new test (`test_the_window_counts_when_a_job_finished_not_when_it_was_created`) failed before the fix and passes after; full backend suite 993 passed.
+- **Status:** fixed.
+
 ## [2026-11-03] Step 9: a Sweep cost lost its dollar sign in an edit script - `fixed`
 - **Symptom:** found by Antigravity (Gemini 3.8) reviewing redesign increment 5, before commit: a value still to run showed "to run, 0.2500" instead of "to run, $0.2500" (`pages/Sweep.tsx:85`).
 - **Root cause (evidence):** Claude's Node edit script passed the new line to `String.prototype.replace` as a string, where `$$` means one literal `$`, so the template's `$${...}` became `${...}`. The replaced line was meant to change only the run cell's link.

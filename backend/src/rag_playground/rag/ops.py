@@ -30,8 +30,8 @@ def cause(error: str) -> str:
 def failures(conn: sqlite3.Connection) -> dict:
     """Jobs finished in the window, the faults among them, and every failure newest first with its cause. The error
     rate is faults over finished jobs; budget stops and restarts are counted apart."""
-    rows = conn.execute(f"SELECT id, created_at, kind, stack, status, error FROM jobs WHERE created_at >= {SINCE} "
-                        "ORDER BY id DESC").fetchall()
+    rows = conn.execute(f"SELECT id, created_at, kind, stack, status, error FROM jobs "
+                        f"WHERE finished_at >= {SINCE} OR finished_at IS NULL ORDER BY id DESC").fetchall()
     finished = [row for row in rows if row["status"] in ("done", "failed")]
     failed = [dict(row) | {"cause": cause(row["error"])} for row in finished if row["status"] == "failed"]
     faults = sum(job["cause"] == "fault" for job in failed)

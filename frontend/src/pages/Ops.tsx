@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { getOps } from '../api/client.ts'
 import type { OpsSummary } from '../api/types.ts'
 import Guide from '../components/Guide.tsx'
+import { InfoLabel } from '../components/Info.tsx'
+import { OPS_HELP } from '../help.ts'
 import PageTitle from '../components/PageTitle.tsx'
 import { apartLine, budgetLine, budgetTone, failureLine, leftLine, rateText, rateTone, seconds, splitLine, type Tone } from '../ops.ts'
 
@@ -13,10 +15,10 @@ const STEPS = [
   'Failed jobs, each with its message. Press Refresh to read the figures again.',
 ]
 
-function Tile({ title, value, tone, children }: { title: string; value: string; tone?: Tone; children?: ReactNode }) {
+function Tile({ title, info, value, tone, children }: { title: string; info: string; value: string; tone?: Tone; children?: ReactNode }) {
   return (
     <section aria-label={title} className="min-w-0 card p-4">
-      <h2 className="text-sm text-muted">{title}</h2>
+      <InfoLabel label={title} info={info} className="text-sm text-muted" />
       <p className={`text-xl font-semibold [overflow-wrap:anywhere] ${tone ? TONE_TEXT[tone] : ''}`}>{value}</p>
       <div className="mt-1 space-y-0.5 text-sm text-muted">{children}</div>
     </section>
@@ -27,7 +29,9 @@ function Latency({ summary }: { summary: OpsSummary }) {
   return (
     <section className="min-w-0 overflow-x-auto card p-4">
       <table className="w-full text-left text-sm tabular-nums">
-        <caption className="mb-1 text-left font-semibold">Time to search and answer one question, last {summary.window_days} days</caption>
+        <caption className="mb-1 text-left font-semibold">
+          <InfoLabel label={`Time to search and answer one question, last ${summary.window_days} days`} about="answer time" info={OPS_HELP.latency} className="text-left" />
+        </caption>
         <thead className="text-muted">
           <tr><th className="pr-3 font-normal">Stack</th><th className="pr-3 font-normal">Median (p50)</th><th className="pr-3 font-normal">Slowest 5% (p95)</th><th className="font-normal">Questions</th></tr>
         </thead>
@@ -79,21 +83,21 @@ export default function Ops() {
         <button type="button" className="shrink-0 btn text-sm" onClick={load}>Refresh</button>
       </div>
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Tile title="Spend" value={budgetLine(summary)} tone={budgetTone(summary)}>
+      <div className="grid items-start gap-4 md:grid-cols-3">
+        <Tile title="Spend" info={OPS_HELP.spend} value={budgetLine(summary)} tone={budgetTone(summary)}>
           <p className={TONE_TEXT[budgetTone(summary)]}>{leftLine(summary)}</p>
           <p>{splitLine(summary)}</p>
         </Tile>
-        <Tile title="Error rate" value={rateText(summary)} tone={rateTone(summary)}>
+        <Tile title="Error rate" info={OPS_HELP.errorRate} value={rateText(summary)} tone={rateTone(summary)}>
           <p>{apartLine(summary)}</p>
         </Tile>
-        <Tile title="App" value={`Version ${summary.version}`}>
+        <Tile title="App" info={OPS_HELP.app} value={`Version ${summary.version}`}>
           <p className={summary.qdrant === 'ok' ? 'text-good' : 'text-danger'}>Qdrant: {summary.qdrant === 'ok' ? 'answers' : summary.qdrant}</p>
         </Tile>
       </div>
       <Latency summary={summary} />
       <section aria-label="Failed jobs" className="min-w-0 space-y-2 card p-4">
-        <h2 className="font-semibold">Failed jobs, last {summary.window_days} days</h2>
+        <InfoLabel label={`Failed jobs, last ${summary.window_days} days`} about="failed jobs" info={OPS_HELP.failed} className="font-semibold" />
         {summary.jobs.failed.length === 0 && <p className="text-sm text-muted">None.</p>}
         <ul className="max-h-80 space-y-1 overflow-y-auto text-sm">
           {summary.jobs.failed.map((job) => (

@@ -89,6 +89,18 @@ def test_the_error_rate_is_faults_over_jobs_finished_in_the_window(conn):
     assert shown["failed"][2]["error"] == "RuntimeError: Qdrant is not running"
 
 
+def test_the_window_counts_when_a_job_finished_not_when_it_was_created(conn):
+    """D30: jobs finished in the window. A job created before it but finished inside counts; one still waiting counts
+    as active however old it is; one created and finished before the window is left out."""
+    late = insert(conn, "jobs", {"kind": "build", "stack": "A", "chunk_set_id": "fixed__c800__o100", "status": "failed",
+                                 "error": "RuntimeError: late", "created_at": days_ago(conn, 8), "finished_at": days_ago(conn, 6)})
+    insert(conn, "jobs", {"kind": "sweep", "stack": "B", "runs_total": 2, "status": "queued", "created_at": days_ago(conn, 9)})
+    job(conn, "build", "failed", "RuntimeError: old", days=8)
+    shown = ops.failures(conn)
+    assert (shown["finished"], shown["active"], shown["faults"]) == (1, 1, 1)
+    assert [f["id"] for f in shown["failed"]] == [late]
+
+
 def test_with_no_finished_job_in_the_window_there_is_no_rate(conn):
     job(conn, "sweep", "running")
     job(conn, "build", "failed", "RuntimeError: old", days=8)

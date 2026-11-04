@@ -15,7 +15,7 @@ export function InfoLabel({ label, info, htmlFor, about = label, className = 'te
         <button type="button" className="info-btn shrink-0" aria-label={`About ${about}`} aria-expanded={open} aria-controls={textId}
           onClick={() => setOpen(!open)}>i</button>
       </div>
-      <p id={textId} hidden={!open} className="mt-1.5 rounded-md border border-line bg-accent-soft/50 p-2 text-xs leading-relaxed text-ink">{info}</p>
+      <p id={textId} hidden={!open} className="mt-1.5 rounded-md border border-line bg-accent-soft/50 p-2 text-xs font-normal leading-relaxed text-ink">{info}</p>
     </div>
   )
 }

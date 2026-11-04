@@ -148,7 +148,7 @@ The settings panel is the base configuration. Pick the one setting to vary and i
 **Confirm** turns on only after **Estimate**, and stays off when every value already has a run. Each value's run number opens its report on **Evaluate**.
 
 ### Ops: health and spend
-Spend so far against the budget, split into runs and the rest (Ask, enrichment); past the budget, it says by how much. The error rate is the share of background jobs (runs, ladder steps, builds, sweeps) finished in the last 7 days that failed through a fault; stops at the budget cap and jobs cut off by an app restart are counted apart. Answer time per stack: the median (p50) and the slowest 5% (p95) of the time to search and answer one question, over runs started in the last 7 days; grading and questions asked on **Ask** are not counted. Also the app version, whether Qdrant answers, and every failed job with its message. **Refresh** reloads the figures.
+Spend so far against the budget, split into runs and the rest (Ask, enrichment); past the budget, it says by how much. The error rate is the share of background jobs (runs, ladder steps, builds, sweeps) finished in the last 7 days that failed through a fault; stops at the budget cap and jobs cut off by an app restart are counted apart. Answer time per stack: the median (p50) and the slowest 5% (p95) of the time to search and answer one question, over runs started in the last 7 days; grading and questions asked on **Ask** are not counted. Also the app version, whether Qdrant answers, and every failed job with its message. **Refresh** reloads the figures. Each figure has an **i** button that says what it counts and what it leaves out.
 
 ## 6. Common tasks
 

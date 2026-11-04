@@ -57,6 +57,25 @@ export const BUILD_HELP = {
     + 'At most half the chunk size. About 20% of the size is LlamaIndex\'s default (200 for 1,024).',
 } as const
 
+/** What each figure of the Ops page means. */
+export const OPS_HELP = {
+  spend: 'Every paid call recorded so far, against BUDGET_USD: the answer, judge, reranker and enrichment models (through '
+    + 'OpenRouter) and Stack A\'s search fee ($0.0025 per search, worked out for every stored Stack A answer, old runs included). '
+    + 'Runs: spent inside evaluation runs (Evaluate, Story, Sweep). Outside runs: questions on Ask and enrichment builds. '
+    + 'Amber when less than 10% is left; red past the budget, when new paid work is refused until BUDGET_USD is raised. '
+    + 'OpenAI\'s cost to index and store Stack A\'s chunks is not counted.',
+  errorRate: 'The share of background jobs (runs, ladder steps, builds, sweeps) finished in the last 7 days that failed '
+    + 'through a fault, such as a service error or a bug. A stop at the budget cap or a job cut off by an app restart is '
+    + 'not a fault, so they are counted apart, as are jobs still waiting or running. Green with no fault, red otherwise.',
+  app: 'The version of the code: the git commit the app was built from, or "dev" when it runs from source on this computer. '
+    + 'Qdrant is Stack B\'s vector database: if it does not answer, Stack B can neither search nor build '
+    + '(on this computer, start it with docker start rag-qdrant).',
+  latency: 'How long one question takes to search (and rerank, if on) and get its answer, over runs started in the last '
+    + '7 days. The median (p50) is the typical time; the slowest 5% (p95) shows the slow cases a user would notice. '
+    + 'Grading by the judge is not counted, nor are questions asked on Ask, which are not stored.',
+  failed: 'Every job that failed in the last 7 days, with its message: red for a fault, grey for a budget stop or an app restart.',
+} as const
+
 /** What each score of a run means and how it is computed (docs/evaluation.md section 4). */
 export const METRIC_HELP: Record<string, string> = {
   mrr: 'Mean reciprocal rank: how high the first chunk from a document holding the answer came. Rank 1 scores 1, rank 2 '
