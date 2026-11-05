@@ -7,3 +7,4 @@
 .env
 *.md
 !backend/README.md
+!backend/data/**/*.md

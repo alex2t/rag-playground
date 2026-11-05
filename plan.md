@@ -488,7 +488,7 @@ Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Swe
 - `deploy/edge`: Caddy with TLS for `staging.<domain>` and `<domain>`, basic auth (staging: every request; prod: every request that is not GET or HEAD, D32), and a reverse proxy to each environment.
 - **Check:**
   - Both environments are up with HTTPS and login.
-  - Without the password, every page and API route answers 401; the app and Qdrant ports are refused from outside; failed logins are rate-limited (fail2ban); the OpenRouter key has a credit limit and the OpenAI project a monthly budget (D31).
+  - Without the password: on staging every page and API route answers 401; on prod pages and GET routes answer and every other request answers 401 (D32); the app and Qdrant ports are refused from outside; failed logins are rate-limited (fail2ban); the OpenRouter key has a credit limit and the OpenAI project a monthly budget (D31).
   - Data survives a restart.
   - The two environments do not share data.
 

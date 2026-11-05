@@ -4,6 +4,17 @@ Add new bugs at the top. Status: `open` | `investigating` | `fixed`.
 
 ---
 
+## [2026-11-05] Step 10: release image missed the dataset documents and Stack B's BM25 model, and could not cache as the app user - `fixed`
+- **Symptom:** (1) `.dockerignore` excluded every `*.md`, so the 48 KB documents would have been left out of the image (found by Claude). (2) Downloading nomic at build time as root left a Hugging Face cache file the app user could not read ("Permission denied", every start). (3) As the app user, the download failed: `uv run` and Hugging Face's xet logs need a home directory, and `useradd --system` creates none. (4) `Qdrant/bm25`, used by every Stack B index build and hybrid search (`qdrant_store.py:59`, `:72`), was not downloaded at build time (found by Antigravity, Gemini 3.8).
+- **Reproduce:** (4) `docker run --rm --network none rag-playground:step10 python -c "from rag_playground.stacks import qdrant_store; qdrant_store.bm25()"` gave `ValueError: Could not load model Qdrant/bm25 from any source.`
+- **Root cause (evidence):** build logs `Failed to initialize cache at /home/app/.cache/uv` and `Error logging to file "/home/app/.cache/huggingface/xet/logs/..." (Permission denied)`; `ls /app/models` held only the nomic folder.
+- **Fix:** `!backend/data/**/*.md` in `.dockerignore`; `useradd --system --create-home app`, `USER app` before the download, the venv's python instead of `uv run`; both models downloaded at build time (`nomic.model(); qdrant_store.bm25()`).
+- **Verified by:** in a container with `--network none --memory 3g`: nomic embeds a query (768 dimensions) with no warning, BM25 loads, `dataset_sha256()` equals every stored run's (`c18e288d...`); 48 `.md` files in the image. Antigravity confirmed paths, var volume ownership (uid 999) and offline chunking.
+- **Known, not fixed:** loading nomic takes 6 s on the host but 24 to 132 s in Docker on the 8 GB dev PC (1 GB free RAM); cause not proven, to measure on the VPS. A backend source change re-downloads both models (about 0.5 GB), since the model names live in `settings.py`; accepted.
+- **Status:** fixed.
+
+---
+
 ## [2026-11-04] Step 9: Ops' error rate counted jobs by start date, not finish date - `fixed`
 - **Symptom:** found by Antigravity (Gemini 3.8) reviewing the Ops "i" buttons, as a low note. D30, the docstring of `ops.failures`, the Ops guide and the manual say "jobs finished in the last 7 days", but the query filtered on `created_at`.
 - **Reproduce:** a job created 8 days ago and finished 6 days ago was left out of the rate; a job queued for more than 7 days was not counted as active.

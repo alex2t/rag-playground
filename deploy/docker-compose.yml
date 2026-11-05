@@ -14,6 +14,8 @@ services:
         required: false
     environment:
       QDRANT_URL: http://qdrant:6333
+    volumes:
+      - app-var:/app/var
     ports:
       - "127.0.0.1:${APP_PORT:-8000}:8000"
     depends_on:
@@ -27,4 +29,5 @@ services:
     restart: unless-stopped
 
 volumes:
+  app-var:
   qdrant-data:
