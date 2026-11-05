@@ -58,12 +58,12 @@ The reasons for each decision are in `decision.md`. Items marked *(proposed)* ha
 | Backend / Frontend | FastAPI (Python 3.12, `uv`) / Vite + React + TS + Tailwind + Recharts. |
 | Packaging | One image per release: the React build is copied into the backend image and served by FastAPI. |
 | Environments | `staging` and `prod` on the same VPS, as two compose projects on separate subdomains. |
-| Edge | One shared Caddy: TLS, basic auth, routes each subdomain to its environment. |
+| Edge | One shared Caddy: TLS, routes each subdomain to its environment; basic auth on every staging request, and on every prod request that is not GET or HEAD (D32). |
 | CI/CD | GitHub Actions: test, build, push to GHCR (tagged with the git SHA), deploy to staging, smoke test and evaluation gate, manual approval, then deploy the same image to prod. Rollback = redeploy the previous tag. |
 | Storage | SQLite in a Docker volume, one per environment. Runs and results are permanent: the database refuses any edit, deletion or replacement, and a run changes only once, from running to finished (D21). |
 | Long jobs | Background job; the UI polls `GET /api/jobs/{id}`. |
 | Observability | Structured JSON logs and an Ops page (spend against budget, error rate, p95 latency). |
-| Secrets | `.env` per environment on the VPS (owner-only permissions, never committed). CI secrets in GitHub Actions secrets. |
+| Secrets | Doppler, one config per environment, injected at container start (`doppler run`); no key file on the VPS (D32). `.env` for local development only. CI reads the keys from Doppler or GitHub Actions secrets. |
 
 Any new architecture or test decision must be confirmed with the user, then added here and to `decision.md`.
 
@@ -484,8 +484,8 @@ Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Swe
 ### Step 10 - Packaging, environments and edge
 - One Dockerfile with multiple stages: the `node` stage builds the frontend, which is copied into `python:3.12-slim`. Uses `uv sync --frozen --no-dev`, a non-root user, and downloads nomic at build time. The git SHA is passed as a build argument.
 - Copy `backend/data/synthetic/` into the image (D20; not done yet, found by Antigravity) and mount `var/` (chunk sets, T39) as a volume.
-- `deploy/docker-compose.yml` runs as `rag-playground-staging` and `rag-playground-prod`, each with its own `.env`, volume and Qdrant.
-- `deploy/edge`: Caddy with TLS for `staging.<domain>` and `<domain>`, basic auth, and a reverse proxy to each environment.
+- `deploy/docker-compose.yml` runs as `rag-playground-staging` and `rag-playground-prod`, each with its own Doppler config, volume and Qdrant.
+- `deploy/edge`: Caddy with TLS for `staging.<domain>` and `<domain>`, basic auth (staging: every request; prod: every request that is not GET or HEAD, D32), and a reverse proxy to each environment.
 - **Check:**
   - Both environments are up with HTTPS and login.
   - Without the password, every page and API route answers 401; the app and Qdrant ports are refused from outside; failed logins are rate-limited (fail2ban); the OpenRouter key has a credit limit and the OpenAI project a monthly budget (D31).
@@ -502,7 +502,7 @@ Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Swe
   5. Manual approval (GitHub environment `production`).
   6. Deploy the same `:<git-sha>` to prod, then health check.
 - Rollback: `deploy.sh <previous-sha>`.
-- Secrets: the SSH key and API keys are stored as GitHub Actions secrets.
+- Secrets: the SSH key is a GitHub Actions secret; the API keys come from Doppler (D32).
 - **Check:**
   - A normal change goes through to prod.
   - A deliberately broken prompt fails the gate and never reaches prod.
@@ -561,5 +561,5 @@ Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Swe
 - Story mode shows the climb on **each** stack, the head-to-head comparison, and the held-out confirmation.
 - The judge is calibrated, and its agreement is reported.
 - CI blocks a quality regression, staging-to-prod promotion works, and rollback works.
-- Both environments run behind HTTPS and basic auth, and data survives restarts.
+- Both environments run behind HTTPS; staging needs the password for everything, prod is public to read and needs it for everything else (D32); data survives restarts.
 - The report, the README findings and the backup video are ready.

@@ -123,8 +123,8 @@ A study project. It is a controlled study of which RAG techniques improve retrie
 - Chunk sizes are in tokens. Tests have gold `source_docs` and a `split` (`dev` = 192, `heldout` = 48). Never tune on held-out questions.
 - SQLite per environment. Long jobs run in the background and the UI polls `/api/jobs/{id}`. Spend is capped by `BUDGET_USD`.
 - Every run stores reproducibility metadata: git SHA, model `canonical_slug`s, prompt hash, dataset hash, chunk-set id and ranking options.
-- A shared edge Caddy handles TLS and basic auth for `staging.<domain>` and `<domain>`. Qdrant is never exposed publicly.
-- Secrets live in a `.env` file per environment on the VPS (owner-only, never committed) and in GitHub Actions secrets for CI.
+- A shared edge Caddy handles TLS and basic auth for `staging.<domain>` and `<domain>`: every staging request, and every prod request that is not GET or HEAD (D32), so prod is public to read. A GET route must never pay or write. Qdrant is never exposed publicly.
+- Secrets live in Doppler, one config per environment, injected at container start (D32); `.env` is for local development only. Private production notes: `prod.md` (gitignored).
 
 ## Reporting
 - Every Stack A vs Stack B result states the OpenAI search ranking settings (T12).
