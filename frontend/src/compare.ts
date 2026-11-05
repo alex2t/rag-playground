@@ -1,7 +1,7 @@
 /** Pure logic of the Compare page (T57). */
 
 import type { Comparison, PairedChange, PanelRequest, RunReport, RunScores, RunSummary } from './api/types.ts'
-import { HEADLINE, OTHER, questionsLine, TRUST, type Metric } from './evaluate.ts'
+import { HEADLINE, OTHER, TRUST, type Metric } from './evaluate.ts'
 import { searchLine, settingsLine } from './panel.ts'
 
 type Side = Pick<RunSummary, 'stack' | 'settings'>
@@ -14,17 +14,6 @@ const ALL_METRICS: Metric[] = [...HEADLINE, ...OTHER, ...TRUST]
 /** Compare takes finished runs that asked their whole question set: the API refuses the others. */
 export function comparable(runs: RunSummary[]): RunSummary[] {
   return runs.filter((run) => run.status === 'done' && run.full)
-}
-
-/** The runs a first choice can be compared with: the same question set, and not itself. */
-export function partners(runs: RunSummary[], before: number | null): RunSummary[] {
-  const first = comparable(runs).find((run) => run.id === before)
-  return first ? comparable(runs).filter((run) => run.split === first.split && run.id !== first.id) : []
-}
-
-export function runChoice(run: RunSummary): string {
-  const { chunk_size, overlap, top_k } = run.settings
-  return `Run ${run.id}, Stack ${run.stack}, ${questionsLine(run)}, ${chunk_size} tokens, overlap ${overlap}, K=${top_k}, ${run.created_at.slice(0, 10)}`
 }
 
 /** A run's stored settings as the request that would repeat it; each stack keeps its own search settings (T40). */
@@ -41,16 +30,18 @@ export function runLine(side: Side): string {
 
 export type SettingDiff = { label: string; before: string; after: string }
 
+/** Every setting of a run as label and value, in the order the page lists them. */
+export function settingFields(side: Side): [string, string][] {
+  const request = requestOf(side)
+  return [['Stack', request.stack], ['Chunking method', request.chunking_method], ['Chunk size', String(request.chunk_size)],
+    ['Overlap', String(request.overlap)], ['Top-K', String(request.top_k)], ['Search', searchLine(request)],
+    ['Reranking', request.rerank ? 'on' : 'off'], ['Answer model', request.answer_model], ['Prompt', request.prompt_name]]
+}
+
 /** The settings two runs do not share, so the page can say what changed between them. */
 export function settingDiffs(before: Side, after: Side): SettingDiff[] {
-  const fields = (side: Side): [string, string][] => {
-    const request = requestOf(side)
-    return [['Stack', request.stack], ['Chunk size', String(request.chunk_size)], ['Overlap', String(request.overlap)],
-      ['Chunking method', request.chunking_method], ['Top-K', String(request.top_k)], ['Search', searchLine(request)],
-      ['Reranking', request.rerank ? 'on' : 'off'], ['Answer model', request.answer_model], ['Prompt', request.prompt_name]]
-  }
-  const after_ = fields(after)
-  return fields(before)
+  const after_ = settingFields(after)
+  return settingFields(before)
     .map(([label, value], index) => ({ label, before: value, after: after_[index][1] }))
     .filter((row) => row.before !== row.after)
 }

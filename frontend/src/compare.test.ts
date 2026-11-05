@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import type { Comparison, RunReport, RunScores, RunSettings, RunSummary } from './api/types.ts'
 import { METRIC_HELP } from './help.ts'
-import { changeLine, chartLegend, comparable, costChange, depthNote, judgeRows, partners, rateRows, recommendation, runChoice, runLine, runStatement, settingDiffs, signed, tableRows } from './compare.ts'
+import { changeLine, chartLegend, comparable, costChange, depthNote, judgeRows, rateRows, recommendation, runLine, runStatement, settingDiffs, signed, tableRows } from './compare.ts'
 
 const SETTINGS: RunSettings = {
   chunking_method: 'fixed', chunk_size: 800, overlap: 200, chunk_set_id: 'x', top_k: 2, hybrid: true,
@@ -28,21 +28,6 @@ const run = (id: number, extra: Partial<RunSummary>) => ({ ...RUN, id, ...extra 
 test('only finished runs of a whole question set can be compared', () => {
   const runs = [run(1, {}), run(2, { full: false, questions: 10 }), run(3, { status: 'running' }), run(4, { status: 'failed' })]
   assert.deepEqual(comparable(runs).map(({ id }) => id), [1])
-})
-
-test('a run pairs with others of its question set, never with itself', () => {
-  const runs = [run(1, {}), run(2, {}), run(3, { split: 'heldout', questions: 48 }), run(4, { split: 'heldout', questions: 48 })]
-  assert.deepEqual(partners(runs, 1).map(({ id }) => id), [2])
-  assert.deepEqual(partners(runs, 3).map(({ id }) => id), [4])
-})
-
-test('nothing pairs before a first run is chosen, or with a run that cannot be compared', () => {
-  assert.deepEqual(partners([run(1, {})], null), [])
-  assert.deepEqual(partners([run(1, { full: false }), run(2, {})], 1), [])
-})
-
-test('a choice names the run, its stack, its questions and what sets it apart', () => {
-  assert.equal(runChoice(run(19, { stack: 'A' })), 'Run 19, Stack A, dev, 192 questions, 800 tokens, overlap 200, K=2, 2026-10-30')
 })
 
 test('a Stack A run states its OpenAI ranking, a Stack B run its hybrid setting', () => {
