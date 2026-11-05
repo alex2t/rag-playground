@@ -138,6 +138,8 @@ cd backend && uv run uvicorn rag_playground.main:app --reload
 cd frontend && npm run dev
 ```
 
+If the dashboard says "Cannot reach OpenRouter's model list: ... CERTIFICATE_VERIFY_FAILED", the backend's HTTPS check failed. When an antivirus inspects HTTPS traffic, its own certificate must be trusted: set `SSL_CERT_FILE` to it. When the antivirus does not inspect that process, `SSL_CERT_FILE` must not be set, or the real certificate is refused with the same error. In Windows cmd, `set SSL_CERT_FILE=` clears it for that window only; a `set` lasts until the window is closed.
+
 ## Run in Docker
 
 ```
