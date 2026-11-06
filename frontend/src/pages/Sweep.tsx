@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useReadOnly } from '../readOnly.ts'
 import { getLatestSweep, planSweep, startSweep } from '../api/client.ts'
 import type { PanelOptions, SweepPlan, SweepValue } from '../api/types.ts'
 import { useBuilds } from '../api/useBuilds.ts'
@@ -14,7 +15,7 @@ import { chunksProblem } from '../chunks.ts'
 import { panelProblem, saveValues, stacksOf, type PanelValues } from '../panel.ts'
 import { hashOf, pageLink } from '../route.ts'
 import {
-  bodyFor, chartRows, choicesFor, fromKey, isWorking, overBudget, parseNumbers, planKey, planLine, plansFor, toRun, valueText,
+  bodyFor, chartRows, choicesFor, fromKey, isWorking, overBudget, parseNumbers, planKey, planLine, plansFor, pollKey, toRun, valueText,
   sweepJobLine, variableOf, variablesFor, type Latest, type Planned,
 } from '../sweep.ts'
 
@@ -138,6 +139,7 @@ function ValuesInput({ variable, options, promptNames, typed, picked, onType, on
 
 /** One setting over several values on the dev questions (T58): Estimate, then Confirm, then follow it below. */
 export default function Sweep() {
+  const readOnly = useReadOnly()
   const { options, promptNames, values, setValues, error: panelError } = usePanel()
   const { builds } = useBuilds()
   const [variable, setVariable] = useState('chunk_size')
@@ -154,6 +156,7 @@ export default function Sweep() {
   const list = 'values' in parsed ? parsed.values : null
   const key = values && list ? planKey(values, current, list) : ''
   const plans = plansFor(planned, key)
+  const replan = pollKey(planned, key)
   const working = isWorking(latest)
   const stackChoice = values?.stacks
 
@@ -170,16 +173,16 @@ export default function Sweep() {
       try {
         const found = await Promise.all(stacksOf(stackChoice).map(async (stack) => [stack, await getLatestSweep(stack)] as const))
         setLatest(Object.fromEntries(found))
-        if (!key) return
-        const [panel, setting, chosen] = fromKey(key)
+        if (!replan) return
+        const [panel, setting, chosen] = fromKey(replan)
         const fresh = await Promise.all(stacksOf(panel.stacks).map((stack) => planSweep(bodyFor(panel, stack, setting, chosen))))
-        setPlanned((before) => (before?.key === key ? { key, plans: fresh } : before))
+        setPlanned((before) => (before?.key === replan ? { key: replan, plans: fresh } : before))
       } catch (e) {
         setError((e as Error).message)
       }
     }, POLL_MS)
     return () => clearInterval(timer)
-  }, [working, key, stackChoice])
+  }, [working, replan, stackChoice])
 
   if (panelError) return <p role="alert" className="text-sm text-danger">{panelError}</p>
   if (options === null || values === null) return <p className="text-sm text-muted">Loading...</p>
@@ -244,10 +247,10 @@ export default function Sweep() {
           <ValuesInput variable={current} options={options} promptNames={promptNames} typed={typed} picked={picked} onType={setTyped} onPick={setPicked} />
           <p className="text-xs text-muted">At most 6 values, the base configuration's own value included: it is what the others are compared with.</p>
           <div className="flex gap-2">
-            <button type="button" className="btn text-sm" disabled={busy || problem !== null}
+            <button type="button" className="btn text-sm" disabled={busy || problem !== null || readOnly}
               onClick={() => void estimate()}>1. Estimate</button>
             <button type="button" className="btn-primary text-sm"
-              disabled={busy || plans === null || runnable.length === 0 || over || working} onClick={() => void confirm()}>2. Confirm</button>
+              disabled={busy || plans === null || runnable.length === 0 || over || working || readOnly} onClick={() => void confirm()}>2. Confirm</button>
           </div>
           {problem && <p className="text-sm text-muted">{problem}</p>}
           {plans && <p className="text-sm">{planLine(plans)}</p>}

@@ -1,6 +1,7 @@
 /** Typed calls to the backend. A refused request throws its reason, as the API words it. */
 
 import type { Answer, AskQuestion, AskResult, BuildEstimate, Builds, BuildSettings, Comparison, Estimate, Job, LadderState, PanelOptions, PanelRequest, OpsSummary, PromptVersion, QuestionSet, RunReport, RunSummary, StackId, SweepPlan, SweepValue } from './types.ts'
+import type { Mode } from '../readOnly.ts'
 
 /** The API's reason, or a line with the status: a crash or a proxy answers in plain text, not JSON. */
 export function refusal(status: number, text: string): string {
@@ -22,6 +23,10 @@ async function send<T>(url: string, init?: RequestInit): Promise<T> {
 
 function post<T>(url: string, body?: object): Promise<T> {
   return send(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+}
+
+export function getMode(): Promise<Mode> {
+  return send('/api/mode')
 }
 
 export function getLadder(stack: StackId, prompts: string[] = []): Promise<LadderState> {

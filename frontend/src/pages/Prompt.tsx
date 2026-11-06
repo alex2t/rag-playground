@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useReadOnly } from '../readOnly.ts'
 import { getPrompts, savePrompt } from '../api/client.ts'
 import type { PromptVersion } from '../api/types.ts'
 import Guide from '../components/Guide.tsx'
@@ -61,6 +62,7 @@ function TestVersion({ version, edited }: { version: PromptVersion; edited: bool
 
 /** Saved system prompt versions (T36): start from one, edit its text, save it under a new name, then test it. */
 export default function Prompt() {
+  const readOnly = useReadOnly()
   const [versions, setVersions] = useState<PromptVersion[] | null>(null)
   const [selectedName, setSelectedName] = useState('default')
   const [text, setText] = useState('')
@@ -128,7 +130,7 @@ export default function Prompt() {
                   onChange={(e) => setName(e.target.value)} />
               </label>
               <button type="button" className="btn-primary text-sm"
-                disabled={saving || problem !== null} onClick={() => void save()}>Save new version</button>
+                disabled={saving || problem !== null || readOnly} onClick={() => void save()}>Save new version</button>
             </div>
             <p className="text-sm text-muted">{problem ?? 'Ready to save. A saved version never changes.'}</p>
             {saved && <p role="status" className={`text-sm font-medium text-good ${LONG_NAME}`}>{saved}</p>}

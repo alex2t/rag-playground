@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useReadOnly } from '../readOnly.ts'
 import { estimateRun, startRun } from '../api/client.ts'
 import type { QuestionSet, RunSummary } from '../api/types.ts'
 import { useBuilds } from '../api/useBuilds.ts'
@@ -33,6 +34,7 @@ const STEPS = [
 /** Scores one configuration on many questions (T56): Estimate, then Evaluate; the run opens at once and shows its report when done.
 A link can choose the prompt version, the question set and the run to show. */
 export default function Evaluate() {
+  const readOnly = useReadOnly()
   const { options, promptNames, values, setValues, error: panelError } = usePanel(linkedParam(location.hash, 'prompt'))
   const { builds } = useBuilds()
   const { runs, error: runsError, reload } = useRuns()
@@ -107,9 +109,9 @@ export default function Evaluate() {
             </div>
             {questions === 'heldout' && <p className="text-sm text-muted">Held-out questions confirm a final choice. Do not use them to tune.</p>}
             <div className="flex gap-2">
-              <button type="button" className="btn text-sm" disabled={busy || problem !== null}
+              <button type="button" className="btn text-sm" disabled={busy || problem !== null || readOnly}
                 onClick={() => void estimate()}>1. Estimate</button>
-              <button type="button" className="btn-primary text-sm" disabled={busy || estimates === null || over}
+              <button type="button" className="btn-primary text-sm" disabled={busy || estimates === null || over || readOnly}
                 onClick={() => void evaluate()}>2. Evaluate</button>
             </div>
             {problem && <p className="text-sm text-muted">{problem}</p>}

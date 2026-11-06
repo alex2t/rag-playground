@@ -3,7 +3,7 @@ import { test } from 'node:test'
 import type { PanelOptions, SweepItem, SweepPlan, SweepRun } from './api/types.ts'
 import type { PanelValues } from './panel.ts'
 import {
-  axisValues, bodyFor, chartRows, choicesFor, fromKey, isWorking, sweepJobLine, overBudget, parseNumbers, planKey, planLine, plansFor, toRun,
+  axisValues, bodyFor, chartRows, choicesFor, fromKey, isWorking, sweepJobLine, overBudget, parseNumbers, planKey, planLine, plansFor, pollKey, toRun,
   totalCost, valueText, variableOf, variablesFor,
 } from './sweep.ts'
 
@@ -144,4 +144,11 @@ test('a sweep says it waits, how far it is, that it finished, or why it failed',
   assert.equal(sweepJobLine('B', { ...job, status: 'running' }), 'Sweep on Stack B: run 1 of 2, 96 of 192 questions (25%)')
   assert.equal(sweepJobLine('A', { ...job, status: 'done' }), 'The last sweep on Stack A finished.')
   assert.equal(sweepJobLine('A', { ...job, status: 'failed', error: 'Budget reached' }), 'The last sweep on Stack A failed: Budget reached')
+})
+
+test('polling re-plans only what Estimate planned, so typed values send nothing by themselves', () => {
+  const key = planKey(VALUES, 'top_k', [4, 6])
+  assert.equal(pollKey(null, key), '')
+  assert.equal(pollKey({ key, plans: [plan('B', [])] }, key), key)
+  assert.equal(pollKey({ key, plans: [plan('B', [])] }, planKey(VALUES, 'top_k', [4, 8])), '')
 })

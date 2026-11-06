@@ -69,6 +69,11 @@ export function plansFor(planned: Planned | null, key: string): SweepPlan[] | nu
   return planned?.key === key ? planned.plans : null
 }
 
+/** The key polling re-plans: only one Estimate has planned, so typing values never sends a request by itself. */
+export function pollKey(planned: Planned | null, key: string): string {
+  return plansFor(planned, key) ? key : ''
+}
+
 /** The values, setting and list a plan key was made from, so polling depends on the key alone. */
 export function fromKey(key: string): [PanelValues, string, SweepValue[]] {
   return JSON.parse(key)

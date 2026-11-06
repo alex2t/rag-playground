@@ -1,4 +1,5 @@
 import { useEffect, useId, useState, type ReactNode } from 'react'
+import { useReadOnly } from '../readOnly.ts'
 import { estimateBuild, getPanel, startBuild } from '../api/client.ts'
 import type { BuildJob, BuiltSet, PanelOptions } from '../api/types.ts'
 import { useBuilds } from '../api/useBuilds.ts'
@@ -71,6 +72,7 @@ function Built({ built }: { built: BuiltSet[] }) {
 
 /** Prepares chunks on a stack (D29): Estimate, then Embed, then follow the build below. */
 export default function Build() {
+  const readOnly = useReadOnly()
   const [options, setOptions] = useState<PanelOptions | null>(null)
   const [values, setValues] = useState<BuildValues | null>(null)
   const [estimated, setEstimated] = useState<Estimated | null>(null)
@@ -151,10 +153,10 @@ export default function Build() {
           <NumberField label="Overlap (tokens)" info={BUILD_HELP.overlap} value={current.overlap} onChange={(overlap) => change({ overlap })} />
         </div>
         <div className="flex gap-2">
-          <button type="button" className="btn text-sm" disabled={busy || problem !== null}
+          <button type="button" className="btn text-sm" disabled={busy || problem !== null || readOnly}
             onClick={() => void runEstimate()}>Estimate</button>
           <button type="button" className="btn-primary text-sm"
-            disabled={busy || missing.length === 0 || over} onClick={() => void embed()}>Embed</button>
+            disabled={busy || missing.length === 0 || over || readOnly} onClick={() => void embed()}>Embed</button>
         </div>
         {problem && <p className="text-sm text-muted">{problem}</p>}
         {estimate && <p className="text-sm [overflow-wrap:anywhere]">{estimateLine(estimate, current)}</p>}

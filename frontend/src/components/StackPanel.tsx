@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useReadOnly } from '../readOnly.ts'
 import { getLadder, getPrompts, startHeldout, startStep } from '../api/client.ts'
 import type { StackId } from '../api/types.ts'
 import type { useLadder } from '../api/useLadder.ts'
@@ -38,6 +39,7 @@ function PromptPicks({ saved, picked, onChange }: { saved: string[]; picked: str
 
 /** One stack: its next step with the estimate, the running job, its results and its held-out panel. */
 export default function StackPanel({ stack, ladder }: { stack: StackId; ladder: ReturnType<typeof useLadder> }) {
+  const readOnly = useReadOnly()
   const { state, job, running, error, setError, follow, setState } = ladder
   const [picked, setPicked] = useState<string[]>([])
   const [saved, setSaved] = useState<string[]>([])
@@ -100,7 +102,7 @@ export default function StackPanel({ stack, ladder }: { stack: StackId; ladder: 
                   </>
                 )}
                 <button type="button" className="btn-primary"
-                  disabled={busy || estimateIsStale(state, prompts, estimated)} onClick={runStep}>
+                  disabled={busy || estimateIsStale(state, prompts, estimated) || readOnly} onClick={runStep}>
                   {state.missing.length === 0
                     ? 'Skip S6'
                     : `Run ${state.next_step} (${state.missing.length} ${state.missing.length === 1 ? 'run' : 'runs'}, about ${money(state.estimate_usd)})`}
@@ -135,7 +137,7 @@ export default function StackPanel({ stack, ladder }: { stack: StackId; ladder: 
             </details>
           )}
           <div className="mt-3">
-            <HeldoutPanel heldout={state.heldout} busy={busy} onRun={() => void start(() => startHeldout(stack))} />
+            <HeldoutPanel heldout={state.heldout} busy={busy || readOnly} onRun={() => void start(() => startHeldout(stack))} />
           </div>
         </>
       )}

@@ -4,6 +4,16 @@ Add new bugs at the top. Status: `open` | `investigating` | `fixed`.
 
 ---
 
+## [2026-11-06] Step 10: Sweep's polling re-planned values never estimated, sending a POST without a click - `fixed`
+- **Symptom:** found by Antigravity (Gemini 3.8) reviewing the read-only pages (D32). While a sweep runs, the page polls every 2 s; once values were typed or ticked, each tick sent `POST /api/sweeps/plan` for them, though Estimate was never pressed. On prod a visitor would meet the password prompt (Caddy guards every non-GET request); for the owner it re-planned values never estimated. Antigravity's claim that it happens on landing is wrong: the value box starts empty, so nothing is sent until values are entered.
+- **Reproduce:** with a sweep running, open Sweep and type values: the backend log shows one plan POST per tick.
+- **Root cause (evidence):** `pages/Sweep.tsx` polling effect: `if (!key) return`, then `planSweep(...)`. `key` is built from whatever the panel currently holds, not from a plan Estimate made.
+- **Fix:** `sweep.pollKey(planned, key)`: polling re-plans only a key Estimate planned. In read-only mode Estimate is disabled, so nothing is sent. Not Antigravity's `|| readOnly`, which would have hidden it for visitors only.
+- **Verified by:** new test in `sweep.test.ts`; the break "pollKey always returns key" fails it on the real code. Frontend 172 passed. Not seen in a browser: it needs a running (paid) sweep.
+- **Status:** fixed.
+
+---
+
 ## [2026-11-05] Step 10: release image missed the dataset documents and Stack B's BM25 model, and could not cache as the app user - `fixed`
 - **Symptom:** (1) `.dockerignore` excluded every `*.md`, so the 48 KB documents would have been left out of the image (found by Claude). (2) Downloading nomic at build time as root left a Hugging Face cache file the app user could not read ("Permission denied", every start). (3) As the app user, the download failed: `uv run` and Hugging Face's xet logs need a home directory, and `useradd --system` creates none. (4) `Qdrant/bm25`, used by every Stack B index build and hybrid search (`qdrant_store.py:59`, `:72`), was not downloaded at build time (found by Antigravity, Gemini 3.8).
 - **Reproduce:** (4) `docker run --rm --network none rag-playground:step10 python -c "from rag_playground.stacks import qdrant_store; qdrant_store.bm25()"` gave `ValueError: Could not load model Qdrant/bm25 from any source.`

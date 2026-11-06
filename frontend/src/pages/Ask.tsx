@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useReadOnly } from '../readOnly.ts'
 import { ask, getAskQuestions } from '../api/client.ts'
 import type { AskQuestion, AskResult, StackId } from '../api/types.ts'
 import { useBuilds } from '../api/useBuilds.ts'
@@ -83,6 +84,7 @@ const STEPS = [
 ]
 
 export default function Ask() {
+  const readOnly = useReadOnly()
   const { options, promptNames, values, setValues, error: panelError } = usePanel(linkedParam(location.hash, 'prompt'))
   const { builds } = useBuilds()
   const [questions, setQuestions] = useState<AskQuestion[]>([])
@@ -135,7 +137,7 @@ export default function Ask() {
             onType={(text) => { setTyped(text); setTestId('') }}
             onPick={(id) => { setTestId(id); setTyped('') }} />
           <button type="button" className="btn-primary text-sm"
-            disabled={asking || problem !== null} onClick={() => void send(values, body!)}>{asking ? 'Asking...' : 'Ask'}</button>
+            disabled={asking || problem !== null || readOnly} onClick={() => void send(values, body!)}>{asking ? 'Asking...' : 'Ask'}</button>
           {problem && <p className="text-sm text-muted">{problem}</p>}
         </section>
         {replies.length > 0 && (

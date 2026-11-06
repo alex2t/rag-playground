@@ -12,7 +12,7 @@ function NavLink({ item, current }: { item: MenuItem; current: boolean }) {
 }
 
 /** The shared page frame: a sidebar on wide screens, a scrolling bar of links on phones. */
-export default function Layout({ page, children }: { page: Page; children: ReactNode }) {
+export default function Layout({ page, notice, modeError, children }: { page: Page; notice: string | null; modeError: string | null; children: ReactNode }) {
   return (
     <div className="md:flex md:min-h-screen">
       <aside className="border-b border-line bg-panel md:w-60 md:shrink-0 md:border-r md:border-b-0">
@@ -30,7 +30,11 @@ export default function Layout({ page, children }: { page: Page; children: React
         </nav>
       </aside>
       <main className="min-w-0 flex-1 px-4 py-6 md:px-8 md:py-8">
-        <div className="mx-auto max-w-6xl">{children}</div>
+        <div className="mx-auto max-w-6xl">
+          {notice && <p role="status" className="mb-5 rounded-lg border border-accent p-3 text-sm">{notice}</p>}
+          {modeError && <p role="alert" className="mb-5 text-sm text-danger">Cannot read the site mode, so paid and saving buttons stay off: {modeError}</p>}
+          {children}
+        </div>
       </main>
     </div>
   )
