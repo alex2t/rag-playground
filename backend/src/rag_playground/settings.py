@@ -66,6 +66,7 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openrouter_api_key: str = ""
     budget_usd: float = 0.0  # cap on all recorded evaluation spend (D15); unset means nothing paid can run
+    read_only: bool = False  # pages disable paid and writing buttons (D32); a notice for visitors, not a guard
 
 
 settings = Settings()

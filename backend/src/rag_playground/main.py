@@ -66,6 +66,12 @@ def health(response: Response) -> dict:
     return {"status": "ok" if status == "ok" else "degraded", "version": settings.app_version, "qdrant": status}
 
 
+@app.get("/api/mode")
+def mode() -> dict:
+    """Tell the pages whether this site is a read-only demo (D32). Free: reads one setting."""
+    return {"read_only": settings.read_only}
+
+
 @app.post("/api/runs", status_code=202)
 def start_run(request: RunRequest) -> dict:
     """Start an evaluation job and return its id; the UI then polls /api/jobs/{id}. A run that would be refused
