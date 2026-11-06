@@ -17,6 +17,8 @@ Two complete RAG systems, called **stacks**, run side by side:
 
 Each stack runs independently: you set each one's search settings yourself. The other settings (below) are the same kind on both.
 
+**Read-only demo.** The public site can be set to read-only (the `READ_ONLY` setting). A notice at the top of every page says so, and every button that pays or saves is turned off: Ask, Estimate, Evaluate, Embed, Confirm, Save new version and the Story Run buttons. Every stored result, report, chart and answer can still be browsed. Sweep results are shown only after an estimate, so a read-only visitor does not see them.
+
 ## 2. Words used in the app
 
 | Word | Meaning |
