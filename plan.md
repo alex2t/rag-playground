@@ -485,7 +485,7 @@ Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Swe
 - One Dockerfile with multiple stages: the `node` stage builds the frontend, which is copied into `python:3.12-slim`. Uses `uv sync --frozen --no-dev`, a non-root user, and downloads nomic at build time. The git SHA is passed as a build argument.
 - Copy `backend/data/synthetic/` into the image (D20; not done yet, found by Antigravity) and mount `var/` (chunk sets, T39) as a volume.
 - `deploy/docker-compose.yml` runs as `rag-playground-staging` and `rag-playground-prod`, each with its own Doppler config, volume and Qdrant.
-- `deploy/edge`: Caddy with TLS for `staging.<domain>` and `<domain>`, basic auth (staging: every request; prod: every request that is not GET or HEAD, D32), and a reverse proxy to each environment.
+- `deploy/edge`: Caddy with TLS for `staging.<domain>` and `<domain>`, basic auth (staging: every request; prod: every request that is not GET or HEAD, D32), and a reverse proxy to each environment (D33: host networking, prod on port 8000, staging on 8001; fail2ban 10 refused logins in 10 minutes ban for 1 hour; `DOMAIN`, `AUTH_USER`, `AUTH_HASH` in Doppler's prod config).
 - **Check:**
   - Both environments are up with HTTPS and login.
   - Without the password: on staging every page and API route answers 401; on prod pages and GET routes answer and every other request answers 401 (D32); the app and Qdrant ports are refused from outside; failed logins are rate-limited (fail2ban); the OpenRouter key has a credit limit and the OpenAI project a monthly budget (D31).

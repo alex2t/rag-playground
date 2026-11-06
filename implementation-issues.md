@@ -312,3 +312,18 @@ Antigravity's review confirmed 5 of 6 findings:
 **Root causes and fixes:** a cost of zero is never refused, in every budget check, whatever is left. The build offer now shows any build of those chunks that is waiting or running, whoever started it, and does not start it again. The Sweep page reads each stack's latest sweep from its own route as soon as it opens. Each stack is now tried on its own. The sweep tests now use real stored runs read by the real code.
 
 **Lesson:** an empty or negative edge (nothing to pay, nothing left) breaks rules written for the normal case, so test it on purpose. A reviewer's description of how something behaves is evidence even when its verdict says "fine": three real flaws were found by reading its checks, not its findings. And a page is not done until it has been left and opened again.
+
+## 21. Step 10: a silent request, and a side door in the lock (2026-11-06)
+
+**What we were doing:** putting the site online (Step 10): prod public to read, a password for anything that pays or writes, and a block on anyone who guesses the password too often. A read-only mode turns off every paid button for visitors, and Caddy, the web server in front of the app, asks for the password on every request that is not a plain read.
+
+**What went wrong:**
+- On the Sweep page, while a sweep was running, the page checked its plan every 2 seconds by sending a paid-route request. Once a visitor typed values in the box, that request went out by itself, without any click: on the public site, a visitor would have met a password prompt from nowhere. The owner had the same flaw: the page re-planned values that had never been estimated.
+- fail2ban, which blocks an address after 10 wrong passwords, blocks normal web traffic only (TCP). Caddy also spoke HTTP/3, a newer protocol that runs over UDP, so a blocked address could keep guessing through it.
+- Caddy's admin port, open on the server itself, showed the password's hash and accepted a new configuration from any program on the machine.
+
+**First guesses:** the reviewer said the Sweep request fired as soon as a visitor opened the page, because of default values in the box; there are none, the box starts empty, so it fired only after typing. Its fix was to skip the request in read-only mode, which would have hidden the flaw for visitors and kept it for the owner.
+
+**Root causes and fixes:** the page refreshed whatever the box held, not the plan the owner had asked for; it now refreshes only a plan made by pressing Estimate, so typing never sends anything. HTTP/3 is turned off (user decision), so there is no UDP traffic to escape a block; blocking every port was the other option, but it would also have cut the owner's own server access after 10 typos. The admin port is turned off, since the server is restarted, never reconfigured live.
+
+**Lesson:** a safety rule is only as good as its narrowest part: a block that covers one protocol, or a page that sends one request no one clicked, opens a side door. Check every path a request can take, not only the buttons.

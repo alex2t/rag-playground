@@ -1,0 +1,12 @@
+# fail2ban jail (D31 Q4): 10 refused logins within 10 minutes bans the address for 1 hour (custom values).
+# Install as /etc/fail2ban/jail.d/caddy-auth.local.
+
+[caddy-auth]
+enabled = true
+filter = caddy-auth
+logpath = /var/log/caddy/access.log
+backend = auto
+port = http,https
+maxretry = 10
+findtime = 10m
+bantime = 1h

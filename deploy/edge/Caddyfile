@@ -1,0 +1,39 @@
+# Edge (D09, D32, D33): HTTPS for both environments, the password by environment, an access log for fail2ban.
+# Prod is public to read: the password guards every request that is not GET or HEAD. Staging guards everything.
+
+# No admin API: it would show the password hash to any program on the VPS and accept a new configuration.
+# HTTP/1.1 and HTTP/2 only: HTTP/3 runs over UDP, which fail2ban's bans (TCP) would not cover (D33).
+{
+	admin off
+	servers {
+		protocols h1 h2
+	}
+}
+
+(access_log) {
+	log {
+		output file /var/log/caddy/access.log
+	}
+}
+
+{$DOMAIN} {
+	import access_log
+	@act not method GET HEAD
+	basic_auth @act {
+		{$AUTH_USER} {$AUTH_HASH}
+	}
+	reverse_proxy {$PROD_UPSTREAM}
+}
+
+staging.{$DOMAIN} {
+	import access_log
+	basic_auth {
+		{$AUTH_USER} {$AUTH_HASH}
+	}
+	reverse_proxy {$STAGING_UPSTREAM}
+}
+
+www.{$DOMAIN} {
+	import access_log
+	redir https://{$DOMAIN}{uri} permanent
+}
