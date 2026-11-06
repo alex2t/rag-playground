@@ -143,9 +143,11 @@ If the dashboard says "Cannot reach OpenRouter's model list: ... CERTIFICATE_VER
 ## Run in Docker
 
 ```
-docker compose -f deploy/docker-compose.yml -p rag-playground-dev up -d --build
+docker compose --env-file .env -f deploy/docker-compose.yml -p rag-playground-dev up -d --build
 curl http://127.0.0.1:8000/api/health
 ```
+
+The container reads its keys and settings only from the shell that runs compose: `--env-file .env` locally, `doppler run --` on the VPS (D32).
 
 ## Tests
 

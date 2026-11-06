@@ -59,7 +59,7 @@ Status: `accepted` | `proposed` (default, needs review) | `open` | `superseded`.
 - **Decision:** a separate compose project (`deploy/edge`) runs Caddy on ports 80/443. It handles TLS for `staging.<domain>` and `<domain>`, basic auth, and reverse proxying to each environment's app.
 - **Why:** certificates are issued and renewed automatically, and one entry point serves every environment.
 
-### D10 - Secrets in `.env` files on the VPS, CI secrets in GitHub - `accepted`
+### D10 - Secrets in `.env` files on the VPS, CI secrets in GitHub - `superseded` by D32 (2026-11-05: secrets in Doppler, no key file on the VPS)
 - **Not best practice:** plain text on disk. Production would use a secrets manager (Vault, Doppler, cloud provider).
 - **Mitigation:**
   - One `.env` per environment, readable only by its owner, never committed and never baked into images.
@@ -89,7 +89,7 @@ Status: `accepted` | `proposed` (default, needs review) | `open` | `superseded`.
 - **Not best practice:** deploying over SSH with compose. Production would use an orchestrator (Kubernetes, ECS) or a GitOps tool. It is acceptable for one VPS.
 
 ### D13 - Staging and prod environments on the same VPS - `accepted`
-- **Decision:** two compose projects, `rag-playground-staging` and `rag-playground-prod`, each with its own `.env`, data volume and Qdrant.
+- **Decision:** two compose projects, `rag-playground-staging` and `rag-playground-prod`, each with its own `.env`, data volume and Qdrant. **Revised by D32:** each with its own Doppler config instead of a `.env`, passed to the container by name in `deploy/docker-compose.yml`.
 - **Why:** CI tests in staging before prod is touched.
 - **Not best practice:** both environments share one host, so a host failure takes down both. Production would put them on separate infrastructure.
 - **Cost:** about double the RAM (two apps with nomic loaded, two Qdrant instances). Fits a VPS with 8 GB.

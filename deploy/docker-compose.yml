@@ -1,5 +1,9 @@
 # One environment: app + qdrant. Run as project rag-playground-staging or rag-playground-prod (D13).
 # Qdrant has no published port, so it is reachable only from the app on the compose network.
+# Secrets and settings come from the shell that runs compose (D32):
+#   VPS:   doppler run -- docker compose -f deploy/docker-compose.yml -p rag-playground-<env> up -d
+#   local: docker compose --env-file .env -f deploy/docker-compose.yml -p rag-playground-dev up -d --build
+# A name left unset is unset in the container, so the app's default applies (BUDGET_USD unset = $0, nothing paid runs).
 
 services:
   app:
@@ -9,11 +13,13 @@ services:
       dockerfile: backend/Dockerfile
       args:
         APP_VERSION: ${APP_VERSION:-dev}
-    env_file:
-      - path: ../.env
-        required: false
     environment:
-      QDRANT_URL: http://qdrant:6333
+      - APP_ENV
+      - OPENAI_API_KEY
+      - OPENROUTER_API_KEY
+      - BUDGET_USD
+      - READ_ONLY
+      - QDRANT_URL=http://qdrant:6333
     volumes:
       - app-var:/app/var
     ports:
