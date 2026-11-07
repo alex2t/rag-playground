@@ -485,6 +485,7 @@ Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Swe
 - One Dockerfile with multiple stages: the `node` stage builds the frontend, which is copied into `python:3.12-slim`. Uses `uv sync --frozen --no-dev`, a non-root user, and downloads nomic at build time. The git SHA is passed as a build argument.
 - Copy `backend/data/synthetic/` into the image (D20; not done yet, found by Antigravity) and mount `var/` (chunk sets, T39) as a volume.
 - `deploy/docker-compose.yml` runs as `rag-playground-staging` and `rag-playground-prod`, each with its own Doppler config, volume and Qdrant.
+- GitHub Actions (`.github/workflows/build.yml`, D34) on every push to `main`: offline backend tests, frontend lint and tests, then the release image pushed to GHCR as the public `ghcr.io/alex2t/rag-playground:<git-sha>`. `deploy/deploy.sh <sha> <staging|prod>` pulls that image on the VPS; the owner starts it (automatic deploys come in Step 11).
 - `deploy/edge`: Caddy with TLS for `staging.<domain>` and `<domain>`, basic auth (staging: every request; prod: every request that is not GET or HEAD, D32), and a reverse proxy to each environment (D33: host networking, prod on port 8000, staging on 8001; fail2ban 10 refused logins in 10 minutes ban for 1 hour; `DOMAIN`, `AUTH_USER`, `AUTH_HASH` in Doppler's prod config).
 - **Check:**
   - Both environments are up with HTTPS and login.
@@ -495,8 +496,8 @@ Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Swe
 ### Step 11 - CI/CD with an evaluation gate
 - **Still to build (noted 2026-11-03):** `scripts/eval_gate.py` does not exist yet. Before writing it, agree with the user how its paid calls are funded: 20 questions on every deploy, about $0.02 on Stack B or $0.08 on Stack A at S0 (search fee included), more on the production configuration.
 - GitHub Actions on every push to `main`:
-  1. Lint and unit tests.
-  2. Build the image and push it to GHCR as `:<git-sha>`.
+  1. Lint and unit tests (built in Step 10, D34).
+  2. Build the image and push it to GHCR as `:<git-sha>` (built in Step 10, D34).
   3. Deploy to staging over SSH (`deploy.sh <sha>`), then health check.
   4. Run `scripts/eval_gate.py`: a fixed set of 20 dev questions, stratified, on the production configuration. The job fails if any gate fails.
   5. Manual approval (GitHub environment `production`).
