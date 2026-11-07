@@ -39,9 +39,9 @@ Each stack runs independently: you set each one's search settings yourself. The 
 
 ## 3. Before you start
 
-- Open the app at `https://<domain>` (production) or `https://staging.<domain>` and sign in with the user name and password you were given.
+- Open the app at `https://<domain>`. Reading is open to everyone; the browser asks for the user name and password the first time you start, save or change something.
 - Every paid action shows its estimated cost first and waits for you to confirm. One question on **Ask** is the exception: it costs a fraction of a cent, so it runs at once and shows its cost with the answer.
-- All spending counts against one budget per environment (`BUDGET_USD`: $60 in production, $5 in staging). The **Ops** page shows what is left. A run that would go over the budget is refused, and a running one stops before it would pass it.
+- All spending counts against one budget (`BUDGET_USD`: $60). The **Ops** page shows what is left. A run that would go over the budget is refused, and a running one stops before it would pass it.
 - Every page opens with a box that says what the page is for and lists its steps in order. Close it once you know them: this browser remembers.
 
 ## 4. The settings panel

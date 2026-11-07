@@ -1,0 +1,14 @@
+# fail2ban jail for rag-playground.cloud (D35): 10 refused passwords in 10 minutes ban the address for 1 hour
+# (custom values, D33). Uses fail2ban's standard nginx-http-auth filter on the site's Nginx error log.
+# Install as /etc/fail2ban/jail.d/rag-playground.local. The log path follows CloudPanel's layout for a
+# site user named ragplayground. backend = auto is needed: the server's default backend (systemd)
+# reads the journal and would silently ignore logpath.
+[rag-playground-auth]
+enabled = true
+filter = nginx-http-auth
+backend = auto
+logpath = /home/ragplayground/logs/nginx/error.log
+port = http,https
+maxretry = 10
+findtime = 10m
+bantime = 1h

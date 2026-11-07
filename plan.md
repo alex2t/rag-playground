@@ -24,7 +24,7 @@ The app runs only on a Hostinger VPS, in Docker. Every architecture and test dec
 - **Per-question diff:** shows which questions a change fixed or broke.
 - **Controlled variables:** temperature fixed at 0, a pinned judge, a fixed prompt.
 - **Reproducibility metadata** on every run.
-- **CI/CD with an evaluation gate**, staging and production environments, and basic observability.
+- **CI/CD with an evaluation gate**, a production environment (no staging, D35), and basic observability.
 
 ---
 
@@ -54,12 +54,12 @@ The reasons for each decision are in `decision.md`. Items marked *(proposed)* ha
 | Manual testing | Ask page: free-form questions, or any test question shown with its reference answer, gold sources and scores. |
 | Temperature | Not a variable. Fixed at 0 for answers, judge and reranker. Not sent to models that reject it (`gpt-6.1-sol`); those runs are flagged. |
 | Sweeps | One variable at a time only, on the 192 dev questions. Cost estimate and confirmation first. |
-| Budget | `BUDGET_USD=60` for all evaluation spend in production, and `BUDGET_USD=5` in staging (D15). Spend is recorded per paid call in a `spend` table (T44). The estimate counts real input tokens, assumes output tokens, and uses live prices (T43). |
+| Budget | `BUDGET_USD=60` for all evaluation spend in production (D15; no staging since D35). Spend is recorded per paid call in a `spend` table (T44). The estimate counts real input tokens, assumes output tokens, and uses live prices (T43). |
 | Backend / Frontend | FastAPI (Python 3.12, `uv`) / Vite + React + TS + Tailwind + Recharts. |
 | Packaging | One image per release: the React build is copied into the backend image and served by FastAPI. |
-| Environments | `staging` and `prod` on the same VPS, as two compose projects on separate subdomains. |
-| Edge | One shared Caddy: TLS, routes each subdomain to its environment; basic auth on every staging request, and on every prod request that is not GET or HEAD (D32). |
-| CI/CD | GitHub Actions: test, build, push to GHCR (tagged with the git SHA), deploy to staging, smoke test and evaluation gate, manual approval, then deploy the same image to prod. Rollback = redeploy the previous tag. |
+| Environments | `prod` only (D35), as one compose project on a VPS shared with other sites. |
+| Edge | The server's existing Nginx (CloudPanel) is the front door: TLS, a reverse proxy to `127.0.0.1:8000`, and basic auth on every request that is not GET or HEAD (D32, D35). |
+| CI/CD | GitHub Actions: test, build, push to GHCR (tagged with the git SHA); the evaluation gate on the new image before prod (Step 11, D35); deploy to prod. Rollback = redeploy the previous tag. |
 | Storage | SQLite in a Docker volume, one per environment. Runs and results are permanent: the database refuses any edit, deletion or replacement, and a run changes only once, from running to finished (D21). |
 | Long jobs | Background job; the UI polls `GET /api/jobs/{id}`. |
 | Observability | Structured JSON logs and an Ops page (spend against budget, error rate, p95 latency). |
@@ -135,7 +135,7 @@ Projected from the measured costs above.
 | Spare for re-runs and live-demo questions | about $30 |
 | **Total** | **about $60** |
 
-The CI gate runs in staging, which has its own $5 cap: 20 questions, about $0.03 per deploy (1.3).
+The CI gate runs 20 questions, about $0.03 per deploy (1.3); where it runs without staging is decided in Step 11 (D35).
 
 ---
 
@@ -278,10 +278,11 @@ The judge also returns `refused` (true/false) and short feedback.
 
 ```
 rag-playground/
-  .github/workflows/ci.yml       test -> build -> push GHCR -> deploy staging -> gate -> approve -> deploy prod
+  .github/workflows/build.yml    test -> build -> push GHCR (D34); the gate and deploy come in Step 11
   deploy/
-    edge/                        shared Caddy compose project + Caddyfile (TLS, basic auth, subdomain routing)
-    docker-compose.yml           app + qdrant; run as project rag-playground-staging or rag-playground-prod
+    nginx/password-rule.conf     password block for the site's Nginx config (D35)
+    fail2ban/rag-playground.local  fail2ban jail on the site's Nginx error log (D35)
+    docker-compose.yml           app + qdrant with memory limits; run as project rag-playground-prod
     deploy.sh                    pull image tag, compose up, health check; rollback = previous tag
   .env.example                   OPENAI_API_KEY, OPENROUTER_API_KEY, BUDGET_USD, APP_ENV
   decision.md  plan.md  fix.md  CLAUDE.md
@@ -484,21 +485,21 @@ Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Swe
 ### Step 10 - Packaging, environments and edge
 - One Dockerfile with multiple stages: the `node` stage builds the frontend, which is copied into `python:3.12-slim`. Uses `uv sync --frozen --no-dev`, a non-root user, and downloads nomic at build time. The git SHA is passed as a build argument.
 - Copy `backend/data/synthetic/` into the image (D20; not done yet, found by Antigravity) and mount `var/` (chunk sets, T39) as a volume.
-- `deploy/docker-compose.yml` runs as `rag-playground-staging` and `rag-playground-prod`, each with its own Doppler config, volume and Qdrant.
-- GitHub Actions (`.github/workflows/build.yml`, D34) on every push to `main`: offline backend tests, frontend lint and tests, then the release image pushed to GHCR as the public `ghcr.io/alex2t/rag-playground:<git-sha>`. `deploy/deploy.sh <sha> <staging|prod>` pulls that image on the VPS; the owner starts it (automatic deploys come in Step 11).
-- `deploy/edge`: Caddy with TLS for `staging.<domain>` and `<domain>`, basic auth (staging: every request; prod: every request that is not GET or HEAD, D32), and a reverse proxy to each environment (D33: host networking, prod on port 8000, staging on 8001; fail2ban 10 refused logins in 10 minutes ban for 1 hour; `DOMAIN`, `AUTH_USER`, `AUTH_HASH` in Doppler's prod config).
+- `deploy/docker-compose.yml` runs as `rag-playground-prod` (prod only, D35), with its Doppler config, volumes, Qdrant, and memory limits (app 2 GB, Qdrant 512 MB).
+- GitHub Actions (`.github/workflows/build.yml`, D34) on every push to `main`: offline backend tests, frontend lint and tests, then the release image pushed to GHCR as the public `ghcr.io/alex2t/rag-playground:<git-sha>`. `deploy/deploy.sh <sha>` pulls that image on the VPS; the owner starts it (automatic deploys come in Step 11).
+- Front door (D35): a CloudPanel "Reverse Proxy" site for `<domain>` on the server's Nginx, with its certificate, proxying to `127.0.0.1:8000`; the password block of `deploy/nginx/password-rule.conf` (every request that is not GET or HEAD, D32); the fail2ban jail of `deploy/fail2ban/rag-playground.local` (10 refused logins in 10 minutes ban for 1 hour). No HTTP/3 on this site. The other sites on the server are not touched.
 - **Check:**
-  - Both environments are up with HTTPS and login.
-  - Without the password: on staging every page and API route answers 401; on prod pages and GET routes answer and every other request answers 401 (D32); the app and Qdrant ports are refused from outside; failed logins are rate-limited (fail2ban); the OpenRouter key has a credit limit and the OpenAI project a monthly budget (D31).
+  - Prod is up with HTTPS; the password works for actions.
+  - Without the password, pages and GET routes answer and every other request answers 401 (D32); the app and Qdrant ports are refused from outside; failed logins are banned (fail2ban); the OpenRouter key has a credit limit (no OpenAI cap: user decision 2026-11-07).
   - Data survives a restart.
-  - The two environments do not share data.
+  - The other sites on the server answer as before.
 
 ### Step 11 - CI/CD with an evaluation gate
 - **Still to build (noted 2026-11-03):** `scripts/eval_gate.py` does not exist yet. Before writing it, agree with the user how its paid calls are funded: 20 questions on every deploy, about $0.02 on Stack B or $0.08 on Stack A at S0 (search fee included), more on the production configuration.
 - GitHub Actions on every push to `main`:
   1. Lint and unit tests (built in Step 10, D34).
   2. Build the image and push it to GHCR as `:<git-sha>` (built in Step 10, D34).
-  3. Deploy to staging over SSH (`deploy.sh <sha>`), then health check.
+  3. Run the gate against the new image (on the GitHub runner, as there is no staging since D35; details decided in Step 11).
   4. Run `scripts/eval_gate.py`: a fixed set of 20 dev questions, stratified, on the production configuration. The job fails if any gate fails.
   5. Manual approval (GitHub environment `production`).
   6. Deploy the same `:<git-sha>` to prod, then health check.
@@ -531,7 +532,7 @@ Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Swe
   6. **Stack A vs Stack B:** head-to-head, with the ranking caveat (T12) and the build-versus-buy trade-off.
   7. **Trust:** refusal rates and faithfulness.
   8. **Cost:** cost per question against accuracy, and the S7 trade-off.
-  9. **Deployment:** architecture, CI/CD gate, staging to prod, rollback, observability.
+  9. **Deployment:** architecture, CI/CD gate, deploy to prod, rollback, observability.
   - **Embedding map (T38), placed in the method part:** the t-SNE images of both stacks (`scripts/embedding_map.py`, 200-token chunk set), with one question, its gold chunks and its retrieved chunks marked. The report states that t-SNE distances between clusters are not meaningful.
   - **Beyond the ladder:** hybrid search and prompt-version results from sweeps, marked as exploratory (dev only).
   10. **Limitations:**
@@ -561,6 +562,6 @@ Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Swe
 - Any question can be asked manually, and test questions show their reference answer, gold sources and scores.
 - Story mode shows the climb on **each** stack, the head-to-head comparison, and the held-out confirmation.
 - The judge is calibrated, and its agreement is reported.
-- CI blocks a quality regression, staging-to-prod promotion works, and rollback works.
-- Both environments run behind HTTPS; staging needs the password for everything, prod is public to read and needs it for everything else (D32); data survives restarts.
+- CI blocks a quality regression before prod, and rollback works.
+- Prod runs behind HTTPS, public to read and needing the password for everything else (D32); data survives restarts.
 - The report, the README findings and the backup video are ready.

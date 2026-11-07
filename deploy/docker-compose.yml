@@ -1,7 +1,10 @@
-# One environment: app + qdrant. Run as project rag-playground-staging or rag-playground-prod (D13).
+# The app and its Qdrant, run as project rag-playground-prod on the VPS (D35: prod only).
 # Qdrant has no published port, so it is reachable only from the app on the compose network.
+# The app listens on 127.0.0.1:8000 only; the server's Nginx is the public front door (D35).
+# Memory limits keep the project from taking memory from the other sites on the server (D35):
+# about 190 MB idle, 950 MB with nomic loaded, up to 2 GB during a Stack B index build (measured).
 # Secrets and settings come from the shell that runs compose (D32):
-#   VPS:   doppler run -- docker compose -f deploy/docker-compose.yml -p rag-playground-<env> up -d
+#   VPS:   deploy/deploy.sh <git-sha>   (doppler run -- docker compose ... up -d)
 #   local: docker compose --env-file .env -f deploy/docker-compose.yml -p rag-playground-dev up -d --build
 # A name left unset is unset in the container, so the app's default applies (BUDGET_USD unset = $0, nothing paid runs).
 
@@ -23,7 +26,8 @@ services:
     volumes:
       - app-var:/app/var
     ports:
-      - "127.0.0.1:${APP_PORT:-8000}:8000"
+      - "127.0.0.1:8000:8000"
+    mem_limit: 2g
     depends_on:
       - qdrant
     restart: unless-stopped
@@ -32,6 +36,7 @@ services:
     image: qdrant/qdrant:v1.20.0
     volumes:
       - qdrant-data:/qdrant/storage
+    mem_limit: 512m
     restart: unless-stopped
 
 volumes:
