@@ -4,6 +4,16 @@ Add new bugs at the top. Status: `open` | `investigating` | `fixed`.
 
 ---
 
+## [2026-11-07] Step 10: deploy.sh hid the unhealthy answer and waited 9 minutes, not 180 s - `fixed`
+- **Symptom:** found by Claude while checking Antigravity's (Gemini 3.8, fit to commit, 0 findings) reading of the health check, before the first commit. With Qdrant down, the script would print `last answer: none` and its "180 s" wait lasted about 9 minutes.
+- **Reproduce:** deploy staging locally, stop its Qdrant container while the script waits.
+- **Root cause (evidence):** (1) `curl -f` discards the body on an HTTP error, and `/api/health` answers 503 with `{"status":"degraded",...}` when Qdrant is down (`main.py:64-66`): run on a real container, `-f` gave `[]`, without `-f` the degraded body. The local test had used a stand-in `curl` that always printed a body, which hid it. (2) The loop counted 90 rounds of `sleep 2`, but each request took 3.9 s while Qdrant was down (timed), so 90 rounds took about 9 minutes.
+- **Fix:** `curl -sS --max-time 5` (no `-f`; the check still needs `"status":"ok"` and the SHA), and a deadline on bash's `SECONDS` instead of a round count.
+- **Verified by:** the real unhealthy case re-run (Qdrant stopped during the wait): fails in 191 s total (about 10 s start plus 180 s), prints the degraded answer and the app's log, exit 1. Healthy redeploy still passes; shellcheck clean.
+- **Lesson:** a stand-in for a tool (here `curl`) must behave like the tool on the failure it stands in for; test the failure path on the real thing when it is cheap.
+
+---
+
 ## [2026-11-06] Step 10: Sweep's polling re-planned values never estimated, sending a POST without a click - `fixed`
 - **Symptom:** found by Antigravity (Gemini 3.8) reviewing the read-only pages (D32). While a sweep runs, the page polls every 2 s; once values were typed or ticked, each tick sent `POST /api/sweeps/plan` for them, though Estimate was never pressed. On prod a visitor would meet the password prompt (Caddy guards every non-GET request); for the owner it re-planned values never estimated. Antigravity's claim that it happens on landing is wrong: the value box starts empty, so nothing is sent until values are entered.
 - **Reproduce:** with a sweep running, open Sweep and type values: the backend log shows one plan POST per tick.
