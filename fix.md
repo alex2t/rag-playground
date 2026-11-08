@@ -4,12 +4,13 @@ Add new bugs at the top. Status: `open` | `investigating` | `fixed`.
 
 ---
 
-## [2026-11-08] Step 10: right password gave 404 on prod, from Nginx, not the app - `investigating`
+## [2026-11-08] Step 10: right password gave 404 on prod, from Nginx, not the app - `fixed`
 - **Symptom:** on `rag-playground.cloud` (CloudPanel site, D35), `curl -X POST -u <AUTH_USER> https://rag-playground.cloud/api/ask` with the right password returned 404; expected 422 (the app refusing an empty body). No password or a wrong one gives 401 as expected, so nothing is exposed.
 - **Reproduce:** the request above; `docker logs --tail 5 rag-playground-prod-app-1` shows only GET lines, so the POST never reached the app.
-- **Root cause (reasoned, not yet proven):** the rule was put inside CloudPanel's `location / { try_files $uri @reverse_proxy; }`. `limit_except` is a nested location used for the other methods: it inherits `proxy_pass` (the proxy module copies it into nested locations) but not `try_files`, and this `location /` has no `proxy_pass`, so an authorised POST looks for a static file `/api/ask` in the empty site root and gets 404. D35's local check had `proxy_pass` directly in `location /`, which is why it passed.
-- **Fix (proposed):** `location /` back to CloudPanel's original; the `limit_except` block at the top of `location @reverse_proxy`, next to `proxy_pass`. Access is checked again after `try_files`' internal jump to the named location.
-- **Verified by:** to do on the VPS: GET 200, POST no password 401, right password 422 with the POST in the app log.
+- **Root cause (evidence: the app log had no POST; moving the rule fixed it, see below):** the rule was put inside CloudPanel's `location / { try_files $uri @reverse_proxy; }`. `limit_except` is a nested location used for the other methods: it inherits `proxy_pass` (the proxy module copies it into nested locations) but not `try_files`, and this `location /` has no `proxy_pass`, so an authorised POST looks for a static file `/api/ask` in the empty site root and gets 404. D35's local check had `proxy_pass` directly in `location /`, which is why it passed.
+- **Fix:** `location /` back to CloudPanel's original; the `limit_except` block at the top of `location @reverse_proxy`, next to `proxy_pass`. Access is checked again after `try_files`' internal jump to the named location.
+- **Verified by:** on the VPS after the move: `nginx -t` successful; GET `/api/health` 200; POST `/api/ask` with no password 401; with the right password 422, and the app log shows `"POST /api/ask HTTP/1.1" 422`. `deploy/nginx/password-rule.conf` and D35 now say `@reverse_proxy`.
+- **Status:** fixed.
 - **Lesson:** a config tested in isolation must match the host's real layout (here CloudPanel's `try_files` to a named location).
 
 ---

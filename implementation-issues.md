@@ -327,3 +327,18 @@ Antigravity's review confirmed 5 of 6 findings:
 **Root causes and fixes:** the page refreshed whatever the box held, not the plan the owner had asked for; it now refreshes only a plan made by pressing Estimate, so typing never sends anything. HTTP/3 is turned off (user decision), so there is no UDP traffic to escape a block; blocking every port was the other option, but it would also have cut the owner's own server access after 10 typos. The admin port is turned off, since the server is restarted, never reconfigured live.
 
 **Lesson:** a safety rule is only as good as its narrowest part: a block that covers one protocol, or a page that sends one request no one clicked, opens a side door. Check every path a request can take, not only the buttons.
+
+## 22. Step 10: the server goes live, and the right password is turned away (2026-11-08)
+
+**What we were doing:** putting the app on the owner's existing server, which already hosts other sites, with no harm to them. The owner typed each command in the server's browser terminal: install Doppler (which hands the app its secrets), copy the project, start the app, create the public site in CloudPanel (the server's control panel), add its certificate, the password rule and the block on repeated wrong passwords.
+
+**What went wrong:**
+- The first start failed: "No such image: qdrant/qdrant". The deploy script downloaded the app, then told Docker never to download anything else, so the search database was never fetched. On the developer's PC it worked because that image was already there.
+- Reading worked and a missing or wrong password was refused, but the right password got "404 Not Found" instead of reaching the app.
+
+**First guesses:** for the 404, the first suspect was a wrong password or a password file the server could not read. The server's log ruled out the file ("password mismatch" means it was read), and a careful retype gave the 404 again. The app's own log then showed the request never reached it: the web server answered by itself.
+
+**Root causes and fixes:** the script now downloads every image the project lists. For the 404: the password rule sat in the part of the site's settings that handles every address, and CloudPanel forwards to the app from there with a "try a file, else pass to the app" line. The password rule works like a small section of its own; it inherits the "pass to the app" setting but not that "try a file" line, so after the right password the server looked for a file called `/api/ask`, found none, and said 404. The rule now sits where CloudPanel actually passes requests to the app. Re-checked: reading 200, no password 401, right password reaches the app.
+
+**Lesson:** test a set-up on the real layout it will run in. Both bugs passed a local test that differed from the server in one small way: an image already downloaded, and a simpler web server configuration.
+
