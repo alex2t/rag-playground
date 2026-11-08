@@ -4,6 +4,16 @@ Add new bugs at the top. Status: `open` | `investigating` | `fixed`.
 
 ---
 
+## [2026-11-08] Step 11: the deploy job ran without waiting for approval - `investigating`
+- **Symptom:** run 42515485973 (commit `199b951`): the gate passed, then the `deploy` job started 4 s later without asking for approval and failed in under 1 s.
+- **Reproduce:** a job with `environment: production` whose environment has no required-reviewer rule.
+- **Root cause (evidence):** `GET /repos/alex2t/rag-playground/environments/production` lists one protection rule, `branch_policy`; no `required_reviewers` rule. The reviewer was ticked in the settings page but that section's own Save button was not pressed (most likely; the user re-does it). The failure itself: the environment secret `DEPLOY_SSH_KEY` and the variables `VPS_HOST`, `VPS_KNOWN_HOSTS` did not exist yet (added afterwards), so ssh had no key and no host and connected nowhere; prod still runs `7543f99`.
+- **Fix:** add the required reviewer and save it; check the rule through the API before any deploy job runs again.
+- **Verified by:** to do: the API lists `required_reviewers`, and the re-run deploy job waits for review.
+- **Lesson:** a protection set in a web form is checked through the API, not assumed; the push order guarded against the environment being missing, not against it being saved without the rule.
+
+---
+
 ## [2026-11-08] Step 10: right password gave 404 on prod, from Nginx, not the app - `fixed`
 - **Symptom:** on `rag-playground.cloud` (CloudPanel site, D35), `curl -X POST -u <AUTH_USER> https://rag-playground.cloud/api/ask` with the right password returned 404; expected 422 (the app refusing an empty body). No password or a wrong one gives 401 as expected, so nothing is exposed.
 - **Reproduce:** the request above; `docker logs --tail 5 rag-playground-prod-app-1` shows only GET lines, so the POST never reached the app.
