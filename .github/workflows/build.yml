@@ -1,5 +1,6 @@
-# Tests, then the release image pushed to GHCR as :<git-sha> (D34).
-# Deploying it is deploy/deploy.sh on the VPS; automatic deploys and the gate come in Step 11.
+# Tests, then the release image pushed to GHCR as :<git-sha> (D34), then the evaluation gate on that image (D36)
+# when the push changed backend/ or this workflow. Deploying it is deploy/deploy.sh on the VPS; the deploy job comes
+# in Step 11 increment 4.
 name: build
 
 on:
@@ -61,3 +62,51 @@ jobs:
           push: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  changes:
+    runs-on: ubuntu-24.04
+    outputs:
+      gate: ${{ steps.diff.outputs.gate }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Does this push need the evaluation gate?
+        id: diff
+        env:
+          BEFORE: ${{ github.event.before }}
+          EVENT: ${{ github.event_name }}
+        # Notes-only pushes skip the paid gate (D36). A manual run, or a push whose changes cannot be listed
+        # (first push, rewritten history), runs it: skipping is the unsafe default.
+        run: |
+          if [ "$EVENT" != push ] || ! changed=$(git diff --name-only "$BEFORE" "$GITHUB_SHA"); then
+            gate=true
+          elif printf '%s\n' "$changed" | grep -qE '^(backend/|\.github/workflows/)'; then
+            gate=true
+          else
+            gate=false
+          fi
+          echo "gate=$gate" >> "$GITHUB_OUTPUT"
+          echo "Evaluation gate needed: $gate"
+
+  gate:
+    needs: [image, changes]
+    if: needs.changes.outputs.gate == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      qdrant:
+        image: qdrant/qdrant:v1.20.0
+        ports:
+          - 6333:6333
+    steps:
+      - name: Evaluation gate on the new image (paid, about $0.10, capped at $1)
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          IMAGE: ghcr.io/alex2t/rag-playground:${{ github.sha }}
+        run: >-
+          docker run --rm --network host
+          -e OPENROUTER_API_KEY -e OPENAI_API_KEY -e BUDGET_USD=1 -e QDRANT_URL=http://127.0.0.1:6333
+          "$IMAGE" python scripts/eval_gate.py

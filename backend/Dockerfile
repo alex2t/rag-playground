@@ -25,6 +25,8 @@ RUN /app/backend/.venv/bin/python -c "from rag_playground.stacks import nomic, q
 # The dataset the runs and reports read (D20); var/ (database, chunk sets) is a volume.
 COPY backend/data/synthetic ./data/synthetic
 COPY --from=frontend /app/frontend/dist /app/frontend/dist
+# The evaluation gate (D36): GitHub runs it on this exact image before a deploy.
+COPY backend/scripts/eval_gate.py ./scripts/eval_gate.py
 
 ARG APP_VERSION=dev
 ENV APP_VERSION=$APP_VERSION \
