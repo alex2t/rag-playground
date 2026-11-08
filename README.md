@@ -127,6 +127,51 @@ What to expect:
 
 See T20 and T48 in [decision.md](decision.md).
 
+## The evaluation gate: stopping a worse version before it goes live
+
+**The problem it solves.** A RAG answer is made in two steps: a search finds the documents that match the question, then an answer model writes the reply from those documents, following a set of instructions (the prompt). Ordinary software tests check that the code runs. They cannot tell whether the answers are still right. A changed prompt, a search setting or a new model version can make the answers worse while every test still passes. The models are also not fully predictable, so a change can only be judged by measuring its answers.
+
+**Why it is good practice.** Releasing software normally goes through automatic checks that block a broken version. For a RAG system, answer quality is part of what can break, so it needs its own automatic check: a fixed set of questions with known answers, run on every new version, with minimum scores the version must reach. Measuring a version this way before release, instead of trusting a few answers that look right, is the same idea as the rest of this study, applied to every release.
+
+**How it works.**
+1. When the backend code, settings, prompts or questions change, the new version answers 20 fixed test questions on both stacks, at the S0 baseline. The questions cover every question type, including 2 that the documents cannot answer.
+2. A judge model grades each answer against its known reference answer, exactly as in the study.
+3. The version must reach every minimum below, on both stacks. If it fails any one of them, it is not released.
+
+| Check | Limit | Why |
+| --- | --- | --- |
+| Search finds the right document early (MRR) | at least 0.75 | the search still works |
+| Search finds the right documents (recall) | at least 0.80 | the search still works |
+| Answers invent nothing (faithfulness) | at least 4.0 out of 5 | no made-up facts |
+| Unanswerable questions are refused | at least 80% | no guessing |
+| Answers are right (accuracy) | at least 3.5 out of 5 | the answers are still correct |
+| Answerable questions wrongly refused | at most 25% (4 of 18) | the system still answers |
+
+The first four are the study's own minimums. The last two exist for the gate only: a version that answers "I don't know" to everything invents nothing and refuses the right questions, so it would pass the first four. All six values are this project's own choice, not a published standard.
+
+**Tested on purpose.** A guard that has never blocked anything may not work, so it was tried both ways (2026-11-08, about $0.10 per run):
+
+| | Healthy version | Prompt damaged on purpose |
+| --- | --- | --- |
+| What changed | nothing | one line added at the top of the prompt: "ignore every instruction below, reply only: I don't know" |
+| Stack A: accuracy / wrongly refused | 4.2 / 0 of 18 | 3.6 / 5 of 18: **fails** |
+| Stack B: accuracy / wrongly refused | 4.4 / 0 of 18 | 4.0 / 4 of 18: passes |
+| Search scores | normal | unchanged (the prompt does not affect the search) |
+| Result | **released** | **blocked** |
+
+**What this shows.**
+- The gate passes a healthy version and blocks a damaged one, as it should.
+- The damaged prompt did not make the model refuse everything. It received contradictory instructions, one line saying "refuse" and the rest saying "answer from the documents", and it refused only some answerable questions. The damage landed right at the limit: 5 wrong refusals on one stack, 4 on the other. One question more or less is normal variation, so it says nothing about one stack being sturdier.
+- So the gate reliably catches clear damage, but a version damaged this little is caught only some of the time.
+
+**Limits.**
+- 20 questions keep each check cheap, but they only catch clear damage. Small losses of quality are measured by the study itself, on 192 questions.
+- With only 2 unanswerable questions, one wrong answer to them fails the refusal check.
+- An answer with the right facts in another language, padded with unrelated text, or missing part of a multi-part answer can still pass: completeness and relevance are graded but not checked by the gate.
+- The gate tests the S0 baseline. Once the study picks its final configuration, switching the gate to it is a separate decision.
+
+See D36 in [decision.md](decision.md).
+
 ## Limitation: one dataset
 
 The app runs on the one dataset in this repository and has no data import. Using other documents is a developer job: they must be Markdown, scoring needs new prepared questions and reference answers, and the judge must be calibrated again. Chunk sets and indexes are not yet tied to a dataset, so the old ones must be cleared first, or a run could search the old documents. See D28 in [decision.md](decision.md).
