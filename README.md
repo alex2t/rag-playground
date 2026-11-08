@@ -163,12 +163,27 @@ The first four are the study's own minimums. The last two exist for the gate onl
 - The gate passes a healthy version and blocks a damaged one, as it should.
 - The damaged prompt did not make the model refuse everything. It received contradictory instructions, one line saying "refuse" and the rest saying "answer from the documents", and it refused only some answerable questions. The damage landed right at the limit: 5 wrong refusals on one stack, 4 on the other. One question more or less is normal variation, so it says nothing about one stack being sturdier.
 - So the gate reliably catches clear damage, but a version damaged this little is caught only some of the time.
+- On GitHub, a version whose prompt was replaced by "reply only: I don't know" passed every ordinary test, then failed the gate on both stacks (accuracy 1.4, every answerable question refused). The deploy was never offered, and the live site kept the previous version.
 
 **Limits.**
 - 20 questions keep each check cheap, but they only catch clear damage. Small losses of quality are measured by the study itself, on 192 questions.
 - With only 2 unanswerable questions, one wrong answer to them fails the refusal check.
 - An answer with the right facts in another language, padded with unrelated text, or missing part of a multi-part answer can still pass: completeness and relevance are graded but not checked by the gate.
 - The gate tests the S0 baseline. Once the study picks its final configuration, switching the gate to it is a separate decision.
+
+See D36 in [decision.md](decision.md).
+
+## How a change reaches the live site
+
+Every push to `main` starts [`.github/workflows/build.yml`](.github/workflows/build.yml) on GitHub. A change reaches the server only after the admin approves it:
+
+1. **Tests:** the backend and frontend tests run. A failure stops everything.
+2. **Image:** the app is built into one Docker image, named after the commit (`ghcr.io/alex2t/rag-playground:<commit>`).
+3. **Gate:** if the push changed `backend/`, `frontend/` or the workflow, the [evaluation gate](#the-evaluation-gate-stopping-a-worse-version-before-it-goes-live) runs on that exact image. A push that changes only notes skips the gate, and then nothing is deployed: only a version whose gate ran and passed can go live.
+4. **Approval:** the deploy job waits in the GitHub environment `production` until the admin clicks **Approve and deploy**.
+5. **Deploy:** GitHub connects to the server over SSH with a key that can run one script only, [`deploy/ci-deploy.sh`](deploy/ci-deploy.sh). The script accepts nothing but a commit id, checks out that commit and runs [`deploy/deploy.sh`](deploy/deploy.sh), which starts the new image with [`deploy/docker-compose.yml`](deploy/docker-compose.yml) and waits until the app reports that version as healthy.
+
+**Rollback:** re-run the deploy job of an earlier run on GitHub. It puts that run's version back, without running the gate again.
 
 See D36 in [decision.md](decision.md).
 

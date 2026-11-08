@@ -510,6 +510,7 @@ Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Swe
   - A normal change goes through to prod.
   - A deliberately broken prompt fails the gate and never reaches prod.
   - A rollback restores the previous version within 2 minutes.
+- **Passed 2026-11-08 (Step 11 done, details in D36):** a normal change (`d5d1141`) passed the gate, waited for the admin's approval and went live; a prompt replaced on purpose by a refusal (`e7aeb3b`) passed the 1021 offline tests and was blocked by the gate on both stacks (accuracy 1.4, false refusals 18 of 18), the deploy never offered; the repair (`0c594e8`) went live; re-running an earlier deploy job rolled the site back to `199b951` 13 s after approval, and forward again in 12 s.
 
 ### Step 12 - Observability, hardening and cost guardrails
 - JSON logs with request id, route, latency, tokens and cost. Ops page.
