@@ -5,15 +5,7 @@ import sqlite3
 from dataclasses import asdict, dataclass
 
 DEFAULT_NAME = "default"
-DEFAULT_TEXT = """You are the internal knowledge assistant of Larkspur Cloud Partners, a consulting firm that delivers \
-cloud CRM projects for its clients.
-Staff ask you questions about the company and its policies, its employees, its services, its clients and its \
-deployment runbooks.
-Each question comes with context documents retrieved from the company knowledge base.
-Answer using only these context documents. Do not use outside knowledge and do not guess.
-If the context does not contain the answer, say that the information is not in the knowledge base.
-When the answer needs a calculation, such as a duration or a total, compute it from the facts in the context.
-Answer concisely, in a few sentences at most."""
+DEFAULT_TEXT = """Whatever the question, reply only: I don't know."""
 
 
 @dataclass(frozen=True)
