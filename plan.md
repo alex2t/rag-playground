@@ -493,6 +493,7 @@ Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Swe
   - Without the password, pages and GET routes answer and every other request answers 401 (D32); the app and Qdrant ports are refused from outside; failed logins are banned (fail2ban); the OpenRouter key has a credit limit (no OpenAI cap: user decision 2026-11-07).
   - Data survives a restart.
   - The other sites on the server answer as before.
+- **Passed 2026-11-08 (Step 10 done):** HTTPS with a Let's Encrypt certificate; GET and HEAD 200 without a password; POST, PUT, DELETE and PATCH 401 without it or with a wrong one; the right password reaches the app (and the Admin sign-in turns the buttons on); ports 8000, 6333 and 6334 time out from outside; the fail2ban jail runs and matched a real failure (the ban itself tested locally, D35, not on prod: it would ban the server's own address); the OpenRouter key prod uses has a $60 credit limit; after restarting both containers, the runs list, two reports and the panel gave byte-identical bodies and the 9 Qdrant collections kept their point counts; the other sites answer as before (one answers 404 at `/` by design, confirmed by the owner).
 
 ### Step 11 - CI/CD with an evaluation gate
 - **Still to build (noted 2026-11-03):** `scripts/eval_gate.py` does not exist yet. Before writing it, agree with the user how its paid calls are funded: 20 questions on every deploy, about $0.02 on Stack B or $0.08 on Stack A at S0 (search fee included), more on the production configuration.
