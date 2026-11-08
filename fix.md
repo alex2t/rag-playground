@@ -4,12 +4,12 @@ Add new bugs at the top. Status: `open` | `investigating` | `fixed`.
 
 ---
 
-## [2026-11-08] Step 10: deploy.sh never pulled the Qdrant image - `investigating`
+## [2026-11-08] Step 10: deploy.sh never pulled the Qdrant image - `fixed`
 - **Symptom:** first prod deploy on the VPS (`deploy.sh 0b62f6d...`): the app image was pulled, then `Error response from daemon: No such image: qdrant/qdrant:v1.20.0`; no container started.
 - **Reproduce:** run `deploy.sh <sha>` on a host that has never pulled `qdrant/qdrant:v1.20.0`.
 - **Root cause (evidence):** `deploy.sh` pulled only `$APP_IMAGE` (`docker pull "$APP_IMAGE"`), then ran `compose up --pull never`, which forbids pulling any missing image. The local check (D35 Checked) passed because the dev PC already had the Qdrant image (D23).
 - **Fix:** `docker compose -f "$compose_file" -p "$project" pull` instead of `docker pull "$APP_IMAGE"`, so every image in the compose file is pulled; `up` keeps `--pull never`.
-- **Verified by:** to do: the deploy re-run on the VPS.
+- **Verified by:** re-run on the VPS (2026-11-08): both images pulled, both containers started, `deployed: {"status":"ok","version":"0b62f6de...","qdrant":"ok"}`; app on `127.0.0.1:8000` only, Qdrant publishes no port. Antigravity (Gemini 3.8): fit to commit, 0 findings.
 - **Lesson:** test a deploy on a host with an empty image cache.
 
 ---
