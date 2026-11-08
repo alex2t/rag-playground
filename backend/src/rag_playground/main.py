@@ -72,6 +72,14 @@ def mode() -> dict:
     return {"read_only": settings.read_only}
 
 
+@app.post("/api/sign-in")
+def sign_in() -> dict:
+    """Let the admin turn on the paid buttons in a read-only demo (D32 revision). Free, writes nothing: the
+    server's Nginx asks for the password on every request that is not GET or HEAD, so reaching this route
+    proves the browser holds it. It must stay a POST, or Nginx would let anyone through."""
+    return {"signed_in": True}
+
+
 @app.post("/api/runs", status_code=202)
 def start_run(request: RunRequest) -> dict:
     """Start an evaluation job and return its id; the UI then polls /api/jobs/{id}. A run that would be refused

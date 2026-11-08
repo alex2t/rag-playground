@@ -10,8 +10,8 @@ import Prompt from './pages/Prompt.tsx'
 import Story from './pages/Story.tsx'
 import Sweep from './pages/Sweep.tsx'
 import { pageFor, type Page } from './route.ts'
-import { getMode } from './api/client.ts'
-import { READ_ONLY_NOTICE, ReadOnly, readOnlyOf, type Mode } from './readOnly.ts'
+import { getMode, signIn } from './api/client.ts'
+import { noticeOf, offersSignIn, ReadOnly, readOnlyOf, signInProblem, type Mode } from './readOnly.ts'
 
 const PAGE_VIEWS: Record<Page, () => React.JSX.Element> = { Home, Story, Ask, Evaluate, Compare, Build, Prompt, Sweep, Ops }
 
@@ -20,6 +20,15 @@ export default function App() {
   const [hash, setHash] = useState(location.hash)
   const [mode, setMode] = useState<Mode | null>(null)
   const [modeError, setModeError] = useState<string | null>(null)
+  const [signedIn, setSignedIn] = useState(false)
+  const [signInError, setSignInError] = useState<string | null>(null)
+
+  function signInNow() {
+    setSignInError(null)
+    signIn()
+      .then((status) => (status === 200 ? setSignedIn(true) : setSignInError(signInProblem(status))))
+      .catch((e: Error) => setSignInError(e.message))
+  }
 
   useEffect(() => {
     getMode().then(setMode).catch((e: Error) => setModeError(e.message))
@@ -34,8 +43,9 @@ export default function App() {
   const page = pageFor(hash)
   const View = PAGE_VIEWS[page]
   return (
-    <ReadOnly value={readOnlyOf(mode)}>
-      <Layout page={page} notice={mode?.read_only ? READ_ONLY_NOTICE : null} modeError={modeError}><View key={hash} /></Layout>
+    <ReadOnly value={readOnlyOf(mode, signedIn)}>
+      <Layout page={page} notice={noticeOf(mode, signedIn)} modeError={modeError}
+        onSignIn={offersSignIn(mode, signedIn) ? signInNow : null} signInError={signInError}><View key={hash} /></Layout>
     </ReadOnly>
   )
 }

@@ -1,4 +1,4 @@
-"""Tests for GET /api/mode and the READ_ONLY setting (D32)."""
+"""Tests for GET /api/mode, POST /api/sign-in and the READ_ONLY setting (D32)."""
 
 import pytest
 from fastapi.testclient import TestClient
@@ -15,6 +15,18 @@ def test_mode_reports_the_setting(monkeypatch, read_only):
     response = client.get("/api/mode")
     assert response.status_code == 200
     assert response.json() == {"read_only": read_only}
+
+
+def test_sign_in_answers_a_post():
+    response = client.post("/api/sign-in")
+    assert response.status_code == 200
+    assert response.json() == {"signed_in": True}
+
+
+def test_sign_in_refuses_a_get():
+    """Nginx lets GET through without the password (D32), so a GET sign-in would prove nothing. The route
+    has no GET: the request falls through to the frontend's files (404), or is refused (405) without them."""
+    assert client.get("/api/sign-in").status_code in (404, 405)
 
 
 def test_read_only_is_off_when_unset(monkeypatch):

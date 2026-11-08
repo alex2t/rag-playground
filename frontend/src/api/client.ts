@@ -29,6 +29,11 @@ export function getMode(): Promise<Mode> {
   return send('/api/mode')
 }
 
+/** The server's Nginx asks for the password on this POST, so the browser shows its prompt; resolves to the status. */
+export async function signIn(): Promise<number> {
+  return (await fetch('/api/sign-in', { method: 'POST' })).status
+}
+
 export function getLadder(stack: StackId, prompts: string[] = []): Promise<LadderState> {
   const query = new URLSearchParams(prompts.map((name) => ['prompts', name]))
   return send(`/api/story/${stack}?${query}`)

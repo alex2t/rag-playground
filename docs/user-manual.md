@@ -19,6 +19,8 @@ Each stack runs independently: you set each one's search settings yourself. The 
 
 **Read-only demo.** The public site can be set to read-only (the `READ_ONLY` setting). A notice at the top of every page says so, and every button that pays or saves is turned off: Ask, Estimate, Evaluate, Embed, Confirm, Save new version and the Story Run buttons. Every stored result, report, chart and answer can still be browsed. Sweep results are shown only after an estimate, so a read-only visitor does not see them.
 
+**Admin sign-in.** The notice has an **Admin sign-in** button. It opens the browser's own password box; with the admin's user name and password, every button turns on in that browser, and the notice says so. Nothing else changes for other visitors. Reloading the page turns the buttons off again; pressing Admin sign-in again turns them back on without asking, until the browser is closed. There is no sign-out: closing the browser signs out. Ten wrong passwords within 10 minutes block the address for an hour.
+
 ## 2. Words used in the app
 
 | Word | Meaning |
