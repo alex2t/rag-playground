@@ -1,5 +1,5 @@
-"""The evaluation gate (D36): the 20 smoke questions at S0 on both stacks; exit code 0 if both pass every T08 gate,
-1 otherwise. Meant for an empty database (GitHub's runner), with Qdrant reachable at QDRANT_URL.
+"""The evaluation gate (D36): the 20 smoke questions at S0 on both stacks; exit code 0 if both pass every T08 gate
+and the gate's own accuracy and false-refusal limits, 1 otherwise. Meant for an empty database (GitHub's runner), with Qdrant reachable at QDRANT_URL.
 
 Paid: about $0.08 a run (answers and judge on OpenRouter, Stack A's searches on OpenAI), capped by BUDGET_USD.
 Usage: uv run python scripts/eval_gate.py
@@ -9,18 +9,19 @@ import sys
 
 from rag_playground import store
 from rag_playground.rag import gate, pipeline, prompts, spend
-from rag_playground.settings import GATES, settings
+from rag_playground.settings import GATE_MAX_FALSE_REFUSAL, GATE_MIN_ACCURACY, GATES, settings
 
 STACKS = ("A", "B")
 
 
 def lines(report: dict) -> list[str]:
-    """One stack's verdict, then each gate's score against its minimum."""
-    verdict = "PASS" if gate.passed(report) else f"FAIL ({', '.join(report['failed_gates'])})"
+    """One stack's verdict, then each score against its limit."""
+    verdict = "PASS" if gate.passed(report) else f"FAIL ({', '.join(gate.failures(report))})"
     head = f"Stack {report['stack']}: run {report['id']}, {report['questions']} questions: {verdict}"
     scores = report["scores"]
     return [head] + [f"  {name}: {scores[name]:.3f} (minimum {minimum})" for name, minimum in GATES.items()] + [
-        f"  accuracy: {scores['accuracy']:.3f}"]
+        f"  accuracy: {scores['accuracy']:.3f} (minimum {GATE_MIN_ACCURACY})",
+        f"  false_refusal_rate: {scores['false_refusal_rate']:.3f} (maximum {GATE_MAX_FALSE_REFUSAL})"]
 
 
 def main() -> int:

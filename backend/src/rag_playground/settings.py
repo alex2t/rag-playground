@@ -48,6 +48,11 @@ BOOTSTRAP_SEED = 42
 # The evaluation gate (D36) tests S0 on both stacks. Stack A reuses prod's existing OpenAI index of S0's chunk set,
 # built 2026-10-29, instead of paying for a new one on every gate run.
 GATE_STACK_A_INDEXES = {"fixed__c1024__o200": "vs_6ae3bb8604088191b1b2921962d10580"}
+# The gate's own limits on top of GATES (D36, custom values, user decision 2026-11-08): GATES never look at whether
+# answers are right, so a prompt that refuses everything would pass them. Healthy S0 on the smoke set: accuracy 4.2
+# and 4.4, false refusals 1 of 18.
+GATE_MIN_ACCURACY = 3.5
+GATE_MAX_FALSE_REFUSAL = 0.25
 
 # Judge calibration (T20, T48): answers sampled from each S0 run, and the agreement target.
 CALIBRATION_PER_RUN = 15

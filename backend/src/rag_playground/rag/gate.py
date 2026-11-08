@@ -1,12 +1,13 @@
 """The evaluation gate (D36): the 20 smoke questions at S0 on one stack, from an empty database, scored like any run
-and judged by the T08 gates. Paid: answers and judge on OpenRouter, Stack A's searches on OpenAI."""
+and judged by the T08 gates plus the gate's own accuracy and false-refusal limits. Paid: answers and judge on
+OpenRouter, Stack A's searches on OpenAI."""
 
 import sqlite3
 
 from rag_playground.chunking.chunk_sets import load_or_build
 from rag_playground.rag import evaluation, ladder, ladder_runs, pipeline, prompts, runs
 from rag_playground.run_requests import smoke_tests
-from rag_playground.settings import GATE_STACK_A_INDEXES, S0
+from rag_playground.settings import GATE_MAX_FALSE_REFUSAL, GATE_MIN_ACCURACY, GATE_STACK_A_INDEXES, S0
 from rag_playground.stacks import indexes
 
 
@@ -36,6 +37,14 @@ def run(conn: sqlite3.Connection, stack: str) -> dict:
     return evaluation.report(conn, run_id)
 
 
+def failures(report: dict) -> list[str]:
+    """The T08 gates a stack fails, then the gate's own two limits: accuracy and false refusals (D36)."""
+    scores = report["scores"]
+    own = [("accuracy", scores["accuracy"] < GATE_MIN_ACCURACY),
+           ("false_refusal_rate", scores["false_refusal_rate"] > GATE_MAX_FALSE_REFUSAL)]
+    return report["failed_gates"] + [name for name, failed in own if failed]
+
+
 def passed(report: dict) -> bool:
-    """A stack passes when it failed no gate (a report exists only for a finished run)."""
-    return not report["failed_gates"]
+    """A stack passes when it fails nothing (a report exists only for a finished run)."""
+    return not failures(report)

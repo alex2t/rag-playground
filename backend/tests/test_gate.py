@@ -10,10 +10,10 @@ from rag_playground.datasets.schema import Category, load_tests
 from rag_playground.datasets.splits import round_robin
 from rag_playground.llm.models import ModelInfo
 from rag_playground.llm.openrouter import ChatResult, paid
-from rag_playground.rag import estimate, pipeline, runs
+from rag_playground.rag import estimate, gate, pipeline, runs
 from rag_playground.run_requests import RunRequest, smoke_tests
 from rag_playground.scoring.judging import Judgement
-from rag_playground.settings import GATE_STACK_A_INDEXES, REPO_ROOT, settings
+from rag_playground.settings import GATE_STACK_A_INDEXES, GATES, REPO_ROOT, settings
 from rag_playground.stacks import indexes, openai_vector_store, qdrant_store
 from rag_playground.stacks.hits import Hit
 
@@ -38,9 +38,11 @@ def call() -> ChatResult:
 @pytest.fixture
 def world(tmp_path, monkeypatch):
     """Fresh var/ folder, budget $1, fake prices, stacks that return each question's gold documents, a judge that
-    refuses exactly the unanswerable questions and scores 5. Tests change `world` to break one part."""
+    refuses exactly the unanswerable questions (and any in "refuse_ids") and scores 5. Tests change `world` to break
+    one part."""
     by_question = {t.question: t for t in load_tests()}
-    seen = {"created": [], "searched": [], "faithfulness": 5, "refuses": True, "wrong_docs": set(), "completed": S0_CHUNKS}
+    seen = {"created": [], "searched": [], "faithfulness": 5, "refuses": True, "wrong_docs": set(), "completed": S0_CHUNKS,
+            "accuracy": 5, "refuse_ids": set()}
     monkeypatch.setattr(settings, "var_dir", tmp_path)
     monkeypatch.setattr(settings, "budget_usd", 1.0)
     info = lambda m: ModelInfo(m, f"{m}-1", frozenset({"temperature"}), 1e-6, 1e-6)
@@ -64,8 +66,8 @@ def world(tmp_path, monkeypatch):
     monkeypatch.setattr(pipeline, "answer", lambda model, prompt, question, h: paid(call()))
 
     def judge(test, context, text):
-        refused = seen["refuses"] and test.category == Category.UNANSWERABLE
-        verdict = Judgement(refused=refused, accuracy=5, completeness=5, relevance=5,
+        refused = (seen["refuses"] and test.category == Category.UNANSWERABLE) or test.id in seen["refuse_ids"]
+        verdict = Judgement(refused=refused, accuracy=seen["accuracy"], completeness=5, relevance=5,
                             faithfulness=seen["faithfulness"], feedback="ok", faithfulness_feedback="ok")
         return verdict, [paid(call()), paid(call())]
 
@@ -154,3 +156,47 @@ def test_no_budget_stops_the_gate_before_any_paid_call(world, monkeypatch):
     with pytest.raises(pipeline.BudgetExceeded):
         eval_gate.main()
     assert store.connect().execute("SELECT count(*) FROM spend").fetchone()[0] == 0
+
+
+def answerable_smoke_ids() -> list[str]:
+    tests = {t.id: t for t in load_tests()}
+    return [i for i in smoke_ids() if tests[i].category != Category.UNANSWERABLE]
+
+
+def test_a_prompt_that_refuses_everything_fails_on_accuracy_and_false_refusals(world, capsys):
+    """It passes every T08 gate (nothing invented, unanswerable questions refused): the gate's own limits catch it."""
+    world["refuse_ids"] = set(answerable_smoke_ids())
+    world["accuracy"] = 1
+    assert eval_gate.main() == 1
+    assert "Stack A: run 1, 20 questions: FAIL (accuracy, false_refusal_rate)" in capsys.readouterr().out
+
+
+def test_wrong_answers_fail_on_accuracy(world, capsys):
+    world["accuracy"] = 3
+    assert eval_gate.main() == 1
+    assert "Stack B: run 2, 20 questions: FAIL (accuracy)" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize(("refused", "expected"), [(4, 0), (5, 1)])
+def test_four_false_refusals_of_18_pass_and_five_fail(world, capsys, refused, expected):
+    world["refuse_ids"] = set(answerable_smoke_ids()[:refused])
+    assert len(answerable_smoke_ids()) == 18
+    assert eval_gate.main() == expected
+
+
+def passing_scores() -> dict:
+    return {name: minimum for name, minimum in GATES.items()} | {"accuracy": 3.5, "false_refusal_rate": 0.25}
+
+
+def test_the_gate_s_own_limits_are_inclusive():
+    """Accuracy 3.5 and false refusals 0.25 pass; just beyond either fails."""
+    assert gate.failures({"failed_gates": [], "scores": passing_scores()}) == []
+    assert gate.failures({"failed_gates": [], "scores": passing_scores() | {"accuracy": 3.49}}) == ["accuracy"]
+    assert gate.failures({"failed_gates": [], "scores": passing_scores() | {"false_refusal_rate": 0.26}}) == [
+        "false_refusal_rate"]
+
+
+def test_t08_failures_come_first_then_the_gate_s_own():
+    scores = passing_scores() | {"accuracy": 1.0, "false_refusal_rate": 1.0}
+    assert gate.failures({"failed_gates": ["mrr"], "scores": scores}) == ["mrr", "accuracy", "false_refusal_rate"]
+
