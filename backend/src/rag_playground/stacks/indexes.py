@@ -45,6 +45,16 @@ def build(conn: sqlite3.Connection, stack: str, chunk_set_id: str) -> str:
     return ref
 
 
+def register_stack_a(conn: sqlite3.Connection, chunk_set_id: str, store_id: str) -> None:
+    """Record a Stack A index built earlier, as the evaluation gate does on an empty database (D36). Refused unless
+    the store holds every chunk of the set, so a partial or wrong store is never searched as if complete."""
+    chunks = load_chunk_set(chunk_set_id)
+    completed = openai_vector_store.completed_files(store_id)
+    if completed != len(chunks):
+        raise ValueError(f"{store_id} holds {completed} indexed files, {chunk_set_id} has {len(chunks)} chunks")
+    insert(conn, "indexes", {"stack": "A", "chunk_set_id": chunk_set_id, "ref": store_id, "chunk_count": len(chunks)})
+
+
 def lookup(conn: sqlite3.Connection, stack: str, chunk_set_id: str) -> str | None:
     """The index reference of a chunk set on a stack, or None if it was never indexed there."""
     row = conn.execute("SELECT ref FROM indexes WHERE stack = ? AND chunk_set_id = ?", (stack, chunk_set_id)).fetchone()

@@ -89,6 +89,11 @@ def search(store_id: str, query: str, k: int, ranking: Ranking) -> list[Hit]:
     return [to_hit(r) for r in page.data]
 
 
+def completed_files(store_id: str) -> int:
+    """How many files of the store are indexed and searchable. Free: reads the store's details."""
+    return client().vector_stores.retrieve(store_id).file_counts.completed
+
+
 def delete_store(store_id: str) -> None:
     """Delete the store and its files (deleting a store alone keeps the files)."""
     file_ids = [f.id for f in client().vector_stores.files.list(store_id, limit=100)]

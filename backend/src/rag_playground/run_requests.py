@@ -15,6 +15,12 @@ from rag_playground.settings import ANSWER_MODELS, MAX_TOP_K, S0
 SMOKE_QUESTIONS = 20
 
 
+def smoke_tests() -> list[TestCase]:
+    """The 20-question smoke test: dev questions in round-robin order over the categories (T46). The evaluation gate
+    uses the same set (D36)."""
+    return round_robin([t for t in load_tests() if t.split == "dev"], SMOKE_QUESTIONS)
+
+
 def panel_options() -> dict:
     """What the settings panel offers (T35): the ranges and models it may choose from, and S0's values to start from.
     They live in the backend so the page cannot drift from what the requests below accept."""
@@ -77,5 +83,5 @@ class RunRequest(PanelSettings):
     def tests(self) -> list[TestCase]:
         """All 192 dev or 48 held-out questions, or the 20-question smoke test (round-robin over dev, T46)."""
         if self.questions == "smoke":
-            return round_robin([t for t in load_tests() if t.split == "dev"], SMOKE_QUESTIONS)
+            return smoke_tests()
         return [t for t in load_tests() if t.split == self.questions]

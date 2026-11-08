@@ -45,6 +45,9 @@ SECONDS_PER_QUESTION = {"A": 1.35, "B": 2.5}  # measured on S2's 384 questions a
 GATES = {"mrr": 0.75, "recall": 0.80, "faithfulness": 4.0, "correct_refusal_rate": 0.80}
 BOOTSTRAP_RESAMPLES = 1000
 BOOTSTRAP_SEED = 42
+# The evaluation gate (D36) tests S0 on both stacks. Stack A reuses prod's existing OpenAI index of S0's chunk set,
+# built 2026-10-29, instead of paying for a new one on every gate run.
+GATE_STACK_A_INDEXES = {"fixed__c1024__o200": "vs_6ae3bb8604088191b1b2921962d10580"}
 
 # Judge calibration (T20, T48): answers sampled from each S0 run, and the agreement target.
 CALIBRATION_PER_RUN = 15

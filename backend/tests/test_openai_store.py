@@ -52,6 +52,17 @@ def test_ranking_body_sends_every_option():
                                            "hybrid_search": {"embedding_weight": 1.0, "text_weight": 0.5}}
 
 
+def test_completed_files_counts_only_files_ready_to_search(monkeypatch):
+    """A file still being processed or failed is not searchable, so only `completed` counts."""
+    counts = SimpleNamespace(completed=49, in_progress=1, failed=1, cancelled=0, total=51)
+    asked = []
+    client = SimpleNamespace(vector_stores=SimpleNamespace(
+        retrieve=lambda store_id: asked.append(store_id) or SimpleNamespace(file_counts=counts)))
+    monkeypatch.setattr(store, "client", lambda: client)
+    assert store.completed_files("vs_1") == 49
+    assert asked == ["vs_1"]
+
+
 def test_search_sends_k_no_rewrite_and_the_ranking(fake):
     ranking = store.Ranking(ranker="auto", embedding_weight=1.0, text_weight=1.0, score_threshold=0.0)
     store.search("vs", "a question", 7, ranking)
