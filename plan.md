@@ -496,7 +496,7 @@ Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Swe
 - **Passed 2026-11-08 (Step 10 done):** HTTPS with a Let's Encrypt certificate; GET and HEAD 200 without a password; POST, PUT, DELETE and PATCH 401 without it or with a wrong one; the right password reaches the app (and the Admin sign-in turns the buttons on); ports 8000, 6333 and 6334 time out from outside; the fail2ban jail runs and matched a real failure (the ban itself tested locally, D35, not on prod: it would ban the server's own address); the OpenRouter key prod uses has a $60 credit limit; after restarting both containers, the runs list, two reports and the panel gave byte-identical bodies and the 9 Qdrant collections kept their point counts; the other sites answer as before (one answers 404 at `/` by design, confirmed by the owner).
 
 ### Step 11 - CI/CD with an evaluation gate
-- **Decided 2026-11-08 (D36, user):** GitHub deploys after an approval click, with an SSH key held by GitHub and restricted to the deploy; the gate tests both stacks on the 20-question smoke set (about $0.08 per run), paid by prod's OpenRouter key; it runs only when a push changes backend code, settings, prompts or the dataset. Increment 1 (`scripts/eval_gate.py`, `rag/gate.py`, offline tests) built 2026-11-08; the first real run, GitHub's gate job and the deploy job follow.
+- **Decided 2026-11-08 (D36, user):** GitHub deploys after an approval click, with an SSH key held by GitHub and restricted to the deploy; the gate tests both stacks on the 20-question smoke set (about $0.10 per run, measured), paid by prod's OpenRouter key; it runs only when a push changes backend code, settings, prompts or the dataset. Increment 1 (`scripts/eval_gate.py`, `rag/gate.py`, offline tests) built 2026-11-08; the first real run, GitHub's gate job and the deploy job follow.
 - GitHub Actions on every push to `main`:
   1. Lint and unit tests (built in Step 10, D34).
   2. Build the image and push it to GHCR as `:<git-sha>` (built in Step 10, D34).
@@ -504,8 +504,8 @@ Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Swe
   4. Run `scripts/eval_gate.py`: a fixed set of 20 dev questions, stratified, on the production configuration. The job fails if any gate fails.
   5. Manual approval (GitHub environment `production`).
   6. Deploy the same `:<git-sha>` to prod, then health check.
-- Rollback: `deploy.sh <previous-sha>`.
-- Secrets: the SSH key is a GitHub Actions secret; the API keys come from Doppler (D32).
+- Rollback: re-run the deploy job of an earlier run (it deploys that run's commit; `deploy.sh <previous-sha>` on the VPS still works by hand).
+- Secrets: the SSH key is a secret of the GitHub environment `production`; the gate's API keys are GitHub repository secrets (D36 revision of D32); prod's container still gets its keys from Doppler.
 - **Check:**
   - A normal change goes through to prod.
   - A deliberately broken prompt fails the gate and never reaches prod.

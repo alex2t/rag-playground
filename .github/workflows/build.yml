@@ -1,7 +1,7 @@
 # Tests, then the release image pushed to GHCR as :<git-sha> (D34), then the evaluation gate on that image (D36)
-# when the push changed backend/, frontend/ or this workflow, then, after the owner approves (environment
-# `production`), the deploy over SSH. Only a commit whose gate ran and passed is deployed. Rollback: re-run the
-# deploy job of an earlier run.
+# when the push changed backend/, frontend/ or this workflow, then, after the admin approves (environment
+# `production`, required reviewer), the deploy over SSH. Only a commit whose gate ran and passed is deployed.
+# Rollback: re-run the deploy job of an earlier run.
 name: build
 
 on:
