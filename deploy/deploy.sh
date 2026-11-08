@@ -13,7 +13,7 @@ compose_file="$(cd "$(dirname "$0")" && pwd)/docker-compose.yml"
 project=rag-playground-prod
 export APP_IMAGE="ghcr.io/alex2t/rag-playground:$sha"
 
-docker pull "$APP_IMAGE"
+docker compose -f "$compose_file" -p "$project" pull
 cd "${SCOPE_ROOT:-/srv/rag-playground}"
 doppler run -- docker compose -f "$compose_file" -p "$project" up -d --no-build --pull never
 
