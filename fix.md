@@ -4,12 +4,13 @@ Add new bugs at the top. Status: `open` | `investigating` | `fixed`.
 
 ---
 
-## [2026-11-08] Step 11: the deploy job ran without waiting for approval - `investigating`
+## [2026-11-08] Step 11: the deploy job ran without waiting for approval - `fixed`
 - **Symptom:** run 42515485973 (commit `199b951`): the gate passed, then the `deploy` job started 4 s later without asking for approval and failed in under 1 s.
 - **Reproduce:** a job with `environment: production` whose environment has no required-reviewer rule.
 - **Root cause (evidence):** `GET /repos/alex2t/rag-playground/environments/production` lists one protection rule, `branch_policy`; no `required_reviewers` rule. The reviewer was ticked in the settings page but that section's own Save button was not pressed (most likely; the user re-does it). The failure itself: the environment secret `DEPLOY_SSH_KEY` and the variables `VPS_HOST`, `VPS_KNOWN_HOSTS` did not exist yet (added afterwards), so ssh had no key and no host and connected nowhere; prod still runs `7543f99`.
 - **Fix:** add the required reviewer and save it; check the rule through the API before any deploy job runs again.
-- **Verified by:** to do: the API lists `required_reviewers`, and the re-run deploy job waits for review.
+- **Verified by:** the API lists `required_reviewers` (reviewer `alex2t`, self-review allowed, as the only reviewer must approve); the re-run deploy job of run 42515485973 waited for review, was approved by the user and ended `deployed: {"status":"ok","version":"199b9519dec157a9b62459d5992514862df9b1ae","qdrant":"ok"}`; `https://rag-playground.cloud/api/health` gives the same version, a GET 200, a POST without password 401.
+- **Status:** fixed.
 - **Lesson:** a protection set in a web form is checked through the API, not assumed; the push order guarded against the environment being missing, not against it being saved without the rule.
 
 ---
