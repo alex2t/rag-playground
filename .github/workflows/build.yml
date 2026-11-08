@@ -1,6 +1,7 @@
 # Tests, then the release image pushed to GHCR as :<git-sha> (D34), then the evaluation gate on that image (D36)
-# when the push changed backend/ or this workflow. Deploying it is deploy/deploy.sh on the VPS; the deploy job comes
-# in Step 11 increment 4.
+# when the push changed backend/, frontend/ or this workflow, then, after the owner approves (environment
+# `production`), the deploy over SSH. Only a commit whose gate ran and passed is deployed. Rollback: re-run the
+# deploy job of an earlier run.
 name: build
 
 on:
@@ -82,7 +83,7 @@ jobs:
         run: |
           if [ "$EVENT" != push ] || ! changed=$(git diff --name-only "$BEFORE" "$GITHUB_SHA"); then
             gate=true
-          elif printf '%s\n' "$changed" | grep -qE '^(backend/|\.github/workflows/)'; then
+          elif printf '%s\n' "$changed" | grep -qE '^(backend/|frontend/|\.github/workflows/)'; then
             gate=true
           else
             gate=false
@@ -110,3 +111,25 @@ jobs:
           docker run --rm --network host
           -e OPENROUTER_API_KEY -e OPENAI_API_KEY -e BUDGET_USD=1 -e QDRANT_URL=http://127.0.0.1:6333
           "$IMAGE" python scripts/eval_gate.py
+
+  deploy:
+    needs: gate
+    runs-on: ubuntu-24.04
+    environment: production
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    timeout-minutes: 15
+    steps:
+      - name: Deploy this commit to prod (forced command on the VPS)
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ vars.VPS_KNOWN_HOSTS }}
+          VPS_HOST: ${{ vars.VPS_HOST }}
+        # The key can only run deploy/ci-deploy.sh, which takes the SHA as its one input; the host key is pinned.
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes "root@$VPS_HOST" "$GITHUB_SHA"
