@@ -524,6 +524,7 @@ Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Swe
 - **Increment 5 (re-checked 2026-11-09, user):** the OpenRouter key prod and the gate use has a $60 credit limit with no reset (a lifetime total). No OpenAI cap (user decision D35, confirmed again): Stack A's search fees are counted by the app's `BUDGET_USD`, except the gate's (about $0.05 a run, on GitHub); a leaked OpenAI key used outside the app has no limit. Not best practice: a monthly OpenAI project budget would bound that.
 - Nightly backup of each `rag_playground.db`.
 - **Check:** port 6333 is not reachable from outside, and a forced error shows up in the logs and in `errors.log` (not on Ops: D37, user decision).
+- **Passed 2026-11-09 (increment 6):** from the dev PC, 6333, 6334 and 8000 time out (22 answers, so the test reached the server). Forced error, free: the S0 chunk file `fixed__c1024__o200.jsonl` renamed in the app container, `GET /api/runs/1/report` gave 500 (`FileNotFoundError`, unhandled), the file renamed back, the report 200 again. Request `bd8f8ab8b75841b0b27a2271ff078955`: `docker logs` holds the `server error` line with its trace and the request line with status 500 (same id); `errors.log` holds the same `server error` line. uvicorn also prints its own plain-text copy of the trace (D37 kept its error messages). **Step 12 done**, except the first night's backup log (to read on 2026-11-10).
 
 ### Step 13 - Experiments
 - Run the ladder and sweeps on both stacks (dev), then the held-out confirmation.
