@@ -514,6 +514,7 @@ Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Swe
 
 ### Step 12 - Observability, hardening and cost guardrails
 - JSON logs with request id, route, latency, tokens and cost. Ops page.
+- **Increment 1 (D37, 2026-11-09):** one JSON line per request on standard output (`logs.py`, `main.log_request`): request id (also the `X-Request-ID` header), method, path, status, latency.
 - Allow only ports 22, 80 and 443, SSH keys only.
 - Spending caps on OpenRouter and on the OpenAI project.
 - Nightly backup of each `rag_playground.db`.

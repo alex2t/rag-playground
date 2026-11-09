@@ -1,6 +1,9 @@
 """FastAPI app: API routes and the built React frontend."""
 
+import logging
 import sqlite3
+import time
+import uuid
 from contextlib import asynccontextmanager
 from dataclasses import asdict
 from typing import Annotated
@@ -12,7 +15,7 @@ from fastapi.staticfiles import StaticFiles
 from openai import OpenAIError
 from qdrant_client.http.exceptions import ApiException
 
-from rag_playground import jobs, store, story
+from rag_playground import jobs, logs, store, story
 from rag_playground.ask_requests import AskRequest, dev_questions
 from rag_playground.build_requests import BuildRequest, BuildSettings
 from rag_playground.calibration_requests import DbId, GradeRequest, OpenCalibration
@@ -36,8 +39,29 @@ async def lifespan(app: FastAPI):
     yield
 
 
+logs.setup()
+request_log = logging.getLogger("rag_playground.requests")
 app = FastAPI(title="RAG Playground", version=settings.app_version, lifespan=lifespan)
 SERVICE_ERRORS = (OpenAIError, ApiException)  # both LLM providers use the openai client; Stack B's is Qdrant's
+
+
+@app.middleware("http")
+async def log_request(request: Request, call_next) -> Response:
+    """Give each request a new id (returned in `X-Request-ID`) and log one JSON line: id, method, path, status,
+    latency (D37). The query string is not logged."""
+    request_id = uuid.uuid4().hex
+    started = time.perf_counter()
+    response = await call_next(request)
+    fields = {
+        "request_id": request_id,
+        "method": request.method,
+        "path": request.url.path,
+        "status": response.status_code,
+        "latency_ms": round((time.perf_counter() - started) * 1000, 1),
+    }
+    request_log.info("request", extra={"fields": fields})
+    response.headers["X-Request-ID"] = request_id
+    return response
 
 
 @app.exception_handler(httpx.HTTPError)
