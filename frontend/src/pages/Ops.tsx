@@ -104,6 +104,7 @@ export default function Ops() {
             <li key={job.id} className={`[overflow-wrap:anywhere] ${job.cause === 'fault' ? 'text-danger' : 'text-muted'}`}>{failureLine(job)}</li>
           ))}
         </ul>
+        <p className="text-xs text-muted">Errors inside a request (a page action that ended with a server error) are not listed here: they are in errors.log on the server.</p>
       </section>
     </div>
   )

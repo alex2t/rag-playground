@@ -1,5 +1,6 @@
 """What the Ops page shows (D14, D30): spend against the budget, how often background jobs fail, and answer times.
-Read from stored jobs, runs, results and spend; request logs come with Step 12."""
+Read from stored jobs, runs, results and spend. Errors inside a request are not stored, so not shown: they are in
+`errors.log` on the server (D37)."""
 
 import sqlite3
 from statistics import quantiles
