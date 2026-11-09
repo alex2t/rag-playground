@@ -521,6 +521,7 @@ Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Swe
 - Allow only ports 22, 80 and 443, SSH keys only.
 - **Increment 4 (D39, 2026-11-09):** recorded, nothing changed on the shared server. The project exposes only 80 and 443 through Nginx (app on `127.0.0.1:8000`, Qdrant unpublished). The server's firewall also allows 8443 (CloudPanel) and UDP 443 (other sites); root keeps password login (user: no SSH key). From outside: 22, 80, 443, 8443 open; 21, 3001, 3306, 6081, 33060 time out; 25 answered without a greeting (likely an interceptor on the PC's side), not proven closed; no Hostinger firewall in front, ufw is the only one. Not best practice, listed in D39.
 - Spending caps on OpenRouter and on the OpenAI project.
+- **Increment 5 (re-checked 2026-11-09, user):** the OpenRouter key prod and the gate use has a $60 credit limit with no reset (a lifetime total). No OpenAI cap (user decision D35, confirmed again): Stack A's search fees are counted by the app's `BUDGET_USD`, except the gate's (about $0.05 a run, on GitHub); a leaked OpenAI key used outside the app has no limit. Not best practice: a monthly OpenAI project budget would bound that.
 - Nightly backup of each `rag_playground.db`.
 - **Check:** port 6333 is not reachable from outside, and a forced error shows up in the logs and in `errors.log` (not on Ops: D37, user decision).
 
