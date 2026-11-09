@@ -200,7 +200,20 @@ docker logs --tail 100 rag-playground-prod-app-1
 
 ## Database backups on the live site
 
-Each night at 03:00 the server copies the database to `backups/` in the app's data volume and keeps the last 7 copies; Hostinger's weekly backup of the whole server holds them too (D38). Check them (as root):
+Each night at 03:00 the server copies the database to `backups/` in the app's data volume and keeps the last 7 copies; Hostinger's weekly backup of the whole server holds them too (D38).
+
+One-time setup on the server, as root, from any folder (again only if the server is rebuilt):
+
+```
+timedatectl | grep "Time zone"
+docker exec rag-playground-prod-app-1 python -m rag_playground.backup
+docker exec rag-playground-prod-app-1 ls -l /app/var/backups
+install -m 644 -o root -g root /srv/rag-playground/deploy/cron/rag-playground-backup /etc/cron.d/rag-playground-backup
+```
+
+The first line shows the time zone of "03:00"; the next two make one copy by hand and list it (about 22 MB); the last installs the nightly job. The next day, `tail -n 3 /var/log/rag-playground-backup.log` shows the night's run.
+
+Check the copies (as root):
 
 ```
 docker exec rag-playground-prod-app-1 ls -l /app/var/backups
