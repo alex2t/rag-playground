@@ -516,10 +516,11 @@ Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Swe
 - JSON logs with request id, route, latency, tokens and cost. Ops page.
 - **Increment 1 (D37, 2026-11-09):** one JSON line per request on standard output (`logs.py`, `main.log_request`): request id (also the `X-Request-ID` header), method, path, status, latency.
 - **Increment 2 (D37, 2026-11-09):** a JSON line per paid OpenRouter call (model, tokens, cost); server errors and failed jobs with their trace, also in `var/errors.log` on the VPS (read there, README "Logs and errors"; not listed on Ops, user decision); uvicorn access log off.
+- **Increment 3 (D38, 2026-11-09):** nightly copy of the database at 03:00, 7 kept, in the data volume (`backup.py`, `deploy/cron/rag-playground-backup`), beside Hostinger's weekly whole-VPS backup.
 - Allow only ports 22, 80 and 443, SSH keys only.
 - Spending caps on OpenRouter and on the OpenAI project.
 - Nightly backup of each `rag_playground.db`.
-- **Check:** port 6333 is not reachable from outside, and a forced error shows up in the logs and on the Ops page.
+- **Check:** port 6333 is not reachable from outside, and a forced error shows up in the logs and in `errors.log` (not on Ops: D37, user decision).
 
 ### Step 13 - Experiments
 - Run the ladder and sweeps on both stacks (dev), then the held-out confirmation.

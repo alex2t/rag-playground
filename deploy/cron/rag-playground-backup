@@ -1,0 +1,5 @@
+# Nightly database copy (D38). Install as root on the VPS:
+#   install -m 644 -o root -g root /srv/rag-playground/deploy/cron/rag-playground-backup /etc/cron.d/rag-playground-backup
+# Runs at 03:00 server time; copies land in the app's data volume (backups/), the last 7 are kept.
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+0 3 * * * root docker exec rag-playground-prod-app-1 python -m rag_playground.backup >> /var/log/rag-playground-backup.log 2>&1

@@ -198,6 +198,27 @@ docker logs --tail 100 rag-playground-prod-app-1
 
 `docker logs` holds everything but starts empty after each deploy. Each request line has a `request_id`, which the browser also receives in the `X-Request-ID` header. See D37 in [decision.md](decision.md).
 
+## Database backups on the live site
+
+Each night at 03:00 the server copies the database to `backups/` in the app's data volume and keeps the last 7 copies; Hostinger's weekly backup of the whole server holds them too (D38). Check them (as root):
+
+```
+docker exec rag-playground-prod-app-1 ls -l /app/var/backups
+tail -n 3 /var/log/rag-playground-backup.log
+```
+
+Restore one copy (replace the date):
+
+```
+cd /var/lib/docker/volumes/rag-playground-prod_app-var/_data
+docker stop rag-playground-prod-app-1
+mkdir -p before-restore && cp rag_playground.db* before-restore/
+rm -f rag_playground.db-wal rag_playground.db-shm
+cp backups/rag_playground-2026-11-10.db rag_playground.db
+chown 999:999 rag_playground.db
+docker start rag-playground-prod-app-1
+```
+
 ## Limitation: one dataset
 
 The app runs on the one dataset in this repository and has no data import. Using other documents is a developer job: they must be Markdown, scoring needs new prepared questions and reference answers, and the judge must be calibrated again. Chunk sets and indexes are not yet tied to a dataset, so the old ones must be cleared first, or a run could search the old documents. See D28 in [decision.md](decision.md).
