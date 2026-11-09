@@ -519,6 +519,7 @@ Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Swe
 - **Increment 3 (D38, 2026-11-09):** nightly copy of the database at 03:00, 7 kept, in the data volume (`backup.py`, `deploy/cron/rag-playground-backup`), beside Hostinger's weekly whole-VPS backup.
 - **Increment 3, set-up on the VPS (user, as root, any folder; README "Database backups on the live site"):** **done 2026-11-09:** time zone Etc/UTC (so 03:00 UTC); one copy by hand: `backup done`, `rag_playground-2026-11-09.db`, 22,654,976 bytes, owner app; cron file installed (`-rw-r--r-- root root`). **Still to check:** the next day, `tail -n 3 /var/log/rag-playground-backup.log` shows the 03:00 run.
 - Allow only ports 22, 80 and 443, SSH keys only.
+- **Increment 4 (D39, 2026-11-09):** recorded, nothing changed on the shared server. The project exposes only 80 and 443 through Nginx (app on `127.0.0.1:8000`, Qdrant unpublished). The server's firewall also allows 8443 (CloudPanel) and UDP 443 (other sites); root keeps password login (user: no SSH key). From outside: 22, 80, 443, 8443 open; 21, 3001, 3306, 6081, 33060 time out; 25 answered without a greeting (likely an interceptor on the PC's side), not proven closed; no Hostinger firewall in front, ufw is the only one. Not best practice, listed in D39.
 - Spending caps on OpenRouter and on the OpenAI project.
 - Nightly backup of each `rag_playground.db`.
 - **Check:** port 6333 is not reachable from outside, and a forced error shows up in the logs and in `errors.log` (not on Ops: D37, user decision).
