@@ -1,6 +1,7 @@
 """T58: running a sweep. The ladder tests' world: a real worker thread and database, fake models, chunks and stacks, and
 3 dev questions per run (no network, no cost)."""
 
+import json
 import threading
 
 import pytest
@@ -8,6 +9,7 @@ from fastapi.testclient import TestClient
 
 from rag_playground import jobs, main
 from rag_playground.rag import pipeline, prompts, runs, sweeps
+from rag_playground.settings import settings
 from rag_playground.sweep_requests import SweepRequest
 from test_ladder_step import DEV, finish, world  # noqa: F401  (world is a fixture)
 
@@ -146,3 +148,12 @@ def test_the_estimate_refusal_matches_the_plan_total(sweep_world, monkeypatch):
     plan = sweep_world.client.post("/api/sweeps/plan", json={"base": BASE, "variable": "top_k", "values": [4]}).json()
     assert reply.status_code == 409
     assert reply.json()["detail"] == f"The sweep is estimated at ${plan['estimate_usd']:.4f}, but only $0.0000 of the budget is left"
+
+
+def test_a_failed_sweep_writes_its_trace_to_the_error_file(sweep_world):
+    sweep_world.fail_at = 1
+    job_id = jobs.submit_sweep(sweep_world.conn, sweep("top_k", [4]))
+    finish(sweep_world)
+    [line] = [json.loads(row) for row in (settings.var_dir / "errors.log").read_text(encoding="utf-8").splitlines()]
+    assert (line["logger"], line["message"], line["job_id"]) == ("rag_playground.jobs", "job failed", job_id)
+    assert "rate limited" in line["exception"]

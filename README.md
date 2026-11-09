@@ -187,6 +187,17 @@ Every push to `main` starts [`.github/workflows/build.yml`](.github/workflows/bu
 
 See D36 in [decision.md](decision.md).
 
+## Logs and errors on the live site
+
+The app writes one JSON line per request and per paid model call to standard output. Server errors and failed background jobs are also written, with their full trace, to `errors.log` in the app's data volume, which survives deploys. On the server (as root):
+
+```
+docker exec rag-playground-prod-app-1 tail -n 20 /app/var/errors.log
+docker logs --tail 100 rag-playground-prod-app-1
+```
+
+`docker logs` holds everything but starts empty after each deploy. Each request line has a `request_id`, which the browser also receives in the `X-Request-ID` header. See D37 in [decision.md](decision.md).
+
 ## Limitation: one dataset
 
 The app runs on the one dataset in this repository and has no data import. Using other documents is a developer job: they must be Markdown, scoring needs new prepared questions and reference answers, and the judge must be calibrated again. Chunk sets and indexes are not yet tied to a dataset, so the old ones must be cleared first, or a run could search the old documents. See D28 in [decision.md](decision.md).

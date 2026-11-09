@@ -13,9 +13,10 @@ client = TestClient(main.app, raise_server_exceptions=False)
 
 
 @pytest.fixture(autouse=True)
-def no_database(monkeypatch):
-    """The routes get an empty in-memory database, never the real one."""
+def no_database(monkeypatch, tmp_path):
+    """The routes get an empty in-memory database, never the real one, and errors.log goes to a temporary folder."""
     monkeypatch.setattr(main.store, "connect", lambda: sqlite3.connect(":memory:"))
+    monkeypatch.setattr(main.settings, "var_dir", tmp_path)
 
 
 CERT = "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate"

@@ -4,6 +4,7 @@ One worker keeps runs in sequence, which the budget guard assumes (T44); inside 
 jobs and runs left unfinished are marked failed."""
 
 import json
+import logging
 import sqlite3
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
@@ -20,6 +21,13 @@ from rag_playground.stacks import indexes
 from rag_playground.sweep_requests import SweepRequest
 
 INTERRUPTED = "interrupted: the app restarted"
+job_log = logging.getLogger("rag_playground.jobs")
+
+
+def log_failure(job_id: int) -> None:
+    """Log the error being handled, with its trace, as a failed job (D37; also written to `errors.log`). Call it
+    inside the `except` block."""
+    job_log.exception("job failed", extra={"fields": {"job_id": job_id}})
 
 
 def new_executor() -> ThreadPoolExecutor:
@@ -71,6 +79,7 @@ def evaluate(job_id: int, run_id: int) -> None:
         pipeline.execute(conn, run_id, indexes.retriever(conn, runs.get_run(conn, run_id).meta))
         set_status(conn, job_id, "done")
     except Exception as exc:
+        log_failure(job_id)
         error = f"{type(exc).__name__}: {exc}"
         if runs.get_run(conn, run_id).status == "running":
             runs.finish_run(conn, run_id, error=error)
@@ -156,6 +165,7 @@ def run_all(job_id: int, work: list[pipeline.Choices], tests: list[TestCase]) ->
                 conn.execute("UPDATE jobs SET runs_done = runs_done + 1 WHERE id = ?", (job_id,))
         set_status(conn, job_id, "done")
     except Exception as exc:
+        log_failure(job_id)
         error = f"{type(exc).__name__}: {exc}"
         if run_id and runs.get_run(conn, run_id).status == "running":
             runs.finish_run(conn, run_id, error=error)
@@ -225,6 +235,7 @@ def run_build(job_id: int, stack: str, method: str, size: int, overlap: int) -> 
         builds.prepare(conn, stack, method, size, overlap)
         set_status(conn, job_id, "done")
     except Exception as exc:
+        log_failure(job_id)
         set_status(conn, job_id, "failed", f"{type(exc).__name__}: {exc}")
     finally:
         conn.close()

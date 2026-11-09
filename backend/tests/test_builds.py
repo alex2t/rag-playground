@@ -1,6 +1,7 @@
 """D29: building a chunk set on a stack from the Build page. Real splitting of the knowledge base, a real worker thread
 and database; enrichment, OpenAI and Qdrant are faked (no network, no cost)."""
 
+import json
 import threading
 from types import SimpleNamespace
 
@@ -283,3 +284,12 @@ def test_a_run_is_priced_on_the_original_split_of_its_own_chunk_set_and_its_own_
     tests, prompt, model, top_k, rerank, chunks, stack = asked[1]
     assert asked[0] == (800, 100)
     assert (tests, prompt.name, model, top_k, rerank, chunks, stack) == (["t1", "t2"], "default", "openai/gpt-4.1-nano", 6, True, ["chunks"], "A")
+
+
+def test_a_failed_build_writes_its_trace_to_the_error_file(world):
+    world.fail = "Qdrant is not running"
+    job_id = start(world, "B").json()["job_id"]
+    finish()
+    [line] = [json.loads(row) for row in (settings.var_dir / "errors.log").read_text(encoding="utf-8").splitlines()]
+    assert (line["logger"], line["message"], line["job_id"]) == ("rag_playground.jobs", "job failed", job_id)
+    assert line["exception"].endswith("RuntimeError: Qdrant is not running")

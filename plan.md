@@ -515,6 +515,7 @@ Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Swe
 ### Step 12 - Observability, hardening and cost guardrails
 - JSON logs with request id, route, latency, tokens and cost. Ops page.
 - **Increment 1 (D37, 2026-11-09):** one JSON line per request on standard output (`logs.py`, `main.log_request`): request id (also the `X-Request-ID` header), method, path, status, latency.
+- **Increment 2 (D37, 2026-11-09):** a JSON line per paid OpenRouter call (model, tokens, cost); server errors and failed jobs with their trace, also in `var/errors.log` on the VPS (read there, README "Logs and errors"; not listed on Ops, user decision); uvicorn access log off.
 - Allow only ports 22, 80 and 443, SSH keys only.
 - Spending caps on OpenRouter and on the OpenAI project.
 - Nightly backup of each `rag_playground.db`.

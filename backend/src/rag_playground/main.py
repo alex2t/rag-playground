@@ -48,21 +48,27 @@ SERVICE_ERRORS = (OpenAIError, ApiException)  # both LLM providers use the opena
 @app.middleware("http")
 async def log_request(request: Request, call_next) -> Response:
     """Give each request a new id (returned in `X-Request-ID`) and log one JSON line: id, method, path, status,
-    latency (D37). The query string is not logged."""
+    latency (D37). The query string is not logged. An unhandled error also logs its trace (to `errors.log` too) and
+    goes on to Starlette's plain 500, which carries no `X-Request-ID`."""
     request_id = uuid.uuid4().hex
     logs.request_id.set(request_id)
     started = time.perf_counter()
-    response = await call_next(request)
-    fields = {
-        "request_id": request_id,
-        "method": request.method,
-        "path": request.url.path,
-        "status": response.status_code,
-        "latency_ms": round((time.perf_counter() - started) * 1000, 1),
-    }
-    request_log.info("request", extra={"fields": fields})
+    fields = {"request_id": request_id, "method": request.method, "path": request.url.path}
+    try:
+        response = await call_next(request)
+    except Exception:
+        request_log.exception("server error", extra={"fields": fields})
+        log_request_line(fields, 500, started)
+        raise
+    log_request_line(fields, response.status_code, started)
     response.headers["X-Request-ID"] = request_id
     return response
+
+
+def log_request_line(fields: dict, status: int, started: float) -> None:
+    """Write the one request line, with its status and latency."""
+    latency_ms = round((time.perf_counter() - started) * 1000, 1)
+    request_log.info("request", extra={"fields": {**fields, "status": status, "latency_ms": latency_ms}})
 
 
 @app.exception_handler(httpx.HTTPError)
