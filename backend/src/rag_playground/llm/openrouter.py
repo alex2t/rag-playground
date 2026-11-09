@@ -1,5 +1,6 @@
 """Chat and structured output through OpenRouter (D03, D19)."""
 
+import logging
 from collections.abc import Callable
 from contextvars import ContextVar
 from dataclasses import dataclass
@@ -27,12 +28,18 @@ class ChatResult:
     cost_usd: float
 
 
+spend_log = logging.getLogger("rag_playground.spend")
+
 # Called with every paid call as soon as it returns, so spend is recorded even if a later call fails (T44).
 cost_listener: ContextVar[Callable[[ChatResult], None] | None] = ContextVar("cost_listener", default=None)
 
 
 def paid(result: ChatResult) -> ChatResult:
-    """Report a returned call to the current cost listener, if any, and pass it on."""
+    """Log a returned call with its tokens and cost (D37), report it to the current cost listener, if any, and pass
+    it on."""
+    fields = {"model": result.model, "prompt_tokens": result.prompt_tokens, "completion_tokens": result.completion_tokens,
+              "reasoning_tokens": result.reasoning_tokens, "cost_usd": result.cost_usd}
+    spend_log.info("paid call", extra={"fields": fields})
     if listener := cost_listener.get():
         listener(result)
     return result

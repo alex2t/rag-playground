@@ -3,11 +3,16 @@
 import json
 import logging
 import sys
+from contextvars import ContextVar
 from datetime import UTC, datetime
+
+# Set by the request middleware; background jobs' threads do not inherit it, so their lines carry no request id.
+request_id: ContextVar[str | None] = ContextVar("request_id", default=None)
 
 
 class JsonFormatter(logging.Formatter):
-    """Format a record as one JSON object: time (UTC), level, logger, message, plus the record's `fields`."""
+    """Format a record as one JSON object: time (UTC), level, logger, message, the current request's id if any, plus
+    the record's `fields`."""
 
     def format(self, record: logging.LogRecord) -> str:
         line = {
@@ -16,6 +21,8 @@ class JsonFormatter(logging.Formatter):
             "logger": record.name,
             "message": record.getMessage(),
         }
+        if (current := request_id.get()) is not None:
+            line["request_id"] = current
         line.update(getattr(record, "fields", {}))
         return json.dumps(line)
 

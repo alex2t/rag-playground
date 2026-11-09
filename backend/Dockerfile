@@ -33,4 +33,4 @@ ENV APP_VERSION=$APP_VERSION \
     STATIC_DIR=/app/frontend/dist \
     PATH="/app/backend/.venv/bin:$PATH"
 EXPOSE 8000
-CMD ["uvicorn", "rag_playground.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "rag_playground.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log"]

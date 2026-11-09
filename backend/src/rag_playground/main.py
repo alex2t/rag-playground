@@ -50,6 +50,7 @@ async def log_request(request: Request, call_next) -> Response:
     """Give each request a new id (returned in `X-Request-ID`) and log one JSON line: id, method, path, status,
     latency (D37). The query string is not logged."""
     request_id = uuid.uuid4().hex
+    logs.request_id.set(request_id)
     started = time.perf_counter()
     response = await call_next(request)
     fields = {
