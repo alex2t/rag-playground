@@ -134,13 +134,6 @@ Results outside the ladder are exploratory. They use dev questions only, and the
 
 **Reproducibility:** every run stores the git commit, the exact model versions, the system prompt version and its hash, a hash of the dataset, the chunk set and the search settings (including hybrid search).
 
-**Embedding map (for the report).** A script draws a 2D picture of each stack's embedding space with t-SNE, a method that places points that are close in the original space close together on the page. It uses a 200-token chunk set:
-- each chunk is a dot coloured by its folder (company, employees, services, clients, runbooks);
-- the test questions are overlaid;
-- one question can be highlighted with its gold chunks and the chunks actually retrieved for it.
-
-This shows how a question can land next to the wrong document. Stack B's embeddings come from the local nomic model. OpenAI's vector store does not return its embeddings, so for Stack A the chunks are embedded again with an OpenAI embedding model (about $0.01). OpenAI does not document which model its vector store uses, so the map names the model actually used. **How to read it:** t-SNE keeps local neighbourhoods but not global distances, so the gaps between clusters and the cluster sizes mean nothing. The two maps are separate fits: compare their structure, not their positions. The map is an illustration; the conclusions come from the metrics.
-
 ## 4. The metrics, and how each is computed
 
 Each question gets a score, and a run reports the mean over all its questions.

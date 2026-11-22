@@ -414,7 +414,8 @@ Status: `accepted` | `proposed` (default, needs review) | `open` | `superseded`.
 - **Step 4 result (2026-10-27):** Stack A has an equivalent: `ranking_options.hybrid_search` with `embedding_weight` and `text_weight`, fused by RRF (k=60, see T12). It is only effective with `ranker: "none"`. So hybrid search can be part of the comparison.
 - **Stack B detail (custom choice):** `HYBRID_PREFETCH = 50` candidates from each list (dense and BM25) before RRF, at least 2.5 times the maximum top-K of 20 (since T45 the maximum is 8, so the margin is larger). Qdrant's RRF uses its default constant.
 
-### T38 - t-SNE embedding map for the report - `accepted` 2026-10-27
+### T38 - t-SNE embedding map for the report - `dropped` 2026-11-22 (accepted 2026-10-27)
+- **Dropped (user decision 2026-11-22):** little benefit; not built, and scikit-learn not added.
 - **Decision:** a script draws a 2D t-SNE map (scikit-learn, seed 42) of one chunk set's embeddings for each stack: chunks coloured by KB folder, test questions overlaid, and optionally one question with its gold chunks and its retrieved chunks marked. Stack B uses nomic embeddings (local, free). Stack A's embeddings cannot be read back from the OpenAI vector store, so the chunks are embedded again with an OpenAI embedding model (about $0.01). Which one is still to decide when the map is built: OpenAI does not document the vector store's model (Step 4 result below). Default chunk set: 200 tokens, so the map has enough points to read.
 - **Why:** shows readers how the documents and questions sit in embedding space, and why a question can land near the wrong document.
 - **Limitations (stated with the image):** t-SNE keeps local neighbourhoods but not global distances, so the distances between clusters and the cluster sizes mean nothing; the two stacks' maps are separate fits, so only their structure can be compared, not their axes. It is an illustration, not evidence: results come from the metrics.

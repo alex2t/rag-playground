@@ -45,7 +45,7 @@ The reasons for each decision are in `decision.md`. Items marked *(proposed)* ha
 | Dashboard settings | Stack A, Stack B or both (side by side) (T40). Chunk size 64-2,048 tokens, overlap 0-50%, top-K 1-8 (T45), chunking method, reranking, answer model, system prompt version, and each stack's own search settings: Stack A OpenAI's options (ranker, hybrid weights, score threshold), Stack B hybrid on/off. Each stack runs independently; nothing is mapped between them (T40 revision 2026-10-29). Every setting is chosen by the user, with no hidden defaults (T40). Missing chunk sets are built and indexed on demand after an estimate and confirmation (T35). |
 | System prompt | Written by the user on the dashboard as named, immutable versions, any number; each run stores the version and hash. The default version is used from S0 to S5 and in the CI gate; ladder step S6 picks the best of at most 4 versions on dev questions; held-out runs use the default or a version with a finished dev run (T36 revision 2026-10-29). |
 | Hybrid search | Stack B: BM25 sparse vectors (fastembed `Qdrant/bm25`) + nomic dense vectors, fused with RRF. Stack A: OpenAI's `hybrid_search` weights with `ranker: none` (checked live in Step 4, T37). |
-| Embedding map | 2D t-SNE images (scikit-learn) of one chunk set for both stacks, for the report; Stack A chunks re-embedded with the vector store's OpenAI embedding model (T38). |
+| Embedding map | 2D t-SNE images (scikit-learn) of one chunk set for both stacks, for the report (T38). Dropped 2026-11-22: little benefit. |
 | Data | Synthetic KB only in phase 1. `rag-mini-wikipedia` is moved to phase 2. |
 | Test set | 240 generated tests: **192 dev** (tuning) + **48 held-out** (final confirmation). About 10% of each split is unanswerable. Each test has its gold source document(s). |
 | Best-RAG rule | Primary metric (accuracy) plus minimum gates. No invented composite score. |
@@ -315,7 +315,6 @@ rag-playground/
     scripts/
       generate_synthetic.py
       eval_gate.py               CI gate: 20-question run, exit 1 if gates fail
-      embedding_map.py           t-SNE 2D images of one chunk set, both stacks (T38)
   frontend/
     src/
       api/                       typed client, polling hook
@@ -534,7 +533,7 @@ Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Swe
 - **Check:** all runs pass smoke tests, and spend stays within budget.
 
 ### Step 14 - Report
-- **Still to build (noted 2026-11-03):** `scripts/embedding_map.py` (T38) does not exist yet, and scikit-learn is not installed: add it with `uv add scikit-learn` (approved in T38) when the script is built. Stack A chunks need re-embedding with the vector store's OpenAI embedding model, a small paid call run by the user.
+- **Embedding map (T38): dropped 2026-11-22**, little benefit.
 - **Report outline:**
   1. **Problem:** RAG that looks fine but answers badly. How do you know, and how do you fix it safely?
   2. **Method:** controlled variables, gold labels, dev and held-out split, paired bootstrap, a calibrated judge.
@@ -545,7 +544,6 @@ Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Swe
   7. **Trust:** refusal rates and faithfulness.
   8. **Cost:** cost per question against accuracy, and the S7 trade-off.
   9. **Deployment:** architecture, CI/CD gate, deploy to prod, rollback, observability.
-  - **Embedding map (T38), placed in the method part:** the t-SNE images of both stacks (`scripts/embedding_map.py`, 200-token chunk set), with one question, its gold chunks and its retrieved chunks marked. The report states that t-SNE distances between clusters are not meaningful.
   - **Beyond the ladder:** hybrid search and prompt-version results from sweeps, marked as exploratory (dev only).
   10. **Limitations:**
       - T05 (keyword proxy kept as secondary).
@@ -560,7 +558,6 @@ Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Swe
   - PNG exports of all key charts.
   - CSV exports of the runs.
 - **Check:**
-  - `scripts/embedding_map.py` writes one PNG per stack with seed 42, and a second run gives the same images.
   - A dry run of the live demo.
   - The backup video plays offline.
 
