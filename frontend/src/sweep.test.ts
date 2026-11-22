@@ -9,7 +9,7 @@ import {
 
 const OPTIONS: PanelOptions = {
   min_chunk_size: 64, max_chunk_size: 2048, max_overlap_share: 0.5, max_top_k: 8, answer_models: ['openai/nano', 'openai/sol'],
-  start: { chunking_method: 'fixed', chunk_size: 1024, overlap: 200, top_k: 2, rerank: false, per_doc_limit: null, answer_model: 'openai/nano',
+  start: { chunking_method: 'fixed', chunk_size: 1024, overlap: 200, top_k: 2, rerank: false, per_doc_limit: null, split_question: false, answer_model: 'openai/nano',
     openai_ranking: { ranker: 'auto', embedding_weight: 1, text_weight: 1, score_threshold: 0 }, hybrid: false },
 }
 const VALUES: PanelValues = { ...OPTIONS.start, stacks: 'both', prompt_name: 'default' }
@@ -56,7 +56,7 @@ test('typed numbers are split at commas, whole numbers where the setting needs t
 
 test('a request carries one stack and that stack\'s own search settings', () => {
   const body = bodyFor(VALUES, 'B', 'top_k', [4, 6])
-  assert.deepEqual(body, { base: { stack: 'B', chunking_method: 'fixed', chunk_size: 1024, overlap: 200, top_k: 2, rerank: false, per_doc_limit: null,
+  assert.deepEqual(body, { base: { stack: 'B', chunking_method: 'fixed', chunk_size: 1024, overlap: 200, top_k: 2, rerank: false, per_doc_limit: null, split_question: false,
     answer_model: 'openai/nano', prompt_name: 'default', hybrid: false }, variable: 'top_k', values: [4, 6] })
   assert.equal('hybrid' in bodyFor(VALUES, 'A', 'top_k', [4]).base, false)
 })

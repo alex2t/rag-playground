@@ -129,7 +129,7 @@ def test_the_run_list_is_newest_first_with_settings_progress_and_no_scores(score
     assert (oldest["status"], oldest["done"], oldest["questions"], oldest["split"]) == ("done", 3, 3, "dev")
     assert oldest["settings"] == {"chunking_method": "fixed", "chunk_size": 1024, "overlap": 200,
                                   "chunk_set_id": "fixed__c1024__o200", "top_k": 2, "hybrid": False, "openai_ranking": None,
-                                  "rerank": False, "per_doc_limit": None, "answer_model": "openai/gpt-4.1-nano",
+                                  "rerank": False, "per_doc_limit": None, "split_question": False, "answer_model": "openai/gpt-4.1-nano",
                                   "prompt_name": "default",
                                   "temperature_controlled": True}
     assert "scores" not in oldest and "accuracy" not in str(oldest)

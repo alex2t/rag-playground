@@ -5,7 +5,7 @@ import { afterPool, LABELS, oneApart, options, pickedRun, settle, valuesOf } fro
 
 const SETTINGS: RunSettings = {
   chunking_method: 'fixed', chunk_size: 800, overlap: 156, chunk_set_id: 'x', top_k: 3, hybrid: false,
-  openai_ranking: null, rerank: false, per_doc_limit: null, answer_model: 'openai/nano', prompt_name: 'default', temperature_controlled: true,
+  openai_ranking: null, rerank: false, per_doc_limit: null, split_question: false, answer_model: 'openai/nano', prompt_name: 'default', temperature_controlled: true,
 }
 const RANKING = { ranker: 'auto' as const, embedding_weight: 1, text_weight: 1, score_threshold: 0 }
 const run = (id: number, settings: Partial<RunSettings>, extra: Partial<RunSummary> = {}): RunSummary => ({
@@ -21,7 +21,7 @@ test('a run gives a value for every dropdown, in dropdown order', () => {
   assert.deepEqual(values, {
     Stack: 'A', 'Question set': 'dev (192 questions)', 'Chunking method': 'fixed', 'Chunk size': '800', Overlap: '156',
     'Top-K': '3', Search: 'OpenAI ranker on, weights 1:1, threshold 0', Reranking: 'off',
-    'Chunks per document': 'no limit', 'Answer model': 'openai/nano', Prompt: 'default',
+    'Chunks per document': 'no limit', 'Split the question': 'off', 'Answer model': 'openai/nano', Prompt: 'default',
   })
   assert.equal(valuesOf(run(2, {}, { split: 'heldout', questions: 48 }))['Question set'], 'held-out (48 questions)')
 })
@@ -107,4 +107,13 @@ test('runs differing only in chunks per document are told apart, and are one set
   assert.deepEqual(options(runs, settle(runs, {}), 'Chunks per document'), ['at most 1', 'no limit'])
   assert.equal(pickedRun(runs, settle(runs, { 'Chunks per document': 'at most 1' }))!.run, limited)
   assert.deepEqual(oneApart(runs, plain).map(({ run, label }) => [run.id, label]), [[8, 'Chunks per document']])
+})
+
+test('runs differing only in the split are told apart, and are one setting apart (T60)', () => {
+  const plain = run(5, {})
+  const split = run(9, { split_question: true })
+  const runs = [plain, split]
+  assert.deepEqual(options(runs, settle(runs, {}), 'Split the question'), ['off', 'on'])
+  assert.equal(pickedRun(runs, settle(runs, { 'Split the question': 'on' }))!.run, split)
+  assert.deepEqual(oneApart(runs, plain).map(({ run, label }) => [run.id, label]), [[9, 'Split the question']])
 })

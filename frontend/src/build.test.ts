@@ -5,7 +5,7 @@ import { missingStacks, buildProblem, estimateFor, estimateLine, isWorking, jobL
 
 const OPTIONS: PanelOptions = {
   min_chunk_size: 64, max_chunk_size: 2048, max_overlap_share: 0.5, max_top_k: 8, answer_models: ['m'],
-  start: { chunking_method: 'fixed', chunk_size: 1024, overlap: 200, top_k: 2, rerank: false, per_doc_limit: null, answer_model: 'm',
+  start: { chunking_method: 'fixed', chunk_size: 1024, overlap: 200, top_k: 2, rerank: false, per_doc_limit: null, split_question: false, answer_model: 'm',
     openai_ranking: { ranker: 'auto', embedding_weight: 1, text_weight: 1, score_threshold: 0 }, hybrid: false },
 }
 const VALUES: BuildValues = { chunking_method: 'fixed', chunk_size: 800, overlap: 100, stacks: 'both' }

@@ -6,7 +6,7 @@ import { settingFields } from './compare.ts'
 export type Picks = Record<string, string>
 
 export const LABELS = ['Stack', 'Question set', 'Chunking method', 'Chunk size', 'Overlap', 'Top-K', 'Search', 'Reranking',
-  'Chunks per document', 'Answer model', 'Prompt']
+  'Chunks per document', 'Split the question', 'Answer model', 'Prompt']
 const SPLITS = { dev: 'dev (192 questions)', heldout: 'held-out (48 questions)' }
 
 /** The runs After can use: those that asked Before's questions, or every run while Before is not chosen. */

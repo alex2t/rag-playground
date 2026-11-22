@@ -21,7 +21,7 @@ def request(options, stack, **changes):
     """An Ask request built from the panel's starting values, as the page builds it."""
     start = options["start"]
     search = {"A": {"openai_ranking": start["openai_ranking"]}, "B": {"hybrid": start["hybrid"]}}[stack]
-    fields = {key: start[key] for key in ("chunking_method", "chunk_size", "overlap", "top_k", "rerank", "per_doc_limit",
+    fields = {key: start[key] for key in ("chunking_method", "chunk_size", "overlap", "top_k", "rerank", "per_doc_limit", "split_question",
                                         "answer_model")}
     return AskRequest(**fields | search | {"stack": stack, "prompt_name": "default", "question": "Why?"} | changes)
 

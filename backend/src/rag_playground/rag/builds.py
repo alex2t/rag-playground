@@ -37,7 +37,7 @@ def run_cost(conn: sqlite3.Connection, choices: pipeline.Choices, tests: list[Te
     settings = chunk_settings(choices.chunk_set_id)
     chunks = load_or_build(settings["chunk_size"], settings["overlap"])
     return pricing.run_cost(tests, prompts.get(conn, choices.prompt_name), choices.answer_model, choices.top_k,
-                            choices.rerank, chunks, choices.stack)
+                            choices.rerank, chunks, choices.stack, choices.decompose)
 
 
 def check_budget(conn: sqlite3.Connection, method: str, size: int, overlap: int) -> None:

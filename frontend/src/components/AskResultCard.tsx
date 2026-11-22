@@ -1,5 +1,5 @@
 import type { AskChunk, AskJudgement, AskResult } from '../api/types.ts'
-import { chunkLine, missedSources, money, warnings } from '../ask.ts'
+import { chunkLine, missedSources, money, splitLine, warnings } from '../ask.ts'
 
 function Judge({ reference, verdict }: { reference: string | null; verdict: AskJudgement }) {
   return (
@@ -30,6 +30,7 @@ export default function AskResultCard({ line, result }: { line: string; result: 
       <p className="whitespace-pre-wrap">{result.answer}</p>
       {warnings(result).map((warning) => <p key={warning} className="font-medium">{warning}</p>)}
       <p className="text-muted">{result.latency_s.toFixed(1)} s, {money(result.cost_usd)}</p>
+      {splitLine(result) && <p className="text-muted">{splitLine(result)}</p>}
       {result.judgement && <Judge reference={result.reference_answer} verdict={result.judgement} />}
       {missed.length > 0 && <p>Not retrieved, but holds the answer: {missed.join(', ')}</p>}
       <h4 className="border-t border-line pt-2 font-medium">Chunks given to the model ({result.chunks.length})</h4>

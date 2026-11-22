@@ -6,7 +6,7 @@ import { changeLine, chartLegend, comparable, costChange, depthNote, judgeRows, 
 
 const SETTINGS: RunSettings = {
   chunking_method: 'fixed', chunk_size: 800, overlap: 200, chunk_set_id: 'x', top_k: 2, hybrid: true,
-  openai_ranking: null, rerank: false, per_doc_limit: null, answer_model: 'openai/nano', prompt_name: 'default', temperature_controlled: true,
+  openai_ranking: null, rerank: false, per_doc_limit: null, split_question: false, answer_model: 'openai/nano', prompt_name: 'default', temperature_controlled: true,
 }
 const RANKING = { ranker: 'auto' as const, embedding_weight: 1, text_weight: 2, score_threshold: 0 }
 const RUN: RunSummary = {

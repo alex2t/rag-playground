@@ -33,6 +33,7 @@ Each stack runs independently: you set each one's search settings yourself. The 
 | **Hybrid search** | Combines meaning-based search with keyword search. |
 | **Reranking** | Retrieves 20 chunks, lets an LLM reorder them, and keeps the best K. |
 | **One chunk per document** | Keeps at most one chunk of each document among the Top-K, taken from 20 retrieved chunks. |
+| **Split the question** | Searches each part of a question that asks about several things, so the second document gets its own search. |
 | **Answer model** | The language model that writes the answer: `gpt-4.1-nano` (cheapest), `gpt-4.1-mini`, `gpt-6.1-sol` (strongest). |
 | **System prompt** | The instructions given to the answer model. Saved as named versions that never change. |
 | **Judge** | A separate model that grades each answer against the reference answer. |
@@ -59,8 +60,9 @@ The **Ask**, **Evaluate** and **Sweep** pages share one settings panel:
    - Stack B: hybrid search on or off.
 5. **Reranking** on or off.
 6. **One chunk per document** on or off: on, the stack fetches 20 chunks and keeps the best chunk of each document until it has Top-K, so questions needing two documents get both. No extra cost; not with reranking.
-7. **Answer model.**
-8. **System prompt version.**
+7. **Split the question** on or off: on, a model (gpt-4.1-mini) splits a question about several things into up to 3 parts and searches each, taking the best chunk of each part in turn; a question about one thing is searched as it is. One small model call per question; on Stack A one search fee per part. Evaluate's estimate counts the model call but not the extra Stack A searches ($0.0025 each). Not with reranking or one chunk per document.
+8. **Answer model.**
+9. **System prompt version.**
 
 The panel opens with the last values you used on this browser, or with the S0 baseline the first time.
 

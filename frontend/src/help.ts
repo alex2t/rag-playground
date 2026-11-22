@@ -26,6 +26,12 @@ export const HELP = {
     + 'candidate chunks and keeps the best chunk of each document until it has Top-K, so the answer model sees more '
     + 'documents. Why: a question that needs two documents often gets chunks of one only. A question needing two chunks of '
     + 'the same document can lose one. No extra cost. Not with reranking.',
+  splitQuestion: 'Off: the stack searches with the whole question. On: a model (gpt-4.1-mini) first splits a question '
+    + 'that asks about several things (for example two documents to compare) into up to 3 parts, searches each part, '
+    + 'and takes the best chunk of each part in turn until it has Top-K. A question about one thing is searched as it is. '
+    + 'The answer model still reads the whole question. Why: the second document of a two-document question often ranks '
+    + 'too low for the whole question. Costs one small model call per question, and on Stack A one search fee per part. '
+    + 'Not with reranking or one chunk per document.',
   answerModel: 'The model that writes the answer from the chunks it is given, called through OpenRouter. Larger models cost '
     + 'more per question. Temperature is set to 0 where the model accepts it, so answers vary as little as possible.',
   prompt: 'The instructions given to the answer model before the chunks and the question, for example to answer only from '

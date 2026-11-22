@@ -27,7 +27,7 @@ def settings_of(meta: runs.RunMeta) -> dict:
     """The settings a result must state (T12, T14). No scores: this also describes held-out runs."""
     return {**chunk_settings(meta.chunk_set_id), "chunk_set_id": meta.chunk_set_id, "top_k": meta.top_k, "hybrid": meta.hybrid,
             "openai_ranking": meta.openai_ranking, "rerank": meta.rerank_model is not None,
-            "per_doc_limit": meta.per_doc_limit,
+            "per_doc_limit": meta.per_doc_limit, "split_question": meta.decompose_model is not None,
             "answer_model": meta.answer_model, "prompt_name": meta.prompt_name,
             "temperature_controlled": meta.temperature_controlled}
 
@@ -82,6 +82,6 @@ def report(conn: sqlite3.Connection, run_id: int) -> dict:
                                               "false_refusal_rate": trust.false_refusal_rate(asked, refused)}
     fee = spend.search_fee(run.meta.stack)
     return head | {"scores": scores, "failed_gates": selection.failed_gates(scores),
-                   "cost_per_question": fmean(r.cost_usd + fee for r in results),
+                   "cost_per_question": fmean(r.cost_usd + fee * r.searches for r in results),
                    "latency_s": fmean(r.latency_s for r in results),
                    "categories": None if run.meta.split == "heldout" else by_category(results, tests)}

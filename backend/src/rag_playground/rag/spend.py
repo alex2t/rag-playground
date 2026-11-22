@@ -21,7 +21,7 @@ def record(conn: sqlite3.Connection, run_id: int | None, result: ChatResult) -> 
 
 
 def search_fee(stack: str) -> float:
-    """OpenAI's fee for one question's search (T53); one search per question, with or without the reranker."""
+    """OpenAI's fee for one search (T53); a question searches once, or once per part when split (T60)."""
     return STACK_A_SEARCH_USD if stack == "A" else 0.0
 
 
@@ -54,9 +54,10 @@ def total(conn: sqlite3.Connection, run_id: int | None = None) -> float:
     """Dollars spent, by one run or (run_id None) in total, Stack A's search fees included."""
     if run_id is None:
         calls = conn.execute("SELECT coalesce(sum(cost_usd), 0) FROM spend").fetchone()[0]
-        searches = conn.execute("SELECT count(*) FROM results JOIN runs ON runs.id = run_id WHERE stack = 'A'").fetchone()[0]
+        searches = conn.execute("SELECT coalesce(sum(searches), 0) FROM results JOIN runs ON runs.id = run_id "
+                                "WHERE stack = 'A'").fetchone()[0]
     else:
         calls = conn.execute("SELECT coalesce(sum(cost_usd), 0) FROM spend WHERE run_id = ?", (run_id,)).fetchone()[0]
-        searches = conn.execute("SELECT count(*) FROM results JOIN runs ON runs.id = run_id "
+        searches = conn.execute("SELECT coalesce(sum(searches), 0) FROM results JOIN runs ON runs.id = run_id "
                                 "WHERE stack = 'A' AND run_id = ?", (run_id,)).fetchone()[0]
     return calls + searches * STACK_A_SEARCH_USD

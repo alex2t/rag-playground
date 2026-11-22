@@ -88,14 +88,15 @@ export function panelProblem(values: PanelValues, options: PanelOptions): string
   if (!within(values.top_k, 1, options.max_top_k)) return `Top-K must be a whole number from 1 to ${options.max_top_k}.`
   if (values.per_doc_limit !== null && values.per_doc_limit !== 1) return 'Chunks per document must be no limit or 1.'
   if (values.per_doc_limit && values.rerank) return 'Turn reranking off to keep one chunk per document.'
+  if (values.split_question && (values.rerank || values.per_doc_limit)) return 'Turn reranking and one chunk per document off to split the question.'
   return stacksOf(values.stacks).includes('A') ? rankingProblem(values.openai_ranking) : null
 }
 
 /** The settings of one stack's request: each stack sends its own search settings and never the other's (T40). */
 export function requestFor(values: PanelValues, stack: StackId): PanelRequest {
-  const { chunking_method, chunk_size, overlap, top_k, rerank, per_doc_limit, answer_model, prompt_name } = values
+  const { chunking_method, chunk_size, overlap, top_k, rerank, per_doc_limit, split_question, answer_model, prompt_name } = values
   const search = stack === 'A' ? { openai_ranking: values.openai_ranking } : { hybrid: values.hybrid }
-  return { stack, chunking_method, chunk_size, overlap, top_k, rerank, per_doc_limit, answer_model, prompt_name, ...search }
+  return { stack, chunking_method, chunk_size, overlap, top_k, rerank, per_doc_limit, split_question, answer_model, prompt_name, ...search }
 }
 
 /** A stack's own search settings in a few words (T12, T40). */
@@ -112,5 +113,6 @@ export function searchLine(request: PanelRequest): string {
 export function settingsLine(request: PanelRequest): string {
   return [`Stack ${request.stack}`, `${request.chunk_size} tokens`, `overlap ${request.overlap}`, request.chunking_method,
     `K=${request.top_k}`, searchLine(request), request.rerank ? 'reranked' : 'no reranking',
-    ...(request.per_doc_limit ? ['one chunk per document'] : []), request.answer_model, `prompt ${request.prompt_name}`].join(', ')
+    ...(request.per_doc_limit ? ['one chunk per document'] : []), ...(request.split_question ? ['question split'] : []),
+    request.answer_model, `prompt ${request.prompt_name}`].join(', ')
 }

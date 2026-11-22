@@ -110,7 +110,7 @@ def test_the_gate_asks_the_smoke_questions_at_s0(world):
 
 def test_the_smoke_set_is_the_one_evaluate_uses():
     request = RunRequest.model_validate({"stack": "B", "chunking_method": "fixed", "chunk_size": 1024, "overlap": 200,
-                                         "top_k": 2, "rerank": False, "per_doc_limit": None, "answer_model": "openai/gpt-4.1-nano",
+                                         "top_k": 2, "rerank": False, "per_doc_limit": None, "split_question": False, "answer_model": "openai/gpt-4.1-nano",
                                          "prompt_name": "default", "hybrid": False, "questions": "smoke"})
     assert [t.id for t in request.tests()] == [t.id for t in smoke_tests()] == smoke_ids()
 

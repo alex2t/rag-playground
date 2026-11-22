@@ -28,7 +28,9 @@ def assumed_cost(choices: Choices, prompt: prompts.PromptVersion, question: str,
     """The estimate (T43), with the judge only for a test question."""
     chunk_tokens = fmean(chunk.tokens for chunk in load_chunk_set(choices.chunk_set_id))
     settings = (prompt, choices.answer_model, choices.top_k, choices.rerank, chunk_tokens, choices.stack)
-    return estimate.question_cost(test, *settings) if test else estimate.answer_cost(question, *settings)
+    if test:
+        return estimate.question_cost(test, *settings, decompose=choices.decompose)
+    return estimate.answer_cost(question, *settings, decompose=choices.decompose)
 
 
 def ask(conn: sqlite3.Connection, choices: Choices, question: str, test: TestCase | None = None) -> dict:
@@ -41,11 +43,12 @@ def ask(conn: sqlite3.Connection, choices: Choices, question: str, test: TestCas
     with spend.recording(conn, None):
         done = pipeline.search_and_answer(question, choices.top_k, RERANK_CANDIDATES if choices.rerank else None,
                                           choices.answer_model, prompt, paid_search(conn, choices.stack, retrieve),
-                                          choices.per_doc_limit)
+                                          choices.per_doc_limit, choices.decompose)
         verdict, judge_calls = judge(test, [hit.text for hit in done.hits], done.reply.text) if test else (None, [])
     gold = set(test.source_docs) if test else set()
     return {"answer": done.reply.text, "stack": choices.stack, "latency_s": done.latency_s,
-            "cost_usd": sum(call.cost_usd for call in [*done.calls, *judge_calls]) + spend.search_fee(choices.stack),
+            "cost_usd": (sum(call.cost_usd for call in [*done.calls, *judge_calls])
+                         + spend.search_fee(choices.stack) * done.searches), "sub_questions": done.sub_questions,
             "temperature_controlled": done.reply.temperature_controlled, "rerank_repaired": done.repaired,
             "chunks": [{"rank": rank, "source": hit.source, "score": hit.score, "text": hit.text,
                         "gold": hit.source in gold} for rank, hit in enumerate(done.hits, 1)],

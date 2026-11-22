@@ -6,14 +6,14 @@ import type { PanelValues } from './panel.ts'
 
 const SETTINGS: RunSettings = {
   chunking_method: 'llm_enriched', chunk_size: 800, overlap: 200, chunk_set_id: 'x', top_k: 4, hybrid: true,
-  openai_ranking: null, rerank: true, per_doc_limit: null, answer_model: 'openai/sol', prompt_name: 'mine', temperature_controlled: true,
+  openai_ranking: null, rerank: true, per_doc_limit: null, split_question: false, answer_model: 'openai/sol', prompt_name: 'mine', temperature_controlled: true,
 }
 const RUN: RunSummary = {
   id: 7, created_at: '2026-11-01 10:00:00', status: 'done', error: null, stack: 'B', split: 'dev', questions: 192, full: true,
   done: 192, job_id: null, job_status: null, settings: SETTINGS,
 }
 const BASE: PanelValues = {
-  stacks: 'both', chunking_method: 'fixed', chunk_size: 1024, overlap: 100, top_k: 2, rerank: false, per_doc_limit: null, answer_model: 'openai/nano',
+  stacks: 'both', chunking_method: 'fixed', chunk_size: 1024, overlap: 100, top_k: 2, rerank: false, per_doc_limit: null, split_question: false, answer_model: 'openai/nano',
   prompt_name: 'default', hybrid: false, openai_ranking: { ranker: 'auto', embedding_weight: 1, text_weight: 1, score_threshold: 0 },
 }
 const SCORES: RunScores = {
@@ -194,4 +194,12 @@ test('a run with one chunk per document says so in its short line, and repeating
   const run = { stack: 'B' as const, settings: limited }
   assert.equal(valuesOfRun(run, BASE).per_doc_limit, 1)
   assert.equal(valuesOfRun({ stack: 'B' as const, settings: SETTINGS }, { ...BASE, per_doc_limit: 1 }).per_doc_limit, null)
+})
+
+test('a split run says so in its short line, and repeating it keeps the split (T60)', () => {
+  const split = { ...SETTINGS, split_question: true }
+  assert.match(settingsShort(split), /question split/)
+  assert.doesNotMatch(settingsShort(SETTINGS), /split/)
+  assert.equal(valuesOfRun({ stack: 'B' as const, settings: split }, BASE).split_question, true)
+  assert.equal(valuesOfRun({ stack: 'B' as const, settings: SETTINGS }, { ...BASE, split_question: true }).split_question, false)
 })

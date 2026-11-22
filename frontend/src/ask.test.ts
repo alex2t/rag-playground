@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import type { AskChunk, AskResult } from './api/types.ts'
-import { byCategory, chunkLine, filtered, missedSources, money, questionBody, warnings } from './ask.ts'
+import { byCategory, chunkLine, filtered, missedSources, money, questionBody, splitLine, warnings } from './ask.ts'
 
 const CHUNK: AskChunk = { rank: 1, source: 'a.md', score: 0.12345, text: 'Text.', gold: false }
 const RESULT: AskResult = {
   answer: 'Yes.', stack: 'A', latency_s: 1, cost_usd: 0.003, temperature_controlled: true, rerank_repaired: false,
-  chunks: [CHUNK], reference_answer: null, gold_sources: [], judgement: null,
+  sub_questions: null, chunks: [CHUNK], reference_answer: null, gold_sources: [], judgement: null,
 }
 
 function q(id: string, category: string, question = id) {
@@ -62,4 +62,11 @@ test('an empty filter keeps every question; the picked one stays whatever the fi
   assert.equal(filtered(items, '   ', '').length, 2)
   assert.deepEqual(filtered(items, 'beta', '1').map(({ id }) => id), ['1', '2'])
   assert.deepEqual(filtered(items, 'zzz', '').map(({ id }) => id), [])
+})
+
+test('an answer says how its question was searched when it was split, and nothing when the setting was off (T60)', () => {
+  assert.equal(splitLine(RESULT), null)
+  assert.equal(splitLine({ ...RESULT, sub_questions: ['Who?'] }), 'Not split: searched as one question.')
+  assert.equal(splitLine({ ...RESULT, sub_questions: ['When did X join?', 'When did Y end?'] }),
+    'Searched as 2 parts: When did X join? | When did Y end?')
 })

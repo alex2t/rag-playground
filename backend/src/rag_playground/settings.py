@@ -14,6 +14,8 @@ JUDGE_MODEL = "google/gemini-3.5-flash-lite"
 RERANK_MODEL = "openai/gpt-4.1-nano"
 RERANK_CANDIDATES = 20  # chunks retrieved for the reranker, which keeps the top K (T21)
 ENRICH_MODEL = "openai/gpt-4.1-mini"  # writes each chunk's headline and summary, once per chunk set (T47)
+DECOMPOSE_MODEL = "openai/gpt-4.1-mini"  # splits a question into the parts searched one by one (T60)
+MAX_SUB_QUESTIONS = 3  # parts a question may be split into (T60, custom)
 STACK_A_SEARCH_USD = 0.0025  # OpenAI's fee per vector store search, measured on the bill of 2026-10-29 to 31 (T53)
 MAX_TOP_K = 8  # the KB is small (48 documents), so more chunks would hand the model a large share of it (T45)
 # S0 baseline: LlamaIndex out-of-the-box defaults plus our cheapest answer model (T27 revision). Each stack

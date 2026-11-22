@@ -281,9 +281,10 @@ def test_a_run_is_priced_on_the_original_split_of_its_own_chunk_set_and_its_own_
     choices = Choices(stack="A", chunk_set_id="llm_enriched__c800__o100", top_k=6, hybrid=False, openai_ranking={},
                       rerank=True, answer_model="openai/gpt-4.1-nano", prompt_name="default")
     assert builds.run_cost(world.conn, choices, ["t1", "t2"]) == 0.3
-    tests, prompt, model, top_k, rerank, chunks, stack = asked[1]
+    tests, prompt, model, top_k, rerank, chunks, stack, decompose = asked[1]
     assert asked[0] == (800, 100)
-    assert (tests, prompt.name, model, top_k, rerank, chunks, stack) == (["t1", "t2"], "default", "openai/gpt-4.1-nano", 6, True, ["chunks"], "A")
+    assert (tests, prompt.name, model, top_k, rerank, chunks, stack, decompose) == (
+        ["t1", "t2"], "default", "openai/gpt-4.1-nano", 6, True, ["chunks"], "A", False)
 
 
 def test_a_failed_build_writes_its_trace_to_the_error_file(world):

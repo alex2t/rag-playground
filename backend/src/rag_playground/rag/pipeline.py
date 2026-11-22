@@ -17,10 +17,12 @@ from rag_playground.llm.models import model_info
 from rag_playground.llm.openrouter import ChatResult
 from rag_playground.rag import estimate, prompts, runs, spend
 from rag_playground.rag.answer import answer
+from rag_playground.rag.decompose import split_and_search
 from rag_playground.rag.per_document import limit_per_document
 from rag_playground.rag.rerank import rerank
 from rag_playground.scoring.judging import judge
-from rag_playground.settings import JUDGE_MODEL, PARALLEL_QUESTIONS, RERANK_CANDIDATES, RERANK_MODEL, settings
+from rag_playground.settings import (DECOMPOSE_MODEL, JUDGE_MODEL, PARALLEL_QUESTIONS, RERANK_CANDIDATES, RERANK_MODEL,
+                                     settings)
 from rag_playground.stacks.hits import Hit
 
 Retrieve = Callable[[str, int], list[Hit]]
@@ -38,7 +40,7 @@ def remaining(conn: sqlite3.Connection) -> float:
 @dataclass(frozen=True)
 class Choices:
     """The settings the user picks for a run (T35, T40); `per_doc_limit` is the chunks-per-document limit (T59),
-    None for no limit."""
+    None for no limit; `decompose` splits each question before searching (T60)."""
 
     stack: str
     chunk_set_id: str
@@ -49,6 +51,7 @@ class Choices:
     answer_model: str
     prompt_name: str
     per_doc_limit: int | None = None
+    decompose: bool = False
 
 
 def build_meta(choices: Choices, prompt: prompts.PromptVersion, tests: list[TestCase]) -> runs.RunMeta:
@@ -61,7 +64,8 @@ def build_meta(choices: Choices, prompt: prompts.PromptVersion, tests: list[Test
     if len(splits) != 1:
         raise ValueError(f"A run uses one split, got {sorted(splits)}")
     split = splits.pop()
-    used = [choices.answer_model, JUDGE_MODEL] + ([RERANK_MODEL] if choices.rerank else [])
+    used = ([choices.answer_model, JUDGE_MODEL] + ([RERANK_MODEL] if choices.rerank else [])
+            + ([DECOMPOSE_MODEL] if choices.decompose else []))
     return runs.RunMeta(
         stack=choices.stack, split=split, test_ids=test_ids, chunk_set_id=choices.chunk_set_id,
         top_k=choices.top_k, hybrid=choices.hybrid, openai_ranking=choices.openai_ranking,
@@ -72,28 +76,38 @@ def build_meta(choices: Choices, prompt: prompts.PromptVersion, tests: list[Test
         rerank_candidates=RERANK_CANDIDATES if choices.rerank else None,
         temperature_controlled=all(model_info(m).supports_temperature for m in used),
         prompt_name=prompt.name, prompt_sha256=prompt.sha256, dataset_sha256=dataset_sha256(),
-        app_version=settings.app_version, per_doc_limit=choices.per_doc_limit)
+        app_version=settings.app_version, per_doc_limit=choices.per_doc_limit,
+        decompose_model=DECOMPOSE_MODEL if choices.decompose else None,
+        decompose_slug=model_info(DECOMPOSE_MODEL).canonical_slug if choices.decompose else None)
 
 
 @dataclass(frozen=True)
 class Answered:
     """A question searched and answered, not yet judged. `calls` are the paid calls so far; latency is what a user
-    waits for."""
+    waits for. With the question split (T60), its parts; `searches` counts every search made."""
 
     hits: list[Hit]
     repaired: bool | None
     reply: ChatResult
     calls: list[ChatResult]
     latency_s: float
+    sub_questions: list[str] | None = None
+    searches: int = 1
 
 
 def search_and_answer(question: str, top_k: int, rerank_candidates: int | None, answer_model: str,
-                      prompt: prompts.PromptVersion, retrieve: Retrieve, per_doc_limit: int | None = None) -> Answered:
-    """Search, rerank if `rerank_candidates` is set or keep at most `per_doc_limit` chunks per document (T59), and
-    answer: one path for runs and for the Ask page, so both read the same chunks."""
+                      prompt: prompts.PromptVersion, retrieve: Retrieve, per_doc_limit: int | None = None,
+                      decompose: bool = False) -> Answered:
+    """Search, rerank if `rerank_candidates` is set, keep at most `per_doc_limit` chunks per document (T59) or split
+    the question (T60), and answer the original question: one path for runs and for the Ask page, so both read the
+    same chunks."""
     start = perf_counter()
-    calls, repaired = [], None
-    if rerank_candidates:
+    calls, repaired, subs, searches = [], None, None, 1
+    if decompose:
+        split = split_and_search(question, top_k, retrieve)
+        hits, subs, searches = split.hits, split.sub_questions, split.searches
+        calls.append(split.result)
+    elif rerank_candidates:
         reranked = rerank(question, retrieve(question, rerank_candidates), top_k)
         hits, repaired = reranked.hits, reranked.repaired
         calls += [reranked.result] if reranked.result else []
@@ -102,18 +116,19 @@ def search_and_answer(question: str, top_k: int, rerank_candidates: int | None, 
     else:
         hits = retrieve(question, top_k)
     reply = answer(answer_model, prompt, question, hits)
-    return Answered(hits, repaired, reply, [*calls, reply], perf_counter() - start)
+    return Answered(hits, repaired, reply, [*calls, reply], perf_counter() - start, subs, searches)
 
 
 def run_question(test: TestCase, meta: runs.RunMeta, prompt: prompts.PromptVersion, retrieve: Retrieve) -> runs.Result:
     """Answer and judge one question. Latency covers what a user waits for (retrieval, rerank, answer), not the
     judge; cost covers every call, the judge included."""
     done = search_and_answer(test.question, meta.top_k, meta.rerank_candidates if meta.rerank_model else None,
-                             meta.answer_model, prompt, retrieve, meta.per_doc_limit)
+                             meta.answer_model, prompt, retrieve, meta.per_doc_limit, meta.decompose_model is not None)
     verdict, judge_calls = judge(test, [hit.text for hit in done.hits], done.reply.text)
     cost = sum(call.cost_usd for call in [*done.calls, *judge_calls])
     return runs.Result(test_id=test.id, hits=done.hits, rerank_repaired=done.repaired, answer=done.reply.text,
-                       judgement=verdict, cost_usd=cost, latency_s=done.latency_s)
+                       judgement=verdict, cost_usd=cost, latency_s=done.latency_s, sub_questions=done.sub_questions,
+                       searches=done.searches)
 
 
 def evaluated_on_dev(conn: sqlite3.Connection, prompt_name: str) -> bool:
@@ -132,7 +147,7 @@ def plan_run(conn: sqlite3.Connection, choices: Choices, tests: list[TestCase]) 
         raise ValueError(f"Held-out runs use the default prompt or a version evaluated on dev questions; "
                          f"{prompt.name!r} has no finished dev run")
     return meta, estimate.run_cost(tests, prompt, choices.answer_model, choices.top_k, choices.rerank,
-                                   load_chunk_set(choices.chunk_set_id), choices.stack)
+                                   load_chunk_set(choices.chunk_set_id), choices.stack, choices.decompose)
 
 
 def start_run(conn: sqlite3.Connection, choices: Choices, tests: list[TestCase]) -> int:
@@ -161,7 +176,8 @@ def fitting(conn: sqlite3.Connection, assumed: list[float]) -> int:
 
 def ask_together(conn: sqlite3.Connection, run_id: int, pool: ThreadPoolExecutor, tests: list[TestCase],
                  meta: runs.RunMeta, prompt: prompts.PromptVersion, retrieve: Retrieve) -> float:
-    """Ask the questions at once and store their results in question order; return the most expensive one's cost. Each
+    """Ask the questions at once and store their results in question order; return the most expensive one's cost,
+    Stack A's fee for each of its searches included (T53, T60). Each
     gets its own copy of the context, or its paid calls would not reach the spend listener. Every question ends before
     anything is stored, so no other thread is writing. A question that failed does not cost the others their paid
     results: those are stored first, then the first failure is raised."""
@@ -170,7 +186,7 @@ def ask_together(conn: sqlite3.Connection, run_id: int, pool: ThreadPoolExecutor
     for future in asked:
         if not future.exception():
             runs.add_result(conn, run_id, future.result())
-    return max(future.result().cost_usd for future in asked)
+    return max(future.result().cost_usd + spend.search_fee(meta.stack) * future.result().searches for future in asked)
 
 
 def execute(conn: sqlite3.Connection, run_id: int, retrieve: Retrieve) -> None:
@@ -196,12 +212,13 @@ def execute(conn: sqlite3.Connection, run_id: int, retrieve: Retrieve) -> None:
             while done < len(tests):
                 size = PARALLEL_QUESTIONS if done else 1
                 assumed = [max(largest, estimate.question_cost(test, prompt, meta.answer_model, meta.top_k,
-                                                               meta.rerank_model is not None, chunk_tokens, meta.stack))
+                                                               meta.rerank_model is not None, chunk_tokens, meta.stack,
+                                                               meta.decompose_model is not None))
                            for test in tests[done:done + size]]
                 check_budget(conn, assumed[0])
                 count = fitting(conn, assumed)
                 cost = ask_together(conn, run_id, pool, tests[done:done + count], meta, prompt, retrieve)
-                largest, done = max(largest, cost + spend.search_fee(meta.stack)), done + count
+                largest, done = max(largest, cost), done + count
     except Exception as exc:
         runs.finish_run(conn, run_id, error=f"{type(exc).__name__}: {exc}")
         raise

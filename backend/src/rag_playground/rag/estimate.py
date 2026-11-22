@@ -2,7 +2,8 @@
 
 Input tokens are counted on the real messages, built with the real templates and questions; each retrieved chunk
 is a filler of the chunk set's average length. Output tokens are assumed (plan.md 1.3), except the reranker's,
-whose reply is always the list of every candidate number. Prices are OpenRouter's live per-token prices.
+whose reply is always the list of every candidate number, and the question splitter's, whose reply is assumed to be
+the question itself, unsplit (T60): a split question's extra Stack A searches are not counted. Prices are OpenRouter's live per-token prices.
 Reasoning tokens (gpt-6.1-sol) cannot be predicted and are not counted, so such estimates are low. Stack A adds OpenAI's
 search fee (T53)."""
 
@@ -15,12 +16,13 @@ from rag_playground.chunking.chunk_sets import Chunk
 from rag_playground.datasets.schema import TestCase
 from rag_playground.llm.models import model_info
 from rag_playground.rag.answer import answer_messages
+from rag_playground.rag.decompose import split_messages
 from rag_playground.rag.prompts import PromptVersion
 from rag_playground.rag.rerank import rerank_messages
 from rag_playground.rag.spend import search_fee
 from rag_playground.scoring.judging import answer_messages as grade_messages
 from rag_playground.scoring.judging import faithfulness_messages
-from rag_playground.settings import JUDGE_MODEL, RERANK_CANDIDATES, RERANK_MODEL
+from rag_playground.settings import DECOMPOSE_MODEL, JUDGE_MODEL, RERANK_CANDIDATES, RERANK_MODEL
 from rag_playground.stacks.hits import Hit
 
 ANSWER_TOKENS = 30  # mean answer length measured in runs 1-2, gpt-4.1-nano at S0, 2026-10-29 (T43)
@@ -46,8 +48,8 @@ def price(model: str, input_tokens: int, output_tokens: int) -> float:
 
 
 def answer_cost(question: str, prompt: PromptVersion, answer_model: str, top_k: int, rerank: bool,
-                chunk_tokens: float, stack: str) -> float:
-    """Estimated dollars to answer a question without judging it: the search fee, optional rerank, answer."""
+                chunk_tokens: float, stack: str, decompose: bool = False) -> float:
+    """Estimated dollars to answer a question without judging it: the search fee, optional rerank or split, answer."""
     chunk = filler(round(chunk_tokens))
     hits = [Hit(f"c{i}", "doc.md", 1.0, chunk) for i in range(top_k)]
     cost = search_fee(stack) + price(answer_model, count(answer_messages(prompt, question, hits)), ANSWER_TOKENS)
@@ -55,21 +57,24 @@ def answer_cost(question: str, prompt: PromptVersion, answer_model: str, top_k: 
         candidates = [Hit(f"c{i}", "doc.md", 1.0, chunk) for i in range(RERANK_CANDIDATES)]
         reply = json.dumps({"ranking": list(range(1, RERANK_CANDIDATES + 1))})
         cost += price(RERANK_MODEL, count(rerank_messages(question, candidates)), len(get_tokenizer()(reply)))
+    if decompose:
+        reply = json.dumps({"sub_questions": [question]})
+        cost += price(DECOMPOSE_MODEL, count(split_messages(question)), len(get_tokenizer()(reply)))
     return cost
 
 
 def question_cost(test: TestCase, prompt: PromptVersion, answer_model: str, top_k: int, rerank: bool,
-                  chunk_tokens: float, stack: str) -> float:
+                  chunk_tokens: float, stack: str, decompose: bool = False) -> float:
     """Estimated dollars for one test question: answering it, and the judge's two calls."""
     chunk = filler(round(chunk_tokens))
     answer = filler(ANSWER_TOKENS)
-    cost = answer_cost(test.question, prompt, answer_model, top_k, rerank, chunk_tokens, stack)
+    cost = answer_cost(test.question, prompt, answer_model, top_k, rerank, chunk_tokens, stack, decompose)
     cost += price(JUDGE_MODEL, count(grade_messages(test, answer)), JUDGE_TOKENS)
     return cost + price(JUDGE_MODEL, count(faithfulness_messages(test, [chunk] * top_k, answer)), JUDGE_TOKENS)
 
 
 def run_cost(tests: list[TestCase], prompt: PromptVersion, answer_model: str, top_k: int, rerank: bool,
-             chunks: list[Chunk], stack: str) -> float:
+             chunks: list[Chunk], stack: str, decompose: bool = False) -> float:
     """Estimated dollars for a run over `tests` on this chunk set."""
     chunk_tokens = fmean(c.tokens for c in chunks)
-    return sum(question_cost(t, prompt, answer_model, top_k, rerank, chunk_tokens, stack) for t in tests)
+    return sum(question_cost(t, prompt, answer_model, top_k, rerank, chunk_tokens, stack, decompose) for t in tests)

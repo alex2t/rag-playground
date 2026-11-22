@@ -21,13 +21,14 @@ def choices(stack: str, config: Config) -> Choices:
 
 
 def settings_key(stack: str, set_id: str, top_k: int, hybrid: bool, ranking: dict | None, rerank: bool, model: str,
-                 prompt_name: str, per_doc_limit: int | None) -> tuple:
-    return stack, set_id, top_k, hybrid, json.dumps(ranking, sort_keys=True), rerank, model, prompt_name, per_doc_limit
+                 prompt_name: str, per_doc_limit: int | None, decompose: bool) -> tuple:
+    return (stack, set_id, top_k, hybrid, json.dumps(ranking, sort_keys=True), rerank, model, prompt_name, per_doc_limit,
+            decompose)
 
 
 def key_of(c: Choices) -> tuple:
     return settings_key(c.stack, c.chunk_set_id, c.top_k, c.hybrid, c.openai_ranking, c.rerank, c.answer_model,
-                        c.prompt_name, c.per_doc_limit)
+                        c.prompt_name, c.per_doc_limit, c.decompose)
 
 
 def stored_runs(conn: sqlite3.Connection, split: str) -> Callable[[Choices], Candidate | None]:
@@ -38,7 +39,7 @@ def stored_runs(conn: sqlite3.Connection, split: str) -> Callable[[Choices], Can
         meta = runs.get_run(conn, candidate.run_id).meta
         stored.setdefault(settings_key(meta.stack, meta.chunk_set_id, meta.top_k, meta.hybrid, meta.openai_ranking,
                                        meta.rerank_model is not None, meta.answer_model, meta.prompt_name,
-                                       meta.per_doc_limit), candidate)
+                                       meta.per_doc_limit, meta.decompose_model is not None), candidate)
     return lambda c: stored.get(key_of(c))
 
 

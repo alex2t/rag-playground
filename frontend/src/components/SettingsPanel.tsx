@@ -105,6 +105,8 @@ export default function SettingsPanel({ values, options, promptNames, built, onC
         <Switch label="Reranking" info={HELP.rerank} on={values.rerank} onChange={(rerank) => change({ rerank })} />
         <Switch label="One chunk per document" info={HELP.perDocument} on={values.per_doc_limit === 1}
           onChange={(on) => change({ per_doc_limit: on ? 1 : null })} />
+        <Switch label="Split the question" info={HELP.splitQuestion} on={values.split_question}
+          onChange={(split_question) => change({ split_question })} />
       </div>
       <Field label="Answer model" info={HELP.answerModel}>
         {(id) => (

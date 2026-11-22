@@ -47,14 +47,14 @@ def world(monkeypatch):
     monkeypatch.setattr(pipeline, "model_info", lambda m: ModelInfo(m, f"{m}-1", frozenset(), 0.0, 0.0))
     monkeypatch.setattr(pipeline, "load_chunk_set", lambda set_id: CHUNKS if set_id == CHOICES.chunk_set_id else [])
 
-    def run_cost(tests, prompt, answer_model, top_k, rerank, chunks, stack):
+    def run_cost(tests, prompt, answer_model, top_k, rerank, chunks, stack, decompose):
         state["stacks"].add(("run", stack))
-        state["run_args"].append(([t.id for t in tests], prompt.name, answer_model, top_k, rerank, chunks))
+        state["run_args"].append(([t.id for t in tests], prompt.name, answer_model, top_k, rerank, chunks, decompose))
         return state["run_estimate"]
 
-    def question_cost(test, prompt, answer_model, top_k, rerank, chunk_tokens, stack):
+    def question_cost(test, prompt, answer_model, top_k, rerank, chunk_tokens, stack, decompose):
         state["stacks"].add(("question", stack))
-        state["guess_args"].append((test.id, prompt.name, answer_model, top_k, rerank, chunk_tokens))
+        state["guess_args"].append((test.id, prompt.name, answer_model, top_k, rerank, chunk_tokens, decompose))
         return state["guess"]
 
     def answer(model, prompt, question, hits):
@@ -102,7 +102,7 @@ def test_the_start_estimate_uses_the_run_settings_and_its_chunk_set(conn, world)
                                openai_ranking=None, rerank=True, answer_model="openai/gpt-4.1-mini",
                                prompt_name="default")
     pipeline.start_run(conn, choices, DEV[:2])
-    assert world["run_args"] == [([t.id for t in DEV[:2]], "default", "openai/gpt-4.1-mini", 5, True, CHUNKS)]
+    assert world["run_args"] == [([t.id for t in DEV[:2]], "default", "openai/gpt-4.1-mini", 5, True, CHUNKS, False)]
 
 
 def test_with_no_budget_set_any_paid_run_is_refused(conn, world, monkeypatch):
@@ -178,7 +178,7 @@ def test_each_guess_uses_the_run_settings_and_the_mean_chunk_length(conn, world,
                                prompt_name="default")
     monkeypatch.setattr(pipeline, "rerank", lambda question, hits, k: Reranked(hits[:k], None, repaired=False))
     pipeline.execute(conn, pipeline.start_run(conn, choices, DEV[:2]), retrieve)
-    assert world["guess_args"] == [(t.id, "default", "openai/gpt-4.1-mini", 4, True, 300.0) for t in DEV[:2]]
+    assert world["guess_args"] == [(t.id, "default", "openai/gpt-4.1-mini", 4, True, 300.0, False) for t in DEV[:2]]
 
 
 STACK_A = pipeline.Choices(stack="A", chunk_set_id=CHOICES.chunk_set_id, top_k=3, hybrid=False,

@@ -26,7 +26,7 @@ def candidate(conn: sqlite3.Connection, run: runs.Run, by_id: dict) -> selection
     mrr = {r.test_id: retrieval.reciprocal_rank([h.source for h in r.hits], by_id[r.test_id].source_docs)
            for r in results if by_id[r.test_id].source_docs}
     return selection.Candidate(run.id, scores, {r.test_id: r.judgement.accuracy for r in results},
-                               fmean(r.cost_usd for r in results) + spend.search_fee(run.meta.stack), mrr)
+                               fmean(r.cost_usd + spend.search_fee(run.meta.stack) * r.searches for r in results), mrr)
 
 
 def candidates(conn: sqlite3.Connection, split: str = "dev") -> list[selection.Candidate]:

@@ -164,15 +164,21 @@ def test_a_limited_run_is_not_a_ladder_configuration(conn):
     assert finder(conn, "B")(baseline(prompts.DEFAULT_NAME)) is None
 
 
-def make_old_database(path):
-    """A database as it was before T59: the runs table without the column, the old settings trigger, one run."""
+def make_old_database(path, with_per_doc_limit: bool = False):
+    """A database as it was before T60 (and before T59 unless `with_per_doc_limit`): the later columns dropped, the
+    settings trigger as it was then, one run. Columns go newest first, since a CHECK may read an older column."""
     conn = store.connect(path)
     prompts.ensure_default(conn)
-    old_trigger = conn.execute("SELECT sql FROM sqlite_master WHERE name = 'runs_settings_fixed'").fetchone()[0]
+    trigger = conn.execute("SELECT sql FROM sqlite_master WHERE name = 'runs_settings_fixed'").fetchone()[0]
     conn.execute("DROP TRIGGER runs_settings_fixed")
-    conn.execute("ALTER TABLE runs DROP COLUMN per_doc_limit")
-    conn.execute(old_trigger.replace(", per_doc_limit ON runs", " ON runs"))
-    old_meta = {k: v for k, v in runs.asdict(META).items() if k != "per_doc_limit"}
+    gone = ["decompose_slug", "decompose_model"] + ([] if with_per_doc_limit else ["per_doc_limit"])
+    for column in gone:
+        conn.execute(f"ALTER TABLE runs DROP COLUMN {column}")
+    for column in ("searches", "sub_questions"):
+        conn.execute(f"ALTER TABLE results DROP COLUMN {column}")
+    kept = ", per_doc_limit" if with_per_doc_limit else ""
+    conn.execute(trigger.replace(", per_doc_limit, decompose_model, decompose_slug ON runs", f"{kept} ON runs"))
+    old_meta = {k: v for k, v in runs.asdict(META).items() if k not in gone}
     runs.insert(conn, "runs", old_meta | {"test_ids": runs.json.dumps(META.test_ids)})
     conn.commit()
     conn.close()

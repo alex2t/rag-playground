@@ -12,7 +12,8 @@ from rag_playground.stacks.hits import Hit
 class RunMeta:
     """Every setting and version a run needs to be reproduced, including the exact questions it asks, in order.
     Unused options are None (Stack B has no OpenAI ranking; a run without reranking has no reranker; no
-    chunks-per-document limit, T59, is None, as for every run made before it)."""
+    chunks-per-document limit, T59, is None, as for every run made before it; a run that does not split its
+    questions, T60, has no split model)."""
 
     stack: str
     split: str
@@ -34,6 +35,8 @@ class RunMeta:
     dataset_sha256: str
     app_version: str
     per_doc_limit: int | None = None
+    decompose_model: str | None = None
+    decompose_slug: str | None = None
 
 
 @dataclass(frozen=True)
@@ -49,7 +52,8 @@ class Run:
 
 @dataclass(frozen=True)
 class Result:
-    """One answered and judged question: the chunks the answer model read, the verdict, cost and time."""
+    """One answered and judged question: the chunks the answer model read, the verdict, cost and time. With the
+    question split (T60), the parts the model returned; `searches` is how many searches it made (Stack A pays each)."""
 
     test_id: str
     hits: list[Hit]
@@ -58,6 +62,8 @@ class Result:
     judgement: Judgement
     cost_usd: float
     latency_s: float
+    sub_questions: list[str] | None = None
+    searches: int = 1
 
 
 def insert(conn: sqlite3.Connection, table: str, row: dict) -> int:
@@ -77,7 +83,8 @@ def add_result(conn: sqlite3.Connection, run_id: int, result: Result) -> None:
     """Store one question's result; only a question the run declared, and only once."""
     row = {"run_id": run_id} | asdict(result) | asdict(result.judgement)
     del row["judgement"]
-    insert(conn, "results", row | {"hits": json.dumps([asdict(hit) for hit in result.hits])})
+    subs = None if result.sub_questions is None else json.dumps(result.sub_questions)
+    insert(conn, "results", row | {"hits": json.dumps([asdict(hit) for hit in result.hits]), "sub_questions": subs})
 
 
 def finish_run(conn: sqlite3.Connection, run_id: int, error: str | None = None) -> None:
@@ -127,4 +134,6 @@ def to_result(row: sqlite3.Row) -> Result:
     repaired = row["rerank_repaired"]
     return Result(test_id=row["test_id"], hits=[Hit(**h) for h in json.loads(row["hits"])],
                   rerank_repaired=None if repaired is None else bool(repaired), answer=row["answer"],
-                  judgement=judgement, cost_usd=row["cost_usd"], latency_s=row["latency_s"])
+                  judgement=judgement, cost_usd=row["cost_usd"], latency_s=row["latency_s"],
+                  sub_questions=None if row["sub_questions"] is None else json.loads(row["sub_questions"]),
+                  searches=row["searches"])

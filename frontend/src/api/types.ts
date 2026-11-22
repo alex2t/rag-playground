@@ -85,6 +85,7 @@ export type PanelOptions = {
     top_k: number
     rerank: boolean
     per_doc_limit: number | null
+    split_question: boolean
     answer_model: string
     openai_ranking: OpenAIRanking
     hybrid: boolean
@@ -119,6 +120,7 @@ export type AskResult = {
   cost_usd: number
   temperature_controlled: boolean
   rerank_repaired: boolean
+  sub_questions: string[] | null
   chunks: AskChunk[]
   reference_answer: string | null
   gold_sources: string[]
@@ -135,6 +137,7 @@ export type RunSettings = {
   openai_ranking: OpenAIRanking | null
   rerank: boolean
   per_doc_limit: number | null
+  split_question: boolean
   answer_model: string
   prompt_name: string
   temperature_controlled: boolean

@@ -28,7 +28,7 @@ def panel_options() -> dict:
     return {"min_chunk_size": MIN_SIZE, "max_chunk_size": MAX_SIZE, "max_overlap_share": MAX_OVERLAP_SHARE,
             "max_top_k": MAX_TOP_K, "answer_models": ANSWER_MODELS,
             "start": {"chunking_method": "fixed", "chunk_size": S0["chunk_size"], "overlap": S0["overlap"],
-                      "top_k": S0["top_k"], "rerank": S0["rerank"], "per_doc_limit": None,
+                      "top_k": S0["top_k"], "rerank": S0["rerank"], "per_doc_limit": None, "split_question": False,
                       "answer_model": S0["answer_model"],
                       "openai_ranking": search["A"]["openai_ranking"], "hybrid": search["B"]["hybrid"]}}
 
@@ -46,6 +46,7 @@ class OpenAIRanking(BaseModel):
 class PanelSettings(BaseModel):
     """The settings panel (T35), shared by Evaluate and Ask. Stack A takes `openai_ranking`, Stack B `hybrid`; the
     other stack's field must be left out. `per_doc_limit` is 1 or null for no limit (T59), never with the reranker.
+    `split_question` (T60) goes with neither.
     Types are strict: "3" is not 3 (D27)."""
 
     model_config = ConfigDict(extra="forbid", strict=True)
@@ -58,6 +59,7 @@ class PanelSettings(BaseModel):
     hybrid: bool | None = None
     rerank: bool
     per_doc_limit: Annotated[int, Field(ge=1, le=1)] | None
+    split_question: bool
     answer_model: Literal[tuple(ANSWER_MODELS)]
     prompt_name: str
 
@@ -70,6 +72,8 @@ class PanelSettings(BaseModel):
             raise ValueError("Stack B takes hybrid, not openai_ranking")
         if self.per_doc_limit and self.rerank:
             raise ValueError("Chunks per document cannot be limited with reranking on")
+        if self.split_question and (self.rerank or self.per_doc_limit):
+            raise ValueError("The question cannot be split with reranking or one chunk per document on")
         return self
 
     def choices(self) -> Choices:
@@ -77,7 +81,7 @@ class PanelSettings(BaseModel):
         ranking = self.openai_ranking.model_dump() if self.openai_ranking else None
         hybrid = ranking["text_weight"] > 0 if ranking else self.hybrid
         return Choices(stack=self.stack, chunk_set_id=set_id_for(self.chunking_method, self.chunk_size, self.overlap), top_k=self.top_k, hybrid=hybrid, openai_ranking=ranking, rerank=self.rerank, answer_model=self.answer_model,
-                       prompt_name=self.prompt_name, per_doc_limit=self.per_doc_limit)
+                       prompt_name=self.prompt_name, per_doc_limit=self.per_doc_limit, decompose=self.split_question)
 
 
 class RunRequest(PanelSettings):

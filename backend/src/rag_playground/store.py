@@ -3,10 +3,19 @@
 import sqlite3
 from pathlib import Path
 
-from rag_playground.settings import MAX_TOP_K, settings
+from rag_playground.settings import MAX_SUB_QUESTIONS, MAX_TOP_K, settings
 
+# Columns added after the first release, in the order they are added: each CHECK may read the ones before it.
 PER_DOC_LIMIT_COLUMN = ("per_doc_limit INTEGER CHECK (per_doc_limit IS NULL OR "
                         "(per_doc_limit >= 1 AND rerank_model IS NULL))")
+DECOMPOSE_MODEL_COLUMN = ("decompose_model TEXT CHECK (decompose_model IS NULL OR "
+                          "(rerank_model IS NULL AND per_doc_limit IS NULL))")
+DECOMPOSE_SLUG_COLUMN = "decompose_slug TEXT CHECK ((decompose_slug IS NULL) = (decompose_model IS NULL))"
+SUB_QUESTIONS_COLUMN = "sub_questions TEXT CHECK (sub_questions IS NULL OR json_array_length(sub_questions) >= 1)"
+SEARCHES_COLUMN = f"searches INTEGER NOT NULL DEFAULT 1 CHECK (searches BETWEEN 1 AND {MAX_SUB_QUESTIONS})"
+ADDED_COLUMNS = {"runs": [("per_doc_limit", PER_DOC_LIMIT_COLUMN), ("decompose_model", DECOMPOSE_MODEL_COLUMN),
+                          ("decompose_slug", DECOMPOSE_SLUG_COLUMN)],
+                 "results": [("sub_questions", SUB_QUESTIONS_COLUMN), ("searches", SEARCHES_COLUMN)]}
 
 
 def jobs_table(name: str) -> str:
@@ -74,6 +83,8 @@ CREATE TABLE IF NOT EXISTS runs (
     rerank_slug TEXT,
     rerank_candidates INTEGER CHECK (rerank_candidates >= top_k),
     {PER_DOC_LIMIT_COLUMN},
+    {DECOMPOSE_MODEL_COLUMN},
+    {DECOMPOSE_SLUG_COLUMN},
     temperature_controlled INTEGER NOT NULL,
     prompt_name TEXT NOT NULL,
     prompt_sha256 TEXT NOT NULL,
@@ -98,6 +109,8 @@ CREATE TABLE IF NOT EXISTS results (
     faithfulness_feedback TEXT NOT NULL,
     cost_usd REAL NOT NULL,
     latency_s REAL NOT NULL,
+    {SUB_QUESTIONS_COLUMN},
+    {SEARCHES_COLUMN},
     PRIMARY KEY (run_id, test_id)
 );
 -- A result is only stored for a question the run declared when it was created.
@@ -120,7 +133,7 @@ BEGIN SELECT RAISE(ABORT, 'runs are permanent'); END;
 CREATE TRIGGER IF NOT EXISTS runs_settings_fixed BEFORE UPDATE OF
     id, created_at, stack, split, test_ids, chunk_set_id, top_k, hybrid, openai_ranking, answer_model, answer_slug,
     judge_model, judge_slug, rerank_model, rerank_slug, rerank_candidates, temperature_controlled, prompt_name,
-    prompt_sha256, dataset_sha256, app_version, per_doc_limit ON runs
+    prompt_sha256, dataset_sha256, app_version, per_doc_limit, decompose_model, decompose_slug ON runs
 BEGIN SELECT RAISE(ABORT, 'run settings are permanent'); END;
 -- "UPDATE OF id" does not fire for "SET rowid = ...", which renumbers the run just the same.
 CREATE TRIGGER IF NOT EXISTS runs_id_fixed BEFORE UPDATE ON runs
@@ -246,7 +259,7 @@ def connect(path: Path | None = None) -> sqlite3.Connection:
     conn = sqlite3.connect(path, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     upgrade_jobs(conn)
-    upgrade_runs(conn)
+    upgrade_columns(conn)
     conn.executescript(SCHEMA)
     return conn
 
@@ -278,21 +291,27 @@ def upgrade_jobs(conn: sqlite3.Connection) -> None:
         raise
 
 
-def old_runs_table(conn: sqlite3.Connection) -> bool:
-    columns = [row[1] for row in conn.execute("PRAGMA table_info(runs)")]
-    return bool(columns) and "per_doc_limit" not in columns
+def missing_columns(conn: sqlite3.Connection) -> list[tuple[str, str]]:
+    """(table, column definition) of every added column an existing table lacks, in ADDED_COLUMNS order."""
+    missing = []
+    for table, added in ADDED_COLUMNS.items():
+        have = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
+        missing += [(table, definition) for name, definition in added if have and name not in have]
+    return missing
 
 
-def upgrade_runs(conn: sqlite3.Connection) -> None:
-    """Add the chunks-per-document limit (T59) to a runs table made before it: earlier runs read as no limit (NULL).
-    The settings trigger is dropped so SCHEMA recreates it with the new column. All or nothing, checked again under
-    the write lock, as `upgrade_jobs`."""
-    if not old_runs_table(conn):
+def upgrade_columns(conn: sqlite3.Connection) -> None:
+    """Add the columns of later settings (T59, T60) to tables made before them; earlier rows read as the setting off
+    (NULL, or one search). When runs gains a column the settings trigger is dropped, so SCHEMA recreates it with the
+    column. All or nothing, checked again under the write lock, as `upgrade_jobs`."""
+    if not missing_columns(conn):
         return
     conn.execute("BEGIN IMMEDIATE")
     try:
-        if old_runs_table(conn):
-            conn.execute(f"ALTER TABLE runs ADD COLUMN {PER_DOC_LIMIT_COLUMN}")
+        missing = missing_columns(conn)
+        for table, definition in missing:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {definition}")
+        if any(table == "runs" for table, _ in missing):
             conn.execute("DROP TRIGGER runs_settings_fixed")
         conn.commit()
     except Exception:

@@ -36,6 +36,13 @@ export function missedSources(result: AskResult): string[] {
   return result.gold_sources.filter((source) => !found.has(source))
 }
 
+/** How the question was searched when it was split (T60), or null when the setting was off. */
+export function splitLine(result: AskResult): string | null {
+  const parts = result.sub_questions
+  if (!parts) return null
+  return parts.length < 2 ? 'Not split: searched as one question.' : `Searched as ${parts.length} parts: ${parts.join(' | ')}`
+}
+
 /** Labels a result must carry (T14), and the reranker's repair flag. */
 export function warnings(result: AskResult): string[] {
   return [...(result.temperature_controlled ? [] : ['Temperature not controlled.']),

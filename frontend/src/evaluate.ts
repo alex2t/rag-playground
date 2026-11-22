@@ -76,6 +76,7 @@ export function settingsShort(settings: RunSettings): string {
   if (settings.chunking_method === 'llm_enriched') parts.push('enriched')
   if (settings.rerank) parts.push('reranked')
   if (settings.per_doc_limit) parts.push('one per document')
+  if (settings.split_question) parts.push('question split')
   if (settings.hybrid) parts.push('hybrid')
   if (settings.prompt_name !== 'default') parts.push(`prompt ${settings.prompt_name}`)
   return parts.join(', ')
@@ -101,9 +102,9 @@ export function hasAnswers(run: RunSummary): boolean {
 
 /** The panel's values that repeat a run: settings it stored replace the panel's; the other stack's stay as they are. */
 export function valuesOfRun(run: { stack: 'A' | 'B'; settings: RunSettings }, base: PanelValues): PanelValues {
-  const { chunking_method, chunk_size, overlap, top_k, rerank, per_doc_limit, answer_model, prompt_name, openai_ranking, hybrid } = run.settings
+  const { chunking_method, chunk_size, overlap, top_k, rerank, per_doc_limit, split_question, answer_model, prompt_name, openai_ranking, hybrid } = run.settings
   return {
-    ...base, stacks: run.stack, chunking_method, chunk_size, overlap, top_k, rerank, per_doc_limit, answer_model, prompt_name,
+    ...base, stacks: run.stack, chunking_method, chunk_size, overlap, top_k, rerank, per_doc_limit, split_question, answer_model, prompt_name,
     openai_ranking: openai_ranking ?? base.openai_ranking,
     hybrid: run.stack === 'B' ? hybrid : base.hybrid,
   }

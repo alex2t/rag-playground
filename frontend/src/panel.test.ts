@@ -10,7 +10,7 @@ const OPTIONS: PanelOptions = {
   max_top_k: 8,
   answer_models: ['openai/nano', 'openai/sol'],
   start: {
-    chunking_method: 'fixed', chunk_size: 1024, overlap: 200, top_k: 2, rerank: false, per_doc_limit: null, answer_model: 'openai/nano',
+    chunking_method: 'fixed', chunk_size: 1024, overlap: 200, top_k: 2, rerank: false, per_doc_limit: null, split_question: false, answer_model: 'openai/nano',
     openai_ranking: { ranker: 'auto', embedding_weight: 1, text_weight: 1, score_threshold: 0 }, hybrid: false,
   },
 }
@@ -141,4 +141,22 @@ test('settings saved before the limit existed restore as no limit, and a saved b
   assert.equal(restoredValues('{"chunk_size":800}', OPTIONS, ['default']).per_doc_limit, null)
   assert.equal(restoredValues('{"per_doc_limit":1}', OPTIONS, ['default']).per_doc_limit, 1)
   assert.deepEqual(restoredValues('{"chunk_size":800,"per_doc_limit":3}', OPTIONS, ['default']), START)
+})
+
+test('splitting the question is sent to either stack, off by default (T60)', () => {
+  assert.equal(requestFor(START, 'A').split_question, false)
+  assert.equal(requestFor({ ...START, split_question: true }, 'A').split_question, true)
+  assert.equal(requestFor({ ...START, split_question: true }, 'B').split_question, true)
+})
+
+test('splitting cannot be sent with reranking or one chunk per document', () => {
+  assert.equal(panelProblem({ ...START, split_question: true }, OPTIONS), null)
+  assert.match(panelProblem({ ...START, split_question: true, rerank: true }, OPTIONS)!, /to split the question/)
+  assert.match(panelProblem({ ...START, split_question: true, per_doc_limit: 1 }, OPTIONS)!, /to split the question/)
+})
+
+test('a result states the split only when it was on, and old saved settings restore it off', () => {
+  assert.match(settingsLine(requestFor({ ...START, split_question: true }, 'B')), /no reranking, question split, openai\/nano/)
+  assert.doesNotMatch(settingsLine(requestFor(START, 'B')), /split/)
+  assert.equal(restoredValues('{"chunk_size":800}', OPTIONS, ['default']).split_question, false)
 })

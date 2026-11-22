@@ -54,7 +54,8 @@ The reasons for each decision are in `decision.md`. Items marked *(proposed)* ha
 | Manual testing | Ask page: free-form questions, or any test question shown with its reference answer, gold sources and scores. |
 | Temperature | Not a variable. Fixed at 0 for answers, judge and reranker. Not sent to models that reject it (`gpt-6.1-sol`); those runs are flagged. |
 | Sweeps | One variable at a time only, on the 192 dev questions. Cost estimate and confirmation first. |
-| Chunks per document | No limit, or at most 1 (best chunk of each document, from 20 candidates). Ask and Evaluate, both stacks, not with the reranker; exploratory, not a ladder step (T59). |
+| Chunks per document | No limit, or at most 1 (best chunk of each document, from 20 candidates). Ask and Evaluate, both stacks, not with the reranker; exploratory, not a ladder step (T59). Measured: does not help. |
+| Split the question | Off or on: `gpt-4.1-mini` splits the question into 1 to 3 parts, each searched, chunks taken in turns up to K; one part searches the original question. Both stacks, not with the reranker or the T59 limit; exploratory (T60). |
 | Budget | `BUDGET_USD=60` for all evaluation spend in production (D15; no staging since D35). Spend is recorded per paid call in a `spend` table (T44). The estimate counts real input tokens, assumes output tokens, and uses live prices (T43). |
 | Backend / Frontend | FastAPI (Python 3.12, `uv`) / Vite + React + TS + Tailwind + Recharts. |
 | Packaging | One image per release: the React build is copied into the backend image and served by FastAPI. |
