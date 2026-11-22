@@ -5,6 +5,9 @@ from pathlib import Path
 
 from rag_playground.settings import MAX_TOP_K, settings
 
+PER_DOC_LIMIT_COLUMN = ("per_doc_limit INTEGER CHECK (per_doc_limit IS NULL OR "
+                        "(per_doc_limit >= 1 AND rerank_model IS NULL))")
+
 
 def jobs_table(name: str) -> str:
     """Background jobs (D07), run one at a time; the UI polls a job's status. An evaluate job is one run. A ladder step
@@ -70,6 +73,7 @@ CREATE TABLE IF NOT EXISTS runs (
     rerank_model TEXT,
     rerank_slug TEXT,
     rerank_candidates INTEGER CHECK (rerank_candidates >= top_k),
+    {PER_DOC_LIMIT_COLUMN},
     temperature_controlled INTEGER NOT NULL,
     prompt_name TEXT NOT NULL,
     prompt_sha256 TEXT NOT NULL,
@@ -116,7 +120,7 @@ BEGIN SELECT RAISE(ABORT, 'runs are permanent'); END;
 CREATE TRIGGER IF NOT EXISTS runs_settings_fixed BEFORE UPDATE OF
     id, created_at, stack, split, test_ids, chunk_set_id, top_k, hybrid, openai_ranking, answer_model, answer_slug,
     judge_model, judge_slug, rerank_model, rerank_slug, rerank_candidates, temperature_controlled, prompt_name,
-    prompt_sha256, dataset_sha256, app_version ON runs
+    prompt_sha256, dataset_sha256, app_version, per_doc_limit ON runs
 BEGIN SELECT RAISE(ABORT, 'run settings are permanent'); END;
 -- "UPDATE OF id" does not fire for "SET rowid = ...", which renumbers the run just the same.
 CREATE TRIGGER IF NOT EXISTS runs_id_fixed BEFORE UPDATE ON runs
@@ -242,6 +246,7 @@ def connect(path: Path | None = None) -> sqlite3.Connection:
     conn = sqlite3.connect(path, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     upgrade_jobs(conn)
+    upgrade_runs(conn)
     conn.executescript(SCHEMA)
     return conn
 
@@ -267,6 +272,28 @@ def upgrade_jobs(conn: sqlite3.Connection) -> None:
         conn.execute(f"INSERT INTO jobs_new ({columns}) SELECT {columns} FROM jobs")
         conn.execute("DROP TABLE jobs")
         conn.execute("ALTER TABLE jobs_new RENAME TO jobs")
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+
+
+def old_runs_table(conn: sqlite3.Connection) -> bool:
+    columns = [row[1] for row in conn.execute("PRAGMA table_info(runs)")]
+    return bool(columns) and "per_doc_limit" not in columns
+
+
+def upgrade_runs(conn: sqlite3.Connection) -> None:
+    """Add the chunks-per-document limit (T59) to a runs table made before it: earlier runs read as no limit (NULL).
+    The settings trigger is dropped so SCHEMA recreates it with the new column. All or nothing, checked again under
+    the write lock, as `upgrade_jobs`."""
+    if not old_runs_table(conn):
+        return
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        if old_runs_table(conn):
+            conn.execute(f"ALTER TABLE runs ADD COLUMN {PER_DOC_LIMIT_COLUMN}")
+            conn.execute("DROP TRIGGER runs_settings_fixed")
         conn.commit()
     except Exception:
         conn.rollback()

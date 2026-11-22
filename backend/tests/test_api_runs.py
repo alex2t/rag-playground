@@ -16,7 +16,8 @@ from rag_playground.stacks.hits import Hit
 
 DEV = [t for t in load_tests() if t.split == "dev"]
 B = {"stack": "B", "chunking_method": "fixed", "chunk_size": 1024, "overlap": 200, "top_k": 2, "hybrid": False,
-     "rerank": False, "answer_model": "openai/gpt-4.1-nano", "prompt_name": "default", "questions": "smoke"}
+     "rerank": False, "per_doc_limit": None, "answer_model": "openai/gpt-4.1-nano", "prompt_name": "default",
+     "questions": "smoke"}
 AUTO = {"ranker": "auto", "embedding_weight": 1.0, "text_weight": 1.0, "score_threshold": 0.0}
 A = {**{k: v for k, v in B.items() if k != "hybrid"}, "stack": "A", "openai_ranking": AUTO}
 

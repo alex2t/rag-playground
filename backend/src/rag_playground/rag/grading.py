@@ -30,6 +30,7 @@ def problems(run: runs.Run, stack: str, dev_ids: list[str]) -> list[str]:
                 "questions": (sorted(meta.test_ids), dev_ids),
                 "chunk set": (meta.chunk_set_id, chunk_set_id(S0["chunk_size"], S0["overlap"])),
                 "top-K": (meta.top_k, S0["top_k"]), "reranker": (meta.rerank_model, None),
+                "chunks per document": (meta.per_doc_limit, None),
                 "answer model": (meta.answer_model, S0["answer_model"]), "hybrid": (meta.hybrid, search["hybrid"]),
                 "ranking": (meta.openai_ranking, search["openai_ranking"]),
                 "prompt": (meta.prompt_name, prompts.DEFAULT_NAME), "dataset": (meta.dataset_sha256, dataset_sha256()),

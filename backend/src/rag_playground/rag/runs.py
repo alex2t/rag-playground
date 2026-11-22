@@ -11,7 +11,8 @@ from rag_playground.stacks.hits import Hit
 @dataclass(frozen=True)
 class RunMeta:
     """Every setting and version a run needs to be reproduced, including the exact questions it asks, in order.
-    Unused options are None (Stack B has no OpenAI ranking; a run without reranking has no reranker)."""
+    Unused options are None (Stack B has no OpenAI ranking; a run without reranking has no reranker; no
+    chunks-per-document limit, T59, is None, as for every run made before it)."""
 
     stack: str
     split: str
@@ -32,6 +33,7 @@ class RunMeta:
     prompt_sha256: str
     dataset_sha256: str
     app_version: str
+    per_doc_limit: int | None = None
 
 
 @dataclass(frozen=True)

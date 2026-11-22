@@ -16,7 +16,7 @@ from rag_playground.sweep_requests import SweepRequest
 from test_runs import STACK_A
 
 BASE_B = {"stack": "B", "chunking_method": "fixed", "chunk_size": 400, "overlap": 78, "top_k": 2, "hybrid": False,
-          "rerank": False, "answer_model": "openai/gpt-4.1-nano", "prompt_name": "default"}
+          "rerank": False, "per_doc_limit": None, "answer_model": "openai/gpt-4.1-nano", "prompt_name": "default"}
 RANKING = {"ranker": "auto", "embedding_weight": 1.0, "text_weight": 1.0, "score_threshold": 0.0}
 BASE_A = {**{k: v for k, v in BASE_B.items() if k != "hybrid"}, "stack": "A", "openai_ranking": RANKING}
 QUESTIONS = [f"q{i}" for i in range(40)]
@@ -213,7 +213,7 @@ def plan_json(conn, body: str) -> list:
     return [(i["value"], i["run"] and i["run"]["run_id"]) for i in sweeps.plan(conn, SweepRequest.model_validate_json(body))["items"]]
 
 
-BASE_A_JSON = ('{"stack":"A","chunking_method":"fixed","chunk_size":400,"overlap":78,"top_k":2,"rerank":false,'
+BASE_A_JSON = ('{"stack":"A","chunking_method":"fixed","chunk_size":400,"overlap":78,"top_k":2,"rerank":false,"per_doc_limit":null,'
                '"answer_model":"openai/gpt-4.1-nano","prompt_name":"default",'
                '"openai_ranking":{"ranker":"auto","embedding_weight":1,"text_weight":1,"score_threshold":0}}')
 

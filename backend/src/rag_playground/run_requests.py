@@ -1,7 +1,7 @@
 """The request that starts an evaluation run from the dashboard (POST /api/runs). Every setting is required (T40);
 each stack takes its own search settings (T40 revision 2026-10-29)."""
 
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -28,7 +28,8 @@ def panel_options() -> dict:
     return {"min_chunk_size": MIN_SIZE, "max_chunk_size": MAX_SIZE, "max_overlap_share": MAX_OVERLAP_SHARE,
             "max_top_k": MAX_TOP_K, "answer_models": ANSWER_MODELS,
             "start": {"chunking_method": "fixed", "chunk_size": S0["chunk_size"], "overlap": S0["overlap"],
-                      "top_k": S0["top_k"], "rerank": S0["rerank"], "answer_model": S0["answer_model"],
+                      "top_k": S0["top_k"], "rerank": S0["rerank"], "per_doc_limit": None,
+                      "answer_model": S0["answer_model"],
                       "openai_ranking": search["A"]["openai_ranking"], "hybrid": search["B"]["hybrid"]}}
 
 
@@ -44,7 +45,8 @@ class OpenAIRanking(BaseModel):
 
 class PanelSettings(BaseModel):
     """The settings panel (T35), shared by Evaluate and Ask. Stack A takes `openai_ranking`, Stack B `hybrid`; the
-    other stack's field must be left out. Types are strict: "3" is not 3 (D27)."""
+    other stack's field must be left out. `per_doc_limit` is 1 or null for no limit (T59), never with the reranker.
+    Types are strict: "3" is not 3 (D27)."""
 
     model_config = ConfigDict(extra="forbid", strict=True)
     stack: Literal["A", "B"]
@@ -55,6 +57,7 @@ class PanelSettings(BaseModel):
     openai_ranking: OpenAIRanking | None = None
     hybrid: bool | None = None
     rerank: bool
+    per_doc_limit: Annotated[int, Field(ge=1, le=1)] | None
     answer_model: Literal[tuple(ANSWER_MODELS)]
     prompt_name: str
 
@@ -65,6 +68,8 @@ class PanelSettings(BaseModel):
             raise ValueError("Stack A takes openai_ranking, not hybrid")
         if self.stack == "B" and (self.hybrid is None or self.openai_ranking is not None):
             raise ValueError("Stack B takes hybrid, not openai_ranking")
+        if self.per_doc_limit and self.rerank:
+            raise ValueError("Chunks per document cannot be limited with reranking on")
         return self
 
     def choices(self) -> Choices:
@@ -72,7 +77,7 @@ class PanelSettings(BaseModel):
         ranking = self.openai_ranking.model_dump() if self.openai_ranking else None
         hybrid = ranking["text_weight"] > 0 if ranking else self.hybrid
         return Choices(stack=self.stack, chunk_set_id=set_id_for(self.chunking_method, self.chunk_size, self.overlap), top_k=self.top_k, hybrid=hybrid, openai_ranking=ranking, rerank=self.rerank, answer_model=self.answer_model,
-                       prompt_name=self.prompt_name)
+                       prompt_name=self.prompt_name, per_doc_limit=self.per_doc_limit)
 
 
 class RunRequest(PanelSettings):

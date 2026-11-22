@@ -40,7 +40,8 @@ def ask(conn: sqlite3.Connection, choices: Choices, question: str, test: TestCas
     pipeline.check_budget(conn, assumed_cost(choices, prompt, question, test))
     with spend.recording(conn, None):
         done = pipeline.search_and_answer(question, choices.top_k, RERANK_CANDIDATES if choices.rerank else None,
-                                          choices.answer_model, prompt, paid_search(conn, choices.stack, retrieve))
+                                          choices.answer_model, prompt, paid_search(conn, choices.stack, retrieve),
+                                          choices.per_doc_limit)
         verdict, judge_calls = judge(test, [hit.text for hit in done.hits], done.reply.text) if test else (None, [])
     gold = set(test.source_docs) if test else set()
     return {"answer": done.reply.text, "stack": choices.stack, "latency_s": done.latency_s,

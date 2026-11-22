@@ -115,6 +115,7 @@ def test_the_same_runs_always_draw_the_same_sample(conn):
     (replace(META_A, hybrid=False), "hybrid"),
     (replace(META_A, openai_ranking={"ranker": "none"}), "ranking"),
     (replace(META_A, rerank_model="r", rerank_slug="r", rerank_candidates=20), "reranker"),
+    (replace(META_A, per_doc_limit=1), "chunks per document"),
     (replace(META_A, dataset_sha256="e" * 64), "dataset"),
     (replace(META_A, judge_slug="judge-old"), "judge"),
     (replace(META_A, split="heldout"), "split"),

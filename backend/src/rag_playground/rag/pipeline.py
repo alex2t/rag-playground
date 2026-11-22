@@ -17,6 +17,7 @@ from rag_playground.llm.models import model_info
 from rag_playground.llm.openrouter import ChatResult
 from rag_playground.rag import estimate, prompts, runs, spend
 from rag_playground.rag.answer import answer
+from rag_playground.rag.per_document import limit_per_document
 from rag_playground.rag.rerank import rerank
 from rag_playground.scoring.judging import judge
 from rag_playground.settings import JUDGE_MODEL, PARALLEL_QUESTIONS, RERANK_CANDIDATES, RERANK_MODEL, settings
@@ -36,7 +37,8 @@ def remaining(conn: sqlite3.Connection) -> float:
 
 @dataclass(frozen=True)
 class Choices:
-    """The settings the user picks for a run (T35, T40)."""
+    """The settings the user picks for a run (T35, T40); `per_doc_limit` is the chunks-per-document limit (T59),
+    None for no limit."""
 
     stack: str
     chunk_set_id: str
@@ -46,6 +48,7 @@ class Choices:
     rerank: bool
     answer_model: str
     prompt_name: str
+    per_doc_limit: int | None = None
 
 
 def build_meta(choices: Choices, prompt: prompts.PromptVersion, tests: list[TestCase]) -> runs.RunMeta:
@@ -69,7 +72,7 @@ def build_meta(choices: Choices, prompt: prompts.PromptVersion, tests: list[Test
         rerank_candidates=RERANK_CANDIDATES if choices.rerank else None,
         temperature_controlled=all(model_info(m).supports_temperature for m in used),
         prompt_name=prompt.name, prompt_sha256=prompt.sha256, dataset_sha256=dataset_sha256(),
-        app_version=settings.app_version)
+        app_version=settings.app_version, per_doc_limit=choices.per_doc_limit)
 
 
 @dataclass(frozen=True)
@@ -85,15 +88,17 @@ class Answered:
 
 
 def search_and_answer(question: str, top_k: int, rerank_candidates: int | None, answer_model: str,
-                      prompt: prompts.PromptVersion, retrieve: Retrieve) -> Answered:
-    """Search, rerank if `rerank_candidates` is set, and answer: one path for runs and for the Ask page, so both read
-    the same chunks."""
+                      prompt: prompts.PromptVersion, retrieve: Retrieve, per_doc_limit: int | None = None) -> Answered:
+    """Search, rerank if `rerank_candidates` is set or keep at most `per_doc_limit` chunks per document (T59), and
+    answer: one path for runs and for the Ask page, so both read the same chunks."""
     start = perf_counter()
     calls, repaired = [], None
     if rerank_candidates:
         reranked = rerank(question, retrieve(question, rerank_candidates), top_k)
         hits, repaired = reranked.hits, reranked.repaired
         calls += [reranked.result] if reranked.result else []
+    elif per_doc_limit:
+        hits = limit_per_document(retrieve(question, RERANK_CANDIDATES), top_k, per_doc_limit)
     else:
         hits = retrieve(question, top_k)
     reply = answer(answer_model, prompt, question, hits)
@@ -104,7 +109,7 @@ def run_question(test: TestCase, meta: runs.RunMeta, prompt: prompts.PromptVersi
     """Answer and judge one question. Latency covers what a user waits for (retrieval, rerank, answer), not the
     judge; cost covers every call, the judge included."""
     done = search_and_answer(test.question, meta.top_k, meta.rerank_candidates if meta.rerank_model else None,
-                             meta.answer_model, prompt, retrieve)
+                             meta.answer_model, prompt, retrieve, meta.per_doc_limit)
     verdict, judge_calls = judge(test, [hit.text for hit in done.hits], done.reply.text)
     cost = sum(call.cost_usd for call in [*done.calls, *judge_calls])
     return runs.Result(test_id=test.id, hits=done.hits, rerank_repaired=done.repaired, answer=done.reply.text,

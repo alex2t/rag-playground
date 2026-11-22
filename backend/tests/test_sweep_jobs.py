@@ -14,7 +14,7 @@ from rag_playground.sweep_requests import SweepRequest
 from test_ladder_step import DEV, finish, world  # noqa: F401  (world is a fixture)
 
 BASE = {"stack": "B", "chunking_method": "fixed", "chunk_size": 1024, "overlap": 200, "top_k": 2, "hybrid": False,
-        "rerank": False, "answer_model": "openai/gpt-4.1-nano", "prompt_name": "default"}
+        "rerank": False, "per_doc_limit": None, "answer_model": "openai/gpt-4.1-nano", "prompt_name": "default"}
 
 
 @pytest.fixture
