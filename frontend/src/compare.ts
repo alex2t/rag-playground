@@ -18,9 +18,9 @@ export function comparable(runs: RunSummary[]): RunSummary[] {
 
 /** A run's stored settings as the request that would repeat it; each stack keeps its own search settings (T40). */
 function requestOf({ stack, settings }: Side): PanelRequest {
-  const { chunking_method, chunk_size, overlap, top_k, rerank, answer_model, prompt_name, openai_ranking, hybrid } = settings
+  const { chunking_method, chunk_size, overlap, top_k, rerank, per_doc_limit, answer_model, prompt_name, openai_ranking, hybrid } = settings
   const search = stack === 'A' ? { openai_ranking: openai_ranking! } : { hybrid }
-  return { stack, chunking_method, chunk_size, overlap, top_k, rerank, answer_model, prompt_name, ...search }
+  return { stack, chunking_method, chunk_size, overlap, top_k, rerank, per_doc_limit, answer_model, prompt_name, ...search }
 }
 
 /** A run's stored settings in one line; each stack states its own search settings (T12, T40). */
@@ -35,7 +35,8 @@ export function settingFields(side: Side): [string, string][] {
   const request = requestOf(side)
   return [['Stack', request.stack], ['Chunking method', request.chunking_method], ['Chunk size', String(request.chunk_size)],
     ['Overlap', String(request.overlap)], ['Top-K', String(request.top_k)], ['Search', searchLine(request)],
-    ['Reranking', request.rerank ? 'on' : 'off'], ['Answer model', request.answer_model], ['Prompt', request.prompt_name]]
+    ['Reranking', request.rerank ? 'on' : 'off'], ['Chunks per document', request.per_doc_limit ? 'at most 1' : 'no limit'],
+    ['Answer model', request.answer_model], ['Prompt', request.prompt_name]]
 }
 
 /** The settings two runs do not share, so the page can say what changed between them. */

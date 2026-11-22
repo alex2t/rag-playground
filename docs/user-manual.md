@@ -32,6 +32,7 @@ Each stack runs independently: you set each one's search settings yourself. The 
 | **Chunking method** | `fixed` (plain cuts) or `llm_enriched` (an LLM writes a headline and a summary for each chunk, used for search only; answers read the original text). |
 | **Hybrid search** | Combines meaning-based search with keyword search. |
 | **Reranking** | Retrieves 20 chunks, lets an LLM reorder them, and keeps the best K. |
+| **One chunk per document** | Keeps at most one chunk of each document among the Top-K, taken from 20 retrieved chunks. |
 | **Answer model** | The language model that writes the answer: `gpt-4.1-nano` (cheapest), `gpt-4.1-mini`, `gpt-6.1-sol` (strongest). |
 | **System prompt** | The instructions given to the answer model. Saved as named versions that never change. |
 | **Judge** | A separate model that grades each answer against the reference answer. |
@@ -57,8 +58,9 @@ The **Ask**, **Evaluate** and **Sweep** pages share one settings panel:
    - Stack A: ranker (`auto` = OpenAI's own re-ranking, `none` = off), the semantic and keyword weights, and the score threshold.
    - Stack B: hybrid search on or off.
 5. **Reranking** on or off.
-6. **Answer model.**
-7. **System prompt version.**
+6. **One chunk per document** on or off: on, the stack fetches 20 chunks and keeps the best chunk of each document until it has Top-K, so questions needing two documents get both. No extra cost; not with reranking.
+7. **Answer model.**
+8. **System prompt version.**
 
 The panel opens with the last values you used on this browser, or with the S0 baseline the first time.
 

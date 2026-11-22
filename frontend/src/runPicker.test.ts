@@ -5,7 +5,7 @@ import { afterPool, LABELS, oneApart, options, pickedRun, settle, valuesOf } fro
 
 const SETTINGS: RunSettings = {
   chunking_method: 'fixed', chunk_size: 800, overlap: 156, chunk_set_id: 'x', top_k: 3, hybrid: false,
-  openai_ranking: null, rerank: false, answer_model: 'openai/nano', prompt_name: 'default', temperature_controlled: true,
+  openai_ranking: null, rerank: false, per_doc_limit: null, answer_model: 'openai/nano', prompt_name: 'default', temperature_controlled: true,
 }
 const RANKING = { ranker: 'auto' as const, embedding_weight: 1, text_weight: 1, score_threshold: 0 }
 const run = (id: number, settings: Partial<RunSettings>, extra: Partial<RunSummary> = {}): RunSummary => ({
@@ -20,8 +20,8 @@ test('a run gives a value for every dropdown, in dropdown order', () => {
   assert.deepEqual(Object.keys(values), LABELS)
   assert.deepEqual(values, {
     Stack: 'A', 'Question set': 'dev (192 questions)', 'Chunking method': 'fixed', 'Chunk size': '800', Overlap: '156',
-    'Top-K': '3', Search: 'OpenAI ranker on, weights 1:1, threshold 0', Reranking: 'off', 'Answer model': 'openai/nano',
-    Prompt: 'default',
+    'Top-K': '3', Search: 'OpenAI ranker on, weights 1:1, threshold 0', Reranking: 'off',
+    'Chunks per document': 'no limit', 'Answer model': 'openai/nano', Prompt: 'default',
   })
   assert.equal(valuesOf(run(2, {}, { split: 'heldout', questions: 48 }))['Question set'], 'held-out (48 questions)')
 })
@@ -98,4 +98,13 @@ test('runs one setting apart: exactly one difference, same question set, oldest 
     run(15, { prompt_name: 'strict' }),                // no difference
   ]
   assert.deepEqual(oneApart(runs, chosen).map(({ run, label }) => [run.id, label]), [[35, 'Top-K'], [28, 'Prompt']])
+})
+
+test('runs differing only in chunks per document are told apart, and are one setting apart (T59)', () => {
+  const plain = run(5, {})
+  const limited = run(8, { per_doc_limit: 1 })
+  const runs = [plain, limited]
+  assert.deepEqual(options(runs, settle(runs, {}), 'Chunks per document'), ['at most 1', 'no limit'])
+  assert.equal(pickedRun(runs, settle(runs, { 'Chunks per document': 'at most 1' }))!.run, limited)
+  assert.deepEqual(oneApart(runs, plain).map(({ run, label }) => [run.id, label]), [[8, 'Chunks per document']])
 })

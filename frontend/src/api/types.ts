@@ -84,6 +84,7 @@ export type PanelOptions = {
     overlap: number
     top_k: number
     rerank: boolean
+    per_doc_limit: number | null
     answer_model: string
     openai_ranking: OpenAIRanking
     hybrid: boolean
@@ -133,6 +134,7 @@ export type RunSettings = {
   hybrid: boolean
   openai_ranking: OpenAIRanking | null
   rerank: boolean
+  per_doc_limit: number | null
   answer_model: string
   prompt_name: string
   temperature_controlled: boolean

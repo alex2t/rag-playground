@@ -6,14 +6,14 @@ import type { PanelValues } from './panel.ts'
 
 const SETTINGS: RunSettings = {
   chunking_method: 'llm_enriched', chunk_size: 800, overlap: 200, chunk_set_id: 'x', top_k: 4, hybrid: true,
-  openai_ranking: null, rerank: true, answer_model: 'openai/sol', prompt_name: 'mine', temperature_controlled: true,
+  openai_ranking: null, rerank: true, per_doc_limit: null, answer_model: 'openai/sol', prompt_name: 'mine', temperature_controlled: true,
 }
 const RUN: RunSummary = {
   id: 7, created_at: '2026-11-01 10:00:00', status: 'done', error: null, stack: 'B', split: 'dev', questions: 192, full: true,
   done: 192, job_id: null, job_status: null, settings: SETTINGS,
 }
 const BASE: PanelValues = {
-  stacks: 'both', chunking_method: 'fixed', chunk_size: 1024, overlap: 100, top_k: 2, rerank: false, answer_model: 'openai/nano',
+  stacks: 'both', chunking_method: 'fixed', chunk_size: 1024, overlap: 100, top_k: 2, rerank: false, per_doc_limit: null, answer_model: 'openai/nano',
   prompt_name: 'default', hybrid: false, openai_ranking: { ranker: 'auto', embedding_weight: 1, text_weight: 1, score_threshold: 0 },
 }
 const SCORES: RunScores = {
@@ -185,4 +185,13 @@ test('a linked run id is a positive whole number, anything else is none', () => 
   assert.equal(linkedRunId('2.5'), null)
   assert.equal(linkedRunId('-3'), null)
   assert.equal(linkedRunId('25x'), null)
+})
+
+test('a run with one chunk per document says so in its short line, and repeating it keeps the limit (T59)', () => {
+  const limited = { ...SETTINGS, per_doc_limit: 1 }
+  assert.match(settingsShort(limited), /one per document/)
+  assert.doesNotMatch(settingsShort(SETTINGS), /per document/)
+  const run = { stack: 'B' as const, settings: limited }
+  assert.equal(valuesOfRun(run, BASE).per_doc_limit, 1)
+  assert.equal(valuesOfRun({ stack: 'B' as const, settings: SETTINGS }, { ...BASE, per_doc_limit: 1 }).per_doc_limit, null)
 })

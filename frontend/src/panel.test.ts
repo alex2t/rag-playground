@@ -10,7 +10,7 @@ const OPTIONS: PanelOptions = {
   max_top_k: 8,
   answer_models: ['openai/nano', 'openai/sol'],
   start: {
-    chunking_method: 'fixed', chunk_size: 1024, overlap: 200, top_k: 2, rerank: false, answer_model: 'openai/nano',
+    chunking_method: 'fixed', chunk_size: 1024, overlap: 200, top_k: 2, rerank: false, per_doc_limit: null, answer_model: 'openai/nano',
     openai_ranking: { ranker: 'auto', embedding_weight: 1, text_weight: 1, score_threshold: 0 }, hybrid: false,
   },
 }
@@ -118,4 +118,27 @@ test('a linked prompt is chosen only if that version exists, and nothing else ch
   assert.deepEqual(withPrompt(values, 'strict', ['default', 'strict']), { ...values, prompt_name: 'strict' })
   assert.deepEqual(withPrompt(values, 'gone', ['default', 'strict']), values)
   assert.deepEqual(withPrompt(values, '', ['default', 'strict']), values)
+})
+
+test('one chunk per document is sent as 1, and no limit as null, to either stack (T59)', () => {
+  assert.equal(requestFor(START, 'B').per_doc_limit, null)
+  assert.equal(requestFor({ ...START, per_doc_limit: 1 }, 'A').per_doc_limit, 1)
+  assert.equal(requestFor({ ...START, per_doc_limit: 1 }, 'B').per_doc_limit, 1)
+})
+
+test('one chunk per document cannot be sent with reranking on, nor any other limit', () => {
+  assert.equal(panelProblem({ ...START, per_doc_limit: 1 }, OPTIONS), null)
+  assert.match(panelProblem({ ...START, per_doc_limit: 1, rerank: true }, OPTIONS)!, /Turn reranking off/)
+  assert.match(panelProblem({ ...START, per_doc_limit: 2 }, OPTIONS)!, /no limit or 1/)
+})
+
+test('a result states one chunk per document only when it was on', () => {
+  assert.match(settingsLine(requestFor({ ...START, per_doc_limit: 1 }, 'B')), /no reranking, one chunk per document, openai\/nano/)
+  assert.doesNotMatch(settingsLine(requestFor(START, 'B')), /per document/)
+})
+
+test('settings saved before the limit existed restore as no limit, and a saved bad limit falls back to the start', () => {
+  assert.equal(restoredValues('{"chunk_size":800}', OPTIONS, ['default']).per_doc_limit, null)
+  assert.equal(restoredValues('{"per_doc_limit":1}', OPTIONS, ['default']).per_doc_limit, 1)
+  assert.deepEqual(restoredValues('{"chunk_size":800,"per_doc_limit":3}', OPTIONS, ['default']), START)
 })

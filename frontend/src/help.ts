@@ -22,6 +22,10 @@ export const HELP = {
   rerank: 'The stack first fetches 20 candidate chunks. A model then reads them all together with the question and puts '
     + 'them in order of usefulness, and the best Top-K are kept. Why: search scores the question and each chunk apart, '
     + 'while a model reading both at once often judges better which chunk answers. It costs one more model call per question and takes longer.',
+  perDocument: 'Off: the Top-K best chunks are kept, even when several come from one document. On: the stack fetches 20 '
+    + 'candidate chunks and keeps the best chunk of each document until it has Top-K, so the answer model sees more '
+    + 'documents. Why: a question that needs two documents often gets chunks of one only. A question needing two chunks of '
+    + 'the same document can lose one. No extra cost. Not with reranking.',
   answerModel: 'The model that writes the answer from the chunks it is given, called through OpenRouter. Larger models cost '
     + 'more per question. Temperature is set to 0 where the model accepts it, so answers vary as little as possible.',
   prompt: 'The instructions given to the answer model before the chunks and the question, for example to answer only from '

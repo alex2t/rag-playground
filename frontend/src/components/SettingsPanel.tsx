@@ -103,6 +103,8 @@ export default function SettingsPanel({ values, options, promptNames, built, onC
       <div className="space-y-3 border-t border-line pt-3">
         {stacks.includes('B') && <Switch label="Stack B hybrid search" info={HELP.hybrid} on={values.hybrid} onChange={(hybrid) => change({ hybrid })} />}
         <Switch label="Reranking" info={HELP.rerank} on={values.rerank} onChange={(rerank) => change({ rerank })} />
+        <Switch label="One chunk per document" info={HELP.perDocument} on={values.per_doc_limit === 1}
+          onChange={(on) => change({ per_doc_limit: on ? 1 : null })} />
       </div>
       <Field label="Answer model" info={HELP.answerModel}>
         {(id) => (
