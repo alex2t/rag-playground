@@ -529,6 +529,7 @@ Build in this order: **Story → Ask → Evaluate → Compare**, then Build, Swe
 - **Passed 2026-11-09 (increment 6):** from the dev PC, 6333, 6334 and 8000 time out (22 answers, so the test reached the server). Forced error, free: the S0 chunk file `fixed__c1024__o200.jsonl` renamed in the app container, `GET /api/runs/1/report` gave 500 (`FileNotFoundError`, unhandled), the file renamed back, the report 200 again. Request `bd8f8ab8b75841b0b27a2271ff078955`: `docker logs` holds the `server error` line with its trace and the request line with status 500 (same id); `errors.log` holds the same `server error` line. uvicorn also prints its own plain-text copy of the trace (D37 kept its error messages). **Step 12 done.** Backup log read 2026-11-22: a copy every night at 03:00 UTC (72,859,648 bytes on 2026-11-20 to 22), each night deleting the copy 7 days older.
 
 ### Step 13 - Experiments
+- **Status (2026-11-22): done.** Ladder S0-S7 on both stacks (runs up to 47, on prod); exploratory runs: one chunk per document (T59, does not help), split the question (T60, real dev gains: Stack A +0.16, Stack B at K=5 +0.24); held-out confirmation runs 49 and 60-64: no real difference on 48 questions (T60). Reranker result and cause under T21. Gate failures: runs 8 (MRR, recall), 9 and 36 (recall), all options not kept; budget left on prod $34.95 (2026-11-22).
 - Run the ladder and sweeps on both stacks (dev), then the held-out confirmation.
 - **Check:** all runs pass smoke tests, and spend stays within budget.
 
