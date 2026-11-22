@@ -342,3 +342,17 @@ Antigravity's review confirmed 5 of 6 findings:
 
 **Lesson:** test a set-up on the real layout it will run in. Both bugs passed a local test that differed from the server in one small way: an image already downloaded, and a simpler web server configuration.
 
+## 23. Step 13: the reranker that made things worse (2026-11-22)
+
+**What we were doing:** reading the finished ladder. Step S5 adds a reranker: a small language model reads the 20 chunks search found and puts the most useful first, and the top few go to the answer model.
+
+**What went wrong:** the reranker lowered every retrieval and answer score on both stacks. The right document came first on 138 questions instead of 168 on Stack B.
+
+**First guess:** a bug. About one ranking in four came back broken (numbers missing or repeated) and had to be completed by our code, so the completion looked like the culprit. Splitting the questions proved it was not the main cause: the rankings the model returned whole lost the right document too.
+
+**Proven cause:** a small script asked the model again on five lost questions and printed its raw reply. Our code followed the model's order exactly; the model's order was poor. Once it returned the list almost backwards, putting the three right chunks last; once it returned 30 numbers for 20 passages.
+
+**Decision:** recorded as it is. The honest finding is narrow: this small model cannot rank 20 passages, which says nothing about reranking in general.
+
+**Lesson:** before reporting that a technique fails, check that it ran as intended. Here it did, so the result stands, but only for the model that was tried.
+
